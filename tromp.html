@@ -1,0 +1,2444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tromp Diagrams</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+  :root {
+    --bg:#0a0a12; --surface:#10101a; --border:#252535;
+    --text:#e8e8f0; --muted:#555570; --accent:#a0e0ff;
+    --danger:#f08080;
+    --dur: 800ms;
+    --ease: cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'IBM Plex Mono',monospace; font-weight:300;
+    min-height:100vh; padding:32px 20px; }
+  .app { display:flex; gap:22px; max-width:1340px; margin:0 auto; align-items:flex-start; }
+  .main { flex:1; min-width:0; display:flex; flex-direction:column; gap:14px; }
+  h1 { font-size:0.95rem; letter-spacing:.18em; color:var(--accent); text-transform:uppercase; margin-bottom:4px; }
+  .sub { font-size:0.72rem; color:var(--muted); }
+  .ir { display:flex; gap:8px; }
+  input[type=text], textarea {
+    background:var(--surface); border:1px solid var(--border); color:var(--text);
+    font-family:inherit; font-size:0.88rem; padding:10px 13px; outline:none; transition:border-color .2s;
+  }
+  input[type=text]:focus, textarea:focus { border-color:var(--accent); }
+  input[type=text].invalid { border-color: var(--danger); }
+  #expr { flex:1; }
+
+  /* Autocomplete dropdown */
+  .autocomplete-wrap { position:relative; flex:1; }
+  .autocomplete-list {
+    position:absolute; top:100%; left:0; right:0;
+    background:var(--surface); border:1px solid var(--border);
+    border-top:none;
+    max-height:240px; overflow-y:auto;
+    z-index:100;
+    display:none;
+  }
+  .autocomplete-list.open { display:block; }
+  .autocomplete-item {
+    padding:8px 13px;
+    cursor:pointer;
+    font-size:0.82rem;
+    display:flex; gap:10px; align-items:center;
+    border-bottom:1px solid #181820;
+  }
+  .autocomplete-item:last-child { border-bottom:none; }
+  .autocomplete-item:hover, .autocomplete-item.selected {
+    background:#1a1a25;
+  }
+  .autocomplete-name { color:var(--accent); font-weight:500; min-width:60px; }
+  .autocomplete-expr { color:var(--muted); font-size:0.72rem;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .input-error {
+    font-size:0.7rem; color:var(--danger); margin-top:4px; min-height:1em;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .input-error.suggestion { color:#f0c060; }
+  .btn { background:var(--accent); color:#0a0a12; border:none; font-family:inherit; font-size:0.72rem;
+    font-weight:500; letter-spacing:.12em; padding:10px 16px; cursor:pointer; text-transform:uppercase;
+    transition: opacity .15s; }
+  .btn:hover { opacity:.85; }
+  .btn:disabled { opacity:0.3; cursor:not-allowed; }
+  .btn-sec { background:transparent; border:1px solid var(--border); color:var(--text); }
+  .btn-sec:hover { border-color:var(--accent); color:var(--accent); opacity:1; }
+  .btn-toggle { background:transparent; border:1px solid var(--border); color:var(--muted); }
+  .btn-toggle.active { background:var(--accent); color:#0a0a12; border-color:var(--accent); }
+  .exs { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+  .exl { font-size:0.68rem; color:var(--muted); }
+  .ex { background:transparent; border:1px solid var(--border); color:var(--muted); font-family:inherit;
+    font-size:0.68rem; padding:3px 8px; cursor:pointer; transition:color .15s,border-color .15s; }
+  .ex:hover { color:var(--accent); border-color:var(--accent); }
+  .ctrls { display:flex; align-items:center; gap:16px; flex-wrap:wrap; font-size:0.7rem; color:var(--muted); }
+  .scr { display:flex; align-items:center; gap:8px; }
+  input[type=range] { accent-color:var(--accent); width:100px; }
+  select { background:var(--surface); border:1px solid var(--border); color:var(--text);
+    font-family:inherit; font-size:0.72rem; padding:6px 10px; outline:none; }
+  .reduce-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .status { font-size:0.7rem; color:var(--muted); margin-left:auto; }
+  .status.nf { color:#80e0a0; }
+  .status.max { color:#f0c060; }
+  .status.running { color:var(--accent); }
+  .code-display { font-size:0.92rem; padding:14px 18px;
+    background:var(--surface); border:1px solid var(--border); letter-spacing:.02em;
+    overflow-x:auto; white-space:nowrap; }
+  .dw {
+    background:var(--surface); border:1px solid var(--border);
+    padding:28px; min-height:160px; display:flex; align-items:center; justify-content:center; overflow:hidden;
+    position:relative;
+    user-select:none;
+  }
+  .dw.panning { cursor: grabbing; }
+  .dw:not(.panning) { cursor: grab; }
+  .dw svg { transition: width var(--dur) var(--ease), height var(--dur) var(--ease); }
+  .dw svg line { transition: opacity var(--dur) var(--ease), stroke 200ms linear; }
+  .dw svg line.highlighted { stroke: #ff8060 !important; filter: drop-shadow(0 0 3px #ff8060); }
+  .dw svg .redex-zone {
+    fill: transparent;
+    cursor: pointer;
+    transition: fill 150ms;
+  }
+  .dw svg .redex-zone:hover {
+    fill: rgba(255, 128, 96, 0.08);
+  }
+  .zoom-controls {
+    position:absolute; bottom:8px; right:8px;
+    display:flex; gap:4px;
+    background:var(--surface); border:1px solid var(--border); padding:3px;
+    z-index:10;
+    font-size:0.7rem;
+  }
+  .zoom-btn {
+    background:transparent; border:none; color:var(--muted);
+    width:24px; height:24px; cursor:pointer;
+    font-size:0.95rem; line-height:1;
+    transition: color .15s;
+  }
+  .zoom-btn:hover { color:var(--accent); }
+  .zoom-level {
+    color:var(--muted); padding:0 6px; align-self:center;
+    min-width:40px; text-align:center;
+  }
+  .fs-btn {
+    position:absolute; top:8px; right:8px;
+    background:var(--surface); border:1px solid var(--border); color:var(--muted);
+    width:28px; height:28px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.9rem; line-height:1;
+    transition: color .15s, border-color .15s;
+    z-index:10;
+  }
+  .fs-btn:hover { color:var(--accent); border-color:var(--accent); }
+  .dw.fullscreen {
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    z-index:1000; padding:60px;
+    min-height:100vh; max-height:100vh;
+    border:none;
+  }
+  .dw.fullscreen .fs-btn { top:16px; right:16px; }
+
+  /* Presentation mode: hides everything except diagram + code */
+  body.presentation {
+    padding:0;
+    overflow:hidden;
+  }
+  body.presentation .app > .sidebar,
+  body.presentation .main > header,
+  body.presentation .main > .ir,
+  body.presentation .main > .input-error,
+  body.presentation .main > .exs,
+  body.presentation .main > .ctrls,
+  body.presentation .main > .reduce-bar,
+  body.presentation .main > .info {
+    display:none !important;
+  }
+  body.presentation .app {
+    flex-direction:column; gap:0; max-width:none; padding:0; margin:0;
+    height:100vh;
+  }
+  body.presentation .main {
+    flex:1; height:100vh; padding:60px 80px;
+    display:flex; flex-direction:column; justify-content:center; gap:20px;
+  }
+  body.presentation .code-display {
+    text-align:center; font-size:1.4rem; padding:18px;
+    background:transparent; border:none;
+  }
+  body.presentation .dw {
+    flex:1; padding:0; border:none; background:transparent;
+    min-height:0;
+    display:block; /* override flex centering so transform works correctly */
+    position:relative;
+  }
+  body.presentation .dw svg {
+    position:absolute;
+    top:0; left:0;
+    transform-origin: 0 0;
+  }
+  body.presentation .fs-btn,
+  body.presentation .zoom-controls { display:none; }
+  body.presentation .presentation-hud {
+    display:flex !important;
+  }
+  .presentation-hud {
+    display:none;
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:rgba(16, 16, 26, 0.85);
+    border:1px solid var(--border);
+    padding:10px 20px;
+    font-size:0.7rem; color:var(--muted);
+    gap:18px; align-items:center;
+    border-radius:3px;
+    z-index:2000;
+    backdrop-filter: blur(8px);
+  }
+  .presentation-hud kbd {
+    background:#0a0a12; border:1px solid var(--border);
+    padding:2px 6px; border-radius:2px;
+    font-family:'IBM Plex Mono',monospace; font-size:0.65rem;
+    color:var(--accent);
+  }
+  .err { color:var(--danger); font-size:0.82rem; }
+  .info { font-size:0.67rem; color:var(--muted); line-height:1.9; }
+
+  /* ── Sidebar ─────────────────────────────────────── */
+  .sidebar {
+    width:340px; flex-shrink:0;
+    background:var(--surface); border:1px solid var(--border);
+    padding:18px 16px;
+    max-height:calc(100vh - 64px);
+    overflow-y:auto;
+    position:sticky; top:32px;
+    font-size:0.8rem;
+  }
+  .sidebar::-webkit-scrollbar { width:6px; }
+  .sidebar::-webkit-scrollbar-thumb { background:var(--border); }
+  .sb-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .sb-title { font-size:0.78rem; letter-spacing:.15em; color:var(--accent); text-transform:uppercase; }
+  .sb-filter { width:100%; padding:7px 10px; font-size:0.78rem; margin-bottom:14px; }
+
+  .def-cat { margin-bottom:18px; }
+  .def-cat h3 {
+    font-size:0.65rem; letter-spacing:.15em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:8px; font-weight:400;
+  }
+  .def-list { display:flex; flex-direction:column; gap:2px; }
+  .def-entry {
+    display:flex; align-items:center; gap:8px;
+    padding:6px 8px; border-radius:3px;
+    cursor:pointer; transition:background .12s;
+    position:relative;
+  }
+  .def-entry:hover { background:#1a1a25; }
+  .def-name {
+    color:var(--accent); font-weight:500; font-size:0.78rem;
+    min-width:54px;
+  }
+  .def-expr {
+    color:var(--muted); font-size:0.72rem;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    flex:1;
+  }
+  .def-actions {
+    display:none; gap:4px;
+  }
+  .def-entry.user:hover .def-actions { display:flex; }
+  .def-entry.user:hover .def-expr { display:none; }
+  .def-act-btn {
+    background:transparent; border:1px solid var(--border); color:var(--muted);
+    font-family:inherit; font-size:0.6rem;
+    padding:2px 6px; cursor:pointer; border-radius:2px;
+    letter-spacing:.05em;
+  }
+  .def-act-btn:hover { color:var(--accent); border-color:var(--accent); }
+  .def-act-btn.del:hover { color:var(--danger); border-color:var(--danger); }
+
+  .add-def-form {
+    display:flex; flex-direction:column; gap:6px;
+    padding:10px; background:#0d0d15; border:1px dashed var(--border);
+    border-radius:3px; margin-top:6px;
+  }
+  .add-def-form input {
+    padding:7px 10px; font-size:0.76rem;
+  }
+  .add-def-form .row { display:flex; gap:6px; }
+  .add-def-form .btn { padding:7px 12px; font-size:0.66rem; flex:1; }
+  .add-def-form .err-msg { color:var(--danger); font-size:0.68rem; min-height:1em; }
+
+  .user-empty {
+    font-size:0.7rem; color:var(--muted); font-style:italic;
+    padding:6px 8px;
+  }
+
+  @media (max-width: 1100px) {
+    .app { flex-direction:column; align-items:stretch; }
+    .sidebar { width:100%; position:static; max-height:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<div class="main">
+  <header>
+    <h1>Tromp Diagrams</h1>
+    <div class="sub">lambda calculus — visualization, β-reduction, definitions</div>
+  </header>
+
+  <div class="ir">
+    <div class="autocomplete-wrap">
+      <input type="text" id="expr" value="plus 1 2" autocomplete="off" />
+      <div class="autocomplete-list" id="acList"></div>
+    </div>
+    <button class="btn" onclick="draw()">Draw</button>
+  </div>
+  <div class="input-error" id="inputError"></div>
+  <div class="exs">
+    <span class="exl">try:</span>
+    <button class="ex" onclick="load('I')">I</button>
+    <button class="ex" onclick="load('K a b')">K a b</button>
+    <button class="ex" onclick="load('S K K x')">SKK x</button>
+    <button class="ex" onclick="load('not true')">not true</button>
+    <button class="ex" onclick="load('and true false')">and</button>
+    <button class="ex" onclick="load('plus 1 2')">1 + 2</button>
+    <button class="ex" onclick="load('mult 2 3')">2 × 3</button>
+    <button class="ex" onclick="load('pow 2 3')">2 ^ 3</button>
+    <button class="ex" onclick="load('succ 4')">succ 4</button>
+    <button class="ex" onclick="load('pred 3')">pred 3</button>
+    <button class="ex" onclick="load('iszero 0')">iszero 0</button>
+    <button class="ex" onclick="load('fst (pair a b)')">fst pair</button>
+    <button class="ex" onclick="load('Y')">Y</button>
+    <button class="ex" onclick="load('omega')">Ω</button>
+  </div>
+
+  <div class="ctrls">
+    <div class="scr">
+      <span>scale:</span>
+      <input type="range" id="sc" min="2" max="24" value="8" oninput="setScale(this.value)">
+      <span id="scv">8px</span>
+    </div>
+    <div class="scr">
+      <span>speed:</span>
+      <input type="range" id="speed" min="1" max="20" value="9" oninput="setSpeed(this.value)">
+      <span id="speedv">1.0x</span>
+    </div>
+    <button class="btn btn-toggle" id="colorBtn" onclick="toggleColor()">Color: OFF</button>
+    <button class="btn btn-toggle active" id="animBtn" onclick="toggleAnim()">Anim: ON</button>
+  </div>
+
+  <div class="reduce-bar">
+    <span style="font-size:0.7rem;color:var(--muted);">strategy:</span>
+    <select id="strat" onchange="onStrategyChange()">
+      <option value="normal">normal order</option>
+      <option value="applicative">applicative</option>
+      <option value="cbn">call-by-name</option>
+      <option value="cbv">call-by-value</option>
+    </select>
+    <button class="btn btn-sec" onclick="stepBack()" id="backBtn" title="Undo last step">◀ Back</button>
+    <button class="btn btn-sec" onclick="step()">Step ▶</button>
+    <button class="btn btn-sec" onclick="run()" id="runBtn">Run</button>
+    <button class="btn btn-sec" onclick="pauseRun()" id="pauseBtn" style="display:none">Pause</button>
+    <button class="btn btn-sec" onclick="reset()">Reset</button>
+    <span class="status" id="status">step 0</span>
+  </div>
+
+  <div class="ctrls" style="margin-top:-4px;">
+    <div class="scr">
+      <span>max steps:</span>
+      <input type="text" id="maxSteps" value="1000" style="width:80px; padding:6px 8px; font-size:0.72rem;" />
+      <span style="font-size:0.65rem;">(blank or 0 = unlimited)</span>
+    </div>
+    <button class="btn btn-toggle" id="blcBtn" onclick="toggleBLC()">BLC: OFF</button>
+    <button class="btn btn-toggle" id="dbBtn" onclick="toggleDB()">De Bruijn: OFF</button>
+    <button class="btn btn-toggle" id="recogBtn" onclick="toggleRecog()">Recognize: OFF</button>
+    <button class="btn btn-sec" onclick="exportPNG()" title="Export current diagram as PNG">PNG</button>
+    <button class="btn btn-sec" id="recordBtn" onclick="toggleRecording()" title="Record diagram during reduction">● Rec</button>
+    <button class="btn btn-sec" onclick="enterPresentation()" title="Presentation mode (keyboard nav)">▶ Present</button>
+  </div>
+
+  <div class="code-display" id="code"></div>
+  <div class="code-display" id="recogResult" style="display:none; font-size:0.78rem; color:#80e0a0; word-break:break-all;"></div>
+  <div class="code-display" id="db" style="display:none; font-size:0.85rem; word-break:break-all;"></div>
+  <div class="code-display" id="blc" style="display:none; font-size:0.78rem; color:var(--muted); word-break:break-all; white-space:pre-wrap;"></div>
+
+  <div class="dw" id="out">
+    <button class="fs-btn" id="fsBtn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoomBy(0.8)" title="Zoom out">−</button>
+      <span class="zoom-level" id="zoomLevel">100%</span>
+      <button class="zoom-btn" onclick="zoomBy(1.25)" title="Zoom in">+</button>
+      <button class="zoom-btn" onclick="resetView()" title="Reset view">⊙</button>
+    </div>
+    <svg id="diagramSVG" xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+      <rect id="svgBg" width="100%" height="100%" fill="#0a0a12"/>
+      <g id="viewport">
+        <g id="segs"></g>
+        <g id="redexZones"></g>
+      </g>
+    </svg>
+  </div>
+
+  <div class="info">
+    names in the sidebar and digit literals (0, 1, 2, ...) are auto-expanded · lambda-bound variables shadow definitions · user definitions are saved locally
+  </div>
+</div>
+
+<aside class="sidebar">
+  <div class="sb-header">
+    <span class="sb-title">Definitions</span>
+    <div style="display:flex; gap:4px;">
+      <button class="btn btn-sec" style="font-size:0.6rem; padding:4px 8px;" onclick="exportUserDefs()" title="Download user definitions as JSON">Export</button>
+      <button class="btn btn-sec" style="font-size:0.6rem; padding:4px 8px;" onclick="document.getElementById('importFile').click()" title="Import definitions from JSON">Import</button>
+      <button class="btn btn-sec" style="font-size:0.6rem; padding:4px 8px;" onclick="resetUserDefs()" title="Delete all user definitions">Clear</button>
+    </div>
+  </div>
+  <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importUserDefs(event)" />
+  <input type="text" class="sb-filter" id="filter" placeholder="filter..." oninput="renderSidebar()" />
+
+  <div id="catList"></div>
+
+  <div class="def-cat" id="userCatsContainer"></div>
+
+  <div class="def-cat">
+    <h3>+ Add new</h3>
+    <div class="add-def-form">
+      <input type="text" id="newName" placeholder="name (e.g. flip)" />
+      <input type="text" id="newExpr" placeholder="expression (e.g. \f. \x. \y. f y x)" />
+      <input type="text" id="newCat" placeholder="category (default: User)" list="catOptions" />
+      <datalist id="catOptions"></datalist>
+      <div class="row">
+        <button class="btn" onclick="addUserDef()">Save</button>
+      </div>
+      <div class="err-msg" id="addErr"></div>
+    </div>
+  </div>
+</aside>
+
+</div>
+
+<div class="presentation-hud" id="presHud">
+  <span><kbd>Space</kbd>/<kbd>→</kbd> step</span>
+  <span><kbd>←</kbd> back</span>
+  <span><kbd>R</kbd> run</span>
+  <span><kbd>P</kbd> pause</span>
+  <span><kbd>0</kbd> reset</span>
+  <span><kbd>F</kbd> fit</span>
+  <span><kbd>Esc</kbd> exit</span>
+  <span style="color:var(--accent);" id="presStatus">step 0</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// BUILT-IN DEFINITIONS
+// ═══════════════════════════════════════
+const BUILTIN_DEFS = {
+  // Combinators
+  'I':     '\\x. x',
+  'K':     '\\x. \\y. x',
+  'S':     '\\x. \\y. \\z. x z (y z)',
+  'B':     '\\f. \\g. \\x. f (g x)',
+  'C':     '\\f. \\x. \\y. f y x',
+  'W':     '\\f. \\x. f x x',
+  'Y':     '\\f. (\\x. f (x x)) (\\x. f (x x))',
+  'Z':     '\\f. (\\x. f (\\v. x x v)) (\\x. f (\\v. x x v))',
+  'omega': '(\\x. x x) (\\x. x x)',
+  'id':    '\\x. x',
+
+  // Booleans
+  'true':  '\\x. \\y. x',
+  'false': '\\x. \\y. y',
+  'not':   '\\b. b false true',
+  'and':   '\\p. \\q. p q p',
+  'or':    '\\p. \\q. p p q',
+  'xor':   '\\p. \\q. p (not q) q',
+  'if':    '\\p. \\a. \\b. p a b',
+
+  // Pairs
+  'pair':  '\\x. \\y. \\f. f x y',
+  'fst':   '\\p. p true',
+  'snd':   '\\p. p false',
+
+  // Naturals
+  'succ':   '\\n. \\f. \\x. f (n f x)',
+  'plus':   '\\m. \\n. \\f. \\x. m f (n f x)',
+  'mult':   '\\m. \\n. \\f. m (n f)',
+  'pow':    '\\m. \\n. n m',
+  'pred':   '\\n. \\f. \\x. n (\\g. \\h. h (g f)) (\\u. x) (\\u. u)',
+  'sub':    '\\m. \\n. n pred m',
+  'iszero': '\\n. n (\\x. false) true',
+  'leq':    '\\m. \\n. iszero (sub m n)',
+  'eq':     '\\m. \\n. and (leq m n) (leq n m)',
+};
+
+const CATEGORIES = [
+  ['Combinators', ['I', 'K', 'S', 'B', 'C', 'W', 'Y', 'Z', 'omega', 'id']],
+  ['Booleans',    ['true', 'false', 'not', 'and', 'or', 'xor', 'if']],
+  ['Pairs',       ['pair', 'fst', 'snd']],
+  ['Naturals',    ['succ', 'plus', 'mult', 'pow', 'pred', 'sub', 'iszero', 'leq', 'eq']],
+];
+
+// ═══════════════════════════════════════
+// STORAGE (with in-memory fallback)
+// ═══════════════════════════════════════
+const STORAGE_KEY = 'tromp_diagram_user_defs';
+let memoryDefs = {};
+
+function loadUserDefs() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    // Migration: old format was {name: "expr"}, new is {name: {expr, category}}
+    const migrated = {};
+    for (const [name, val] of Object.entries(parsed)) {
+      if (typeof val === 'string') {
+        migrated[name] = { expr: val, category: 'User' };
+      } else if (val && typeof val.expr === 'string') {
+        migrated[name] = { expr: val.expr, category: val.category || 'User' };
+      }
+    }
+    return migrated;
+  } catch {
+    return { ...memoryDefs };
+  }
+}
+
+function saveUserDefs(defs) {
+  memoryDefs = { ...defs };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(defs));
+  } catch {}
+}
+
+let userDefs = loadUserDefs();
+
+// Helper: get just the expression (for use in elaboration / parsing)
+function userDefExpr(name) {
+  const v = userDefs[name];
+  return v ? v.expr : undefined;
+}
+
+function userDefCategory(name) {
+  const v = userDefs[name];
+  return v ? (v.category || 'User') : 'User';
+}
+
+function allDefs() {
+  // Return a flat {name: expr-string} for use in elaboration
+  const out = { ...BUILTIN_DEFS };
+  for (const [name, val] of Object.entries(userDefs)) {
+    out[name] = val.expr;
+  }
+  return out;
+}
+
+// All categories present (builtins + user)
+function allUserCategories() {
+  const cats = new Set();
+  for (const val of Object.values(userDefs)) {
+    cats.add(val.category || 'User');
+  }
+  return Array.from(cats).sort();
+}
+
+// ═══════════════════════════════════════
+// NODE IDs
+// ═══════════════════════════════════════
+let idCounter = 0;
+function nextId() { return ++idCounter; }
+
+function mkVar(v)  { return { t: 'var', v, id: nextId() }; }
+function mkLam(v,b){ return { t: 'lam', v, b, id: nextId() }; }
+function mkApp(f,a){ return { t: 'app', f, a, id: nextId() }; }
+
+let substOriginMap = null;
+
+function cloneFresh(n) {
+  if (n.t === 'var') {
+    const newId = nextId();
+    if (substOriginMap) substOriginMap[newId] = n.id;
+    return { t: 'var', v: n.v, id: newId };
+  }
+  if (n.t === 'lam') {
+    const newId = nextId();
+    if (substOriginMap) substOriginMap[newId] = n.id;
+    return { t: 'lam', v: n.v, b: cloneFresh(n.b), id: newId };
+  }
+  const newId = nextId();
+  if (substOriginMap) substOriginMap[newId] = n.id;
+  return { t: 'app', f: cloneFresh(n.f), a: cloneFresh(n.a), id: newId };
+}
+
+function cloneKeep(n) {
+  if (n.t === 'var') return { t: 'var', v: n.v, id: n.id };
+  if (n.t === 'lam') return { t: 'lam', v: n.v, b: cloneKeep(n.b), id: n.id };
+  return { t: 'app', f: cloneKeep(n.f), a: cloneKeep(n.a), id: n.id };
+}
+
+// ═══════════════════════════════════════
+// PARSER
+// ═══════════════════════════════════════
+function tokenize(s) {
+  s = s.replace(/λ/g, '\\');
+  const T = []; let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (/\s/.test(c)) { i++; continue; }
+    if (c === '\\') { T.push('L'); i++; continue; }
+    if (c === '.') { T.push('D'); i++; continue; }
+    if (c === '(') { T.push('('); i++; continue; }
+    if (c === ')') { T.push(')'); i++; continue; }
+    if (/[a-zA-Z0-9_']/.test(c)) {
+      let w = '';
+      while (i < s.length && /[a-zA-Z0-9_']/.test(s[i])) w += s[i++];
+      T.push({ v: w }); continue;
+    }
+    throw new Error(`Unknown char: '${c}'`);
+  }
+  return T;
+}
+
+class Parser {
+  constructor(T) { this.T = T; this.i = 0; }
+  peek() { return this.T[this.i]; }
+  eat()  { return this.T[this.i++]; }
+  expect(x) { const t = this.eat(); if (t !== x) throw new Error(`Expected ${x}`); }
+  term() { return this.peek() === 'L' ? this.lam() : this.app(); }
+  lam() {
+    this.eat();
+    const vs = [];
+    while (this.peek() && typeof this.peek() === 'object') vs.push(this.eat().v);
+    if (!vs.length) throw new Error('λ needs variable');
+    this.expect('D');
+    let b = this.term();
+    for (let j = vs.length - 1; j >= 0; j--) b = mkLam(vs[j], b);
+    return b;
+  }
+  app() {
+    let L = this.atom();
+    while (true) {
+      const p = this.peek();
+      if (!p || p === ')' || p === 'D') break;
+      if (p === 'L' || p === '(' || typeof p === 'object') L = mkApp(L, this.atom());
+      else break;
+    }
+    return L;
+  }
+  atom() {
+    const p = this.peek();
+    if (!p) throw new Error('Unexpected end');
+    if (typeof p === 'object') { this.eat(); return mkVar(p.v); }
+    if (p === '(') { this.eat(); const e = this.term(); this.expect(')'); return e; }
+    if (p === 'L') return this.lam();
+    throw new Error(`Unexpected: ${p}`);
+  }
+}
+
+function parse(src) {
+  const T = tokenize(src.trim());
+  const p = new Parser(T);
+  const e = p.term();
+  if (p.i < p.T.length) throw new Error('Trailing tokens');
+  return e;
+}
+
+// ═══════════════════════════════════════
+// CHURCH NUMERALS + ELABORATION
+// ═══════════════════════════════════════
+function churchNumeral(n) {
+  // λf. λx. f^n x  — with fresh variable names to avoid any confusion
+  let body = mkVar('x');
+  for (let i = 0; i < n; i++) body = mkApp(mkVar('f'), body);
+  return mkLam('f', mkLam('x', body));
+}
+
+// Expand defined names and numeric literals. Respects lambda scope.
+// visitedDefs prevents infinite expansion on cyclic defs.
+function elaborate(node, defs, boundVars = new Set(), visitedDefs = new Set()) {
+  if (node.t === 'var') {
+    // Bound by enclosing λ → keep as var
+    if (boundVars.has(node.v)) return mkVar(node.v);
+    // Numeric literal
+    if (/^\d+$/.test(node.v)) return churchNumeral(parseInt(node.v, 10));
+    // Defined name
+    if (defs[node.v] !== undefined) {
+      if (visitedDefs.has(node.v)) return mkVar(node.v); // cycle guard
+      let sub;
+      try { sub = parse(defs[node.v]); }
+      catch { return mkVar(node.v); }
+      return elaborate(sub, defs, new Set(), new Set([...visitedDefs, node.v]));
+    }
+    return mkVar(node.v);
+  }
+  if (node.t === 'lam') {
+    const nb = new Set(boundVars); nb.add(node.v);
+    return mkLam(node.v, elaborate(node.b, defs, nb, visitedDefs));
+  }
+  return mkApp(
+    elaborate(node.f, defs, boundVars, visitedDefs),
+    elaborate(node.a, defs, boundVars, visitedDefs)
+  );
+}
+
+// ═══════════════════════════════════════
+// SUBSTITUTION
+// ═══════════════════════════════════════
+function freeVars(n) {
+  if (n.t === 'var') return new Set([n.v]);
+  if (n.t === 'lam') { const s = freeVars(n.b); s.delete(n.v); return s; }
+  const s = new Set(freeVars(n.f));
+  for (const v of freeVars(n.a)) s.add(v);
+  return s;
+}
+
+function fresh(name, avoid) {
+  const base = name.replace(/'+$/, '');
+  let i = 0, cand = name;
+  while (avoid.has(cand)) { i++; cand = base + "'".repeat(i); }
+  return cand;
+}
+
+function subst(M, x, N) {
+  if (M.t === 'var') {
+    return M.v === x ? cloneFresh(N) : { t: 'var', v: M.v, id: M.id };
+  }
+  if (M.t === 'lam') {
+    if (M.v === x) return cloneKeep(M);
+    const fvN = freeVars(N);
+    let y = M.v, body = M.b;
+    if (fvN.has(y)) {
+      const avoid = new Set([...fvN, ...freeVars(body), x]);
+      const newY = fresh(y, avoid);
+      body = subst(body, y, mkVar(newY));
+      y = newY;
+    }
+    return { t: 'lam', v: y, b: subst(body, x, N), id: M.id };
+  }
+  return { t: 'app', f: subst(M.f, x, N), a: subst(M.a, x, N), id: M.id };
+}
+
+// ═══════════════════════════════════════
+// β-REDUCTION STRATEGIES
+// ═══════════════════════════════════════
+function reduceNormal(n) {
+  if (n.t === 'app') {
+    if (n.f.t === 'lam') return { node: subst(n.f.b, n.f.v, n.a), reduced: true };
+    const L = reduceNormal(n.f);
+    if (L.reduced) return { node: { t: 'app', f: L.node, a: n.a, id: n.id }, reduced: true };
+    const R = reduceNormal(n.a);
+    if (R.reduced) return { node: { t: 'app', f: n.f, a: R.node, id: n.id }, reduced: true };
+  }
+  if (n.t === 'lam') {
+    const b = reduceNormal(n.b);
+    if (b.reduced) return { node: { t: 'lam', v: n.v, b: b.node, id: n.id }, reduced: true };
+  }
+  return { node: n, reduced: false };
+}
+
+function reduceApplicative(n) {
+  if (n.t === 'app') {
+    const L = reduceApplicative(n.f);
+    if (L.reduced) return { node: { t: 'app', f: L.node, a: n.a, id: n.id }, reduced: true };
+    const R = reduceApplicative(n.a);
+    if (R.reduced) return { node: { t: 'app', f: n.f, a: R.node, id: n.id }, reduced: true };
+    if (n.f.t === 'lam') return { node: subst(n.f.b, n.f.v, n.a), reduced: true };
+  }
+  if (n.t === 'lam') {
+    const b = reduceApplicative(n.b);
+    if (b.reduced) return { node: { t: 'lam', v: n.v, b: b.node, id: n.id }, reduced: true };
+  }
+  return { node: n, reduced: false };
+}
+
+function reduceCBN(n) {
+  if (n.t === 'app') {
+    if (n.f.t === 'lam') return { node: subst(n.f.b, n.f.v, n.a), reduced: true };
+    const L = reduceCBN(n.f);
+    if (L.reduced) return { node: { t: 'app', f: L.node, a: n.a, id: n.id }, reduced: true };
+  }
+  return { node: n, reduced: false };
+}
+
+function reduceCBV(n) {
+  if (n.t === 'app') {
+    const L = reduceCBV(n.f);
+    if (L.reduced) return { node: { t: 'app', f: L.node, a: n.a, id: n.id }, reduced: true };
+    const R = reduceCBV(n.a);
+    if (R.reduced) return { node: { t: 'app', f: n.f, a: R.node, id: n.id }, reduced: true };
+    if (n.f.t === 'lam') return { node: subst(n.f.b, n.f.v, n.a), reduced: true };
+  }
+  return { node: n, reduced: false };
+}
+
+const STRATEGIES = { normal: reduceNormal, applicative: reduceApplicative, cbn: reduceCBN, cbv: reduceCBV };
+
+function doStep(ast, strat) {
+  substOriginMap = {};
+  const result = strat(ast);
+  const originMap = substOriginMap;
+  substOriginMap = null;
+  return { ...result, originMap };
+}
+
+// ═══════════════════════════════════════
+// COLORS
+// ═══════════════════════════════════════
+const PALETTE = [
+  '#60c8f0', '#f0c060', '#c070f0', '#60f0a0', '#f08070',
+  '#a0b0f0', '#f0a0d0', '#60f0d0', '#f0f070', '#b0f070',
+];
+
+function colorForName(name) {
+  let h = 0;
+  for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffffff;
+  return PALETTE[Math.abs(h) % PALETTE.length];
+}
+
+function assignColors(node, env) {
+  if (node.t === 'var') {
+    node.color = env[node.v] || colorForName(node.v);
+    return;
+  }
+  if (node.t === 'lam') {
+    node.color = colorForName(node.v);
+    assignColors(node.b, { ...env, [node.v]: node.color });
+    return;
+  }
+  assignColors(node.f, env);
+  assignColors(node.a, env);
+  node.color = leftmostColor(node.f);
+}
+
+function leftmostColor(n) {
+  if (n.t === 'var') return n.color;
+  if (n.t === 'lam') return leftmostColor(n.b);
+  return leftmostColor(n.f);
+}
+
+// ═══════════════════════════════════════
+// PRETTY-PRINT
+// ═══════════════════════════════════════
+function renderCode(node, needParens, colorOn) {
+  const c = (col, txt) => colorOn ? `<span style="color:${col}">${txt}</span>` : txt;
+  if (node.t === 'var') return c(node.color, escapeHTML(node.v));
+  if (node.t === 'lam') {
+    const body = renderCode(node.b, false, colorOn);
+    const s = c(node.color, 'λ' + escapeHTML(node.v) + '.') + ' ' + body;
+    return needParens ? '(' + s + ')' : s;
+  }
+  const fn = renderCode(node.f, node.f.t === 'lam', colorOn);
+  const arg = renderCode(node.a, node.a.t !== 'var', colorOn);
+  return fn + ' ' + arg;
+}
+
+function renderCodePlain(node, needParens) {
+  if (node.t === 'var') return node.v;
+  if (node.t === 'lam') {
+    const s = 'λ' + node.v + '. ' + renderCodePlain(node.b, false);
+    return needParens ? '(' + s + ')' : s;
+  }
+  const fn = renderCodePlain(node.f, node.f.t === 'lam');
+  const arg = renderCodePlain(node.a, node.a.t !== 'var');
+  return fn + ' ' + arg;
+}
+
+function escapeHTML(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ═══════════════════════════════════════
+// BLC ENCODING (Tromp's Binary Lambda Calculus)
+//   variable de Bruijn n  → 1^(n+1) 0
+//   λ M                   → 00 M
+//   M N                   → 01 M N
+// We need to convert from named representation to de Bruijn first.
+// ═══════════════════════════════════════
+function toBLC(node, scope = []) {
+  if (node.t === 'var') {
+    // De Bruijn index: position of node.v in scope (innermost = 0)
+    const idx = scope.indexOf(node.v);
+    if (idx === -1) return null; // free variable — BLC requires closed terms
+    // BLC: index n is encoded as n+1 ones followed by zero
+    return '1'.repeat(idx + 1) + '0';
+  }
+  if (node.t === 'lam') {
+    const inner = toBLC(node.b, [node.v, ...scope]);
+    if (inner === null) return null;
+    return '00' + inner;
+  }
+  // app
+  const f = toBLC(node.f, scope);
+  const a = toBLC(node.a, scope);
+  if (f === null || a === null) return null;
+  return '01' + f + a;
+}
+
+let BLC_VISIBLE = false;
+function toggleBLC() {
+  BLC_VISIBLE = !BLC_VISIBLE;
+  const btn = document.getElementById('blcBtn');
+  btn.textContent = 'BLC: ' + (BLC_VISIBLE ? 'ON' : 'OFF');
+  btn.classList.toggle('active', BLC_VISIBLE);
+  document.getElementById('blc').style.display = BLC_VISIBLE ? '' : 'none';
+  renderBLCDisplay();
+}
+
+function renderBLCDisplay() {
+  if (!BLC_VISIBLE) return;
+  const el = document.getElementById('blc');
+  if (!currentAST) { el.textContent = ''; return; }
+  const blc = toBLC(currentAST);
+  if (blc === null) {
+    el.innerHTML = '<span style="color:var(--muted)">BLC: term has free variables (not closed)</span>';
+    return;
+  }
+  el.innerHTML = `<span style="color:#888">BLC (${blc.length} bits):</span>  <span style="color:var(--text)">${blc}</span>`;
+}
+
+// ═══════════════════════════════════════
+// DE BRUIJN DISPLAY
+// Each lambda becomes "λ.", and each variable becomes its de Bruijn index.
+// ═══════════════════════════════════════
+function toDeBruijn(node, scope = []) {
+  if (node.t === 'var') {
+    const idx = scope.indexOf(node.v);
+    return idx === -1 ? node.v : String(idx);
+  }
+  if (node.t === 'lam') {
+    return 'λ. ' + toDeBruijn(node.b, [node.v, ...scope]);
+  }
+  // app: respect parens
+  const f = node.f.t === 'lam' ? '(' + toDeBruijn(node.f, scope) + ')' : toDeBruijn(node.f, scope);
+  const a = node.a.t === 'var' ? toDeBruijn(node.a, scope) : '(' + toDeBruijn(node.a, scope) + ')';
+  return f + ' ' + a;
+}
+
+let DB_VISIBLE = false;
+function toggleDB() {
+  DB_VISIBLE = !DB_VISIBLE;
+  const btn = document.getElementById('dbBtn');
+  btn.textContent = 'De Bruijn: ' + (DB_VISIBLE ? 'ON' : 'OFF');
+  btn.classList.toggle('active', DB_VISIBLE);
+  document.getElementById('db').style.display = DB_VISIBLE ? '' : 'none';
+  renderDBDisplay();
+}
+
+function renderDBDisplay() {
+  if (!DB_VISIBLE) return;
+  const el = document.getElementById('db');
+  if (!currentAST) { el.textContent = ''; return; }
+  el.innerHTML = `<span style="color:#888">de Bruijn:</span>  <span style="color:var(--text)">${escapeHTML(toDeBruijn(currentAST))}</span>`;
+}
+
+// ═══════════════════════════════════════
+// αβ-EQUIVALENCE / RECOGNITION
+//
+// Two terms are α-equivalent if they're identical up to renaming bound vars.
+// Implementation: compare under de Bruijn. Free var names must match exactly.
+// ═══════════════════════════════════════
+function alphaEqual(a, b, scopeA = [], scopeB = []) {
+  if (a.t !== b.t) return false;
+  if (a.t === 'var') {
+    const ia = scopeA.indexOf(a.v);
+    const ib = scopeB.indexOf(b.v);
+    if (ia === -1 && ib === -1) return a.v === b.v; // both free
+    return ia === ib;
+  }
+  if (a.t === 'lam') {
+    return alphaEqual(a.b, b.b, [a.v, ...scopeA], [b.v, ...scopeB]);
+  }
+  return alphaEqual(a.f, b.f, scopeA, scopeB) && alphaEqual(a.a, b.a, scopeA, scopeB);
+}
+
+// Check if a term is a Church numeral. If yes, return n; otherwise return null.
+function recognizeChurchNumeral(node) {
+  // λf. λx. f^n x   (n ≥ 0)
+  if (node.t !== 'lam') return null;
+  const fName = node.v;
+  const inner = node.b;
+  if (inner.t !== 'lam') return null;
+  const xName = inner.v;
+  let body = inner.b;
+  let count = 0;
+  while (body.t === 'app') {
+    if (body.f.t !== 'var' || body.f.v !== fName) return null;
+    // protect against shadowing: if any nested lam binds fName or xName, abort
+    body = body.a;
+    count++;
+    if (count > 10000) return null;
+  }
+  if (body.t === 'var' && body.v === xName) return count;
+  return null;
+}
+
+// Try to recognize the current term against builtins + church numerals.
+// Returns array of matches (could be multiple if defs are equivalent).
+function recognize(node) {
+  const matches = [];
+  // Numeral?
+  const n = recognizeChurchNumeral(node);
+  if (n !== null) matches.push(`${n} (Church numeral)`);
+  // Defined names — try to parse each, alpha-compare
+  const defs = allDefs();
+  for (const [name, expr] of Object.entries(defs)) {
+    let parsed;
+    try {
+      parsed = elaborate(parse(expr), defs);
+    } catch { continue; }
+    if (alphaEqual(node, parsed)) {
+      matches.push(name);
+    }
+  }
+  // Deduplicate
+  return Array.from(new Set(matches));
+}
+
+let RECOG_VISIBLE = false;
+function toggleRecog() {
+  RECOG_VISIBLE = !RECOG_VISIBLE;
+  const btn = document.getElementById('recogBtn');
+  btn.textContent = 'Recognize: ' + (RECOG_VISIBLE ? 'ON' : 'OFF');
+  btn.classList.toggle('active', RECOG_VISIBLE);
+  document.getElementById('recogResult').style.display = RECOG_VISIBLE ? '' : 'none';
+  renderRecognition();
+}
+
+function renderRecognition() {
+  if (!RECOG_VISIBLE) return;
+  const el = document.getElementById('recogResult');
+  if (!currentAST) { el.textContent = ''; return; }
+  try {
+    const matches = recognize(currentAST);
+    if (matches.length === 0) {
+      el.innerHTML = '<span style="color:var(--muted)">≡ no known equivalence</span>';
+    } else {
+      el.innerHTML = '<span style="color:#888">≡</span> <span style="color:#80e0a0">' + matches.join(', ') + '</span>';
+    }
+  } catch (e) {
+    el.innerHTML = '<span style="color:var(--muted)">≡ recognition failed</span>';
+  }
+}
+
+// ═══════════════════════════════════════
+// LAYOUT
+// ═══════════════════════════════════════
+let gCol = 0;
+
+function sizePass(n) {
+  if (n.t === 'var') { n.col = gCol++; n.nv = 1; return; }
+  if (n.t === 'lam') { sizePass(n.b); n.col = n.b.col; n.nv = n.b.nv; return; }
+  sizePass(n.f); sizePass(n.a);
+  n.col = n.f.col; n.nv = n.f.nv + n.a.nv;
+}
+
+function leftmostCol(n) {
+  if (n.t === 'var') return n.col;
+  if (n.t === 'lam') return leftmostCol(n.b);
+  return leftmostCol(n.f);
+}
+
+function computeY(n, ly, scope) {
+  if (n.t === 'lam') {
+    n.barY = ly;
+    return computeY(n.b, ly + 2, { ...scope, [n.v]: ly });
+  }
+  if (n.t === 'var') {
+    n.endpointY = scope[n.v] !== undefined ? scope[n.v] : 0;
+    return n.endpointY;
+  }
+  const L = computeY(n.f, ly, scope);
+  const R = computeY(n.a, ly, scope);
+  n.barY = Math.max(L, R) + 2;
+  return n.barY;
+}
+
+function collectSegments(root, totalH) {
+  const segs = [];
+  const varWireEnd = {};
+  const varOccs = [];
+  const redexes = []; // {appNodeId, segIds: [...]}
+
+  // Helper: collect all segIds within a subtree
+  function segIdsIn(node, acc) {
+    if (node.t === 'lam') {
+      acc.push('L' + node.id);
+      segIdsIn(node.b, acc);
+    } else if (node.t === 'app') {
+      acc.push('A' + node.id);
+      segIdsIn(node.f, acc);
+      segIdsIn(node.a, acc);
+    } else {
+      acc.push('V' + node.id);
+    }
+    return acc;
+  }
+
+  function walk(n) {
+    if (n.t === 'lam') {
+      const x1 = n.col * 4;
+      const x2 = n.col * 4 + n.nv * 4 - 2;
+      segs.push({ segid: 'L' + n.id, nodeId: n.id, kind: 'L', x1, y1: n.barY, x2, y2: n.barY, color: n.color });
+      walk(n.b);
+    } else if (n.t === 'app') {
+      const lCol = leftmostCol(n.f);
+      const rCol = leftmostCol(n.a);
+      const lx = lCol * 4 + 1;
+      const rx = rCol * 4 + 1;
+      segs.push({ segid: 'A' + n.id, nodeId: n.id, kind: 'A', x1: lx, y1: n.barY, x2: rx, y2: n.barY, color: n.color });
+      varWireEnd[lCol] = Math.max(varWireEnd[lCol] || 0, n.barY);
+      varWireEnd[rCol] = Math.max(varWireEnd[rCol] || 0, n.barY);
+
+      // Detect redex: app whose function side is a lambda
+      if (n.f.t === 'lam') {
+        const ids = ['A' + n.id];
+        segIdsIn(n.f, ids); // the entire λ being applied
+        segIdsIn(n.a, ids); // the entire argument
+        redexes.push({
+          appNodeId: n.id,
+          segIds: ids,
+          x1: n.col * 4,
+          x2: n.col * 4 + n.nv * 4 - 2,
+          y1: n.f.barY,    // top of the lambda bar
+          y2: n.barY       // app bar y
+        });
+      }
+
+      walk(n.f); walk(n.a);
+    } else {
+      varOccs.push(n);
+    }
+  }
+  walk(root);
+  const rootLeftCol = leftmostCol(root);
+  for (const v of varOccs) {
+    const x = v.col * 4 + 1;
+    const y1 = v.endpointY;
+    let y2 = varWireEnd[v.col] !== undefined ? varWireEnd[v.col] : y1;
+    if (v.col === rootLeftCol) y2 = totalH;
+    if (y2 > y1) segs.push({ segid: 'V' + v.id, nodeId: v.id, kind: 'V', x1: x, y1, x2: x, y2, color: v.color });
+  }
+  return { segs, redexes };
+}
+
+function computeDiagram(ast) {
+  const work = cloneKeep(ast);
+  assignColors(work, {});
+  gCol = 0;
+  sizePass(work);
+  computeY(work, 0, {});
+  function maxY(n) {
+    if (n.t === 'lam') return Math.max(n.barY, maxY(n.b));
+    if (n.t === 'app') return Math.max(n.barY, maxY(n.f), maxY(n.a));
+    return n.endpointY;
+  }
+  const totalH = maxY(work) + 2;
+  const { segs, redexes } = collectSegments(work, totalH);
+  const gridW = work.nv * 4 - 1;
+  return { segs, redexes, gridW, gridH: totalH };
+}
+
+// ═══════════════════════════════════════
+// SVG RENDER + RAF ANIMATION
+// ═══════════════════════════════════════
+let SCALE = 8;
+let COLOR_MODE = false;
+let ANIM_ENABLED = true;
+let SPEED_MULT = 1.0; // multiplies durations (lower = faster)
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function easeInOut(t) { return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2; }
+
+function animateLine(line, from, to, duration, onDone) {
+  if (line._anim) { cancelAnimationFrame(line._anim); line._anim = null; }
+  const start = performance.now();
+  function frame(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const k = easeInOut(t);
+    line.setAttribute('x1', from.x1 + (to.x1 - from.x1) * k);
+    line.setAttribute('y1', from.y1 + (to.y1 - from.y1) * k);
+    line.setAttribute('x2', from.x2 + (to.x2 - from.x2) * k);
+    line.setAttribute('y2', from.y2 + (to.y2 - from.y2) * k);
+    if (from.opacity !== undefined && to.opacity !== undefined) {
+      line.style.opacity = from.opacity + (to.opacity - from.opacity) * k;
+    }
+    if (t < 1) line._anim = requestAnimationFrame(frame);
+    else { line._anim = null; if (onDone) onDone(); }
+  }
+  line._anim = requestAnimationFrame(frame);
+}
+
+function setLineAttrs(line, x1, y1, x2, y2, stroke, sw) {
+  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+  line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+  line.setAttribute('stroke', stroke);
+  line.setAttribute('stroke-width', sw);
+}
+
+function renderDiagram(duration, originMap) {
+  if (!currentAST) return;
+  if (!ANIM_ENABLED) duration = 0;
+  // Below ~30ms, animation is shorter than a frame → just snap to final
+  if (duration > 0 && duration < 30) duration = 0;
+  const PAD = 3;
+  const { segs, redexes, gridW, gridH } = computeDiagram(currentAST);
+  const W = (gridW + PAD * 2) * SCALE;
+  const H = (gridH + PAD * 2) * SCALE;
+  const ox = PAD * SCALE, oy = PAD * SCALE;
+  const sw = Math.max(2, Math.round(SCALE * 0.55));
+
+  const svg = document.getElementById('diagramSVG');
+  const group = document.getElementById('segs');
+  const redexGroup = document.getElementById('redexZones');
+  svg.style.setProperty('--dur', duration + 'ms');
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+
+  const existing = {};
+  const oldPositions = {};
+  for (const line of Array.from(group.children)) {
+    const sid = line.getAttribute('data-segid');
+    if (!sid) continue;
+    existing[sid] = line;
+    oldPositions[sid] = {
+      x1: parseFloat(line.getAttribute('x1')) || 0,
+      y1: parseFloat(line.getAttribute('y1')) || 0,
+      x2: parseFloat(line.getAttribute('x2')) || 0,
+      y2: parseFloat(line.getAttribute('y2')) || 0,
+      stroke: line.getAttribute('stroke'),
+      opacity: parseFloat(line.style.opacity || '1'),
+    };
+  }
+
+  const instant = duration === 0;
+
+  for (const s of segs) {
+    const color = COLOR_MODE ? s.color : '#ffffff';
+    const nx1 = ox + s.x1 * SCALE, ny1 = oy + s.y1 * SCALE;
+    const nx2 = ox + s.x2 * SCALE, ny2 = oy + s.y2 * SCALE;
+
+    let line = existing[s.segid];
+    if (line) {
+      line.setAttribute('stroke', color);
+      line.setAttribute('stroke-width', sw);
+      const from = oldPositions[s.segid];
+      const to = { x1: nx1, y1: ny1, x2: nx2, y2: ny2 };
+      if (instant) { setLineAttrs(line, nx1, ny1, nx2, ny2, color, sw); line.style.opacity = '1'; }
+      else animateLine(line, { ...from, opacity: from.opacity }, { ...to, opacity: 1 }, duration);
+      delete existing[s.segid];
+      continue;
+    }
+
+    const originId = originMap && originMap[s.nodeId];
+    let originPos = null;
+    if (originId) { originPos = oldPositions[s.kind + originId]; }
+
+    line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('data-segid', s.segid);
+    line.setAttribute('stroke-linecap', 'square');
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', sw);
+    group.appendChild(line);
+
+    if (instant) {
+      setLineAttrs(line, nx1, ny1, nx2, ny2, color, sw);
+      line.style.opacity = '1';
+      continue;
+    }
+
+    if (originPos) {
+      setLineAttrs(line, originPos.x1, originPos.y1, originPos.x2, originPos.y2, color, sw);
+      line.style.opacity = '1';
+      animateLine(line,
+        { x1: originPos.x1, y1: originPos.y1, x2: originPos.x2, y2: originPos.y2, opacity: 1 },
+        { x1: nx1, y1: ny1, x2: nx2, y2: ny2, opacity: 1 }, duration);
+    } else {
+      setLineAttrs(line, nx1, ny1, nx2, ny2, color, sw);
+      line.style.opacity = '0';
+      animateLine(line,
+        { x1: nx1, y1: ny1, x2: nx2, y2: ny2, opacity: 0 },
+        { x1: nx1, y1: ny1, x2: nx2, y2: ny2, opacity: 1 }, duration);
+    }
+  }
+
+  for (const segid in existing) {
+    const line = existing[segid];
+    const from = oldPositions[segid];
+    if (instant) { if (line.parentNode) line.parentNode.removeChild(line); continue; }
+    animateLine(line,
+      { x1: from.x1, y1: from.y1, x2: from.x2, y2: from.y2, opacity: from.opacity },
+      { x1: from.x1, y1: from.y1, x2: from.x2, y2: from.y2, opacity: 0 },
+      duration,
+      () => { if (line.parentNode) line.parentNode.removeChild(line); });
+  }
+
+  // Build redex hover zones (rebuilt every render)
+  while (redexGroup.firstChild) redexGroup.removeChild(redexGroup.firstChild);
+  // Don't add hover zones while running (would interfere with animations)
+  if (isRunning) return;
+  for (const r of redexes) {
+    const zx1 = ox + r.x1 * SCALE - 2;
+    const zy1 = oy + r.y1 * SCALE - 2;
+    const zw = (r.x2 - r.x1) * SCALE + 4;
+    const zh = (r.y2 - r.y1) * SCALE + 4;
+    const rect = document.createElementNS(SVG_NS, 'rect');
+    rect.setAttribute('class', 'redex-zone');
+    rect.setAttribute('x', zx1);
+    rect.setAttribute('y', zy1);
+    rect.setAttribute('width', zw);
+    rect.setAttribute('height', zh);
+    rect.dataset.appId = r.appNodeId;
+    rect.dataset.segIds = r.segIds.join(',');
+    rect.addEventListener('mouseenter', highlightRedex);
+    rect.addEventListener('mouseleave', unhighlightRedex);
+    rect.addEventListener('click', onRedexClick);
+    redexGroup.appendChild(rect);
+  }
+}
+
+function highlightRedex(e) {
+  const ids = e.currentTarget.dataset.segIds.split(',');
+  for (const sid of ids) {
+    const line = document.querySelector(`#segs line[data-segid="${sid}"]`);
+    if (line) line.classList.add('highlighted');
+  }
+}
+
+function unhighlightRedex(e) {
+  const ids = e.currentTarget.dataset.segIds.split(',');
+  for (const sid of ids) {
+    const line = document.querySelector(`#segs line[data-segid="${sid}"]`);
+    if (line) line.classList.remove('highlighted');
+  }
+}
+
+function onRedexClick(e) {
+  const appId = parseInt(e.currentTarget.dataset.appId);
+  reduceAtNode(appId);
+}
+
+function renderCodeDisplay() {
+  const code = document.getElementById('code');
+  if (!currentAST) { code.innerHTML = ''; return; }
+  assignColors(currentAST, {});
+  code.innerHTML = renderCode(currentAST, false, COLOR_MODE);
+}
+
+function render(duration, originMap) {
+  renderCodeDisplay();
+  renderBLCDisplay();
+  renderDBDisplay();
+  renderRecognition();
+  renderDiagram(duration, originMap);
+  if (inPresentation) {
+    // Re-fit after the SVG resizes (post-animation)
+    setTimeout(() => autoFit(), Math.max(duration, 50) + 30);
+  }
+}
+
+// ═══════════════════════════════════════
+// STATE + UI
+// ═══════════════════════════════════════
+let currentAST = null;
+let originalAST = null;
+let stepCount = 0;
+let runToken = 0;
+let isPaused = false;
+let isRunning = false;
+let history = []; // stack of {ast, stepCount} snapshots for step-back
+let MAX_RUN_STEPS_LIMIT = 1000; // configurable, 0 = unlimited
+
+const STEP_DUR = 1200;
+const RUN_DUR  = 400;
+const RUN_INTERVAL = 420;
+
+function setStatus(text, cls) {
+  const s = document.getElementById('status');
+  s.textContent = text;
+  s.className = 'status' + (cls ? ' ' + cls : '');
+  if (inPresentation) {
+    const ps = document.getElementById('presStatus');
+    if (ps) {
+      ps.textContent = text;
+      ps.style.color = cls === 'nf' ? '#80e0a0' : (cls === 'max' ? '#f0c060' : 'var(--accent)');
+    }
+  }
+}
+
+function draw() {
+  const src = document.getElementById('expr').value.trim();
+  if (!src) return;
+  runToken++;
+  try {
+    const rawAST = parse(src);
+    const elaborated = elaborate(rawAST, allDefs());
+    originalAST = elaborated;
+    currentAST = cloneKeep(originalAST);
+    stepCount = 0;
+    history = [];
+    const group = document.getElementById('segs');
+    while (group.firstChild) group.removeChild(group.firstChild);
+    setStatus('step 0');
+    render(0, null);
+    updateBackButton();
+  } catch (e) {
+    document.getElementById('code').innerHTML = `<span class="err">Error: ${e.message}</span>`;
+    console.error(e);
+  }
+}
+
+function currentStrategy() { return STRATEGIES[document.getElementById('strat').value]; }
+
+function step() {
+  if (!currentAST) return;
+  if (isRunning) return; // ignore while running
+  runToken++;
+  // Push current state to history before reducing
+  history.push({ ast: cloneKeep(currentAST), stepCount });
+  if (history.length > 500) history.shift(); // cap history
+  const result = doStep(currentAST, currentStrategy());
+  if (result.reduced) {
+    currentAST = result.node;
+    stepCount++;
+    setStatus('step ' + stepCount);
+    render(STEP_DUR * SPEED_MULT, result.originMap);
+    if (isRecording) {
+      // capture after the animation completes so the recorded frame shows the result
+      setTimeout(captureFrame, STEP_DUR * SPEED_MULT + 30);
+    }
+  } else {
+    history.pop(); // no actual step happened
+    setStatus('normal form (step ' + stepCount + ')', 'nf');
+  }
+  updateBackButton();
+}
+
+function stepBack() {
+  if (isRunning) return;
+  if (!history.length) return;
+  runToken++;
+  const prev = history.pop();
+  currentAST = prev.ast;
+  stepCount = prev.stepCount;
+  setStatus('step ' + stepCount + ' (back)');
+  render(STEP_DUR * SPEED_MULT, null);
+  updateBackButton();
+}
+
+function updateBackButton() {
+  const btn = document.getElementById('backBtn');
+  if (btn) btn.disabled = history.length === 0 || isRunning;
+}
+
+// Manual click-to-reduce: reduce the redex at the given app node id.
+function reduceAtNode(targetId) {
+  if (isRunning) return;
+  if (!currentAST) return;
+  // Walk and reduce at the first matching node
+  function walk(n) {
+    if (n.id === targetId && n.t === 'app' && n.f.t === 'lam') {
+      return { node: subst(n.f.b, n.f.v, n.a), reduced: true };
+    }
+    if (n.t === 'app') {
+      const L = walk(n.f);
+      if (L.reduced) return { node: { t: 'app', f: L.node, a: n.a, id: n.id }, reduced: true };
+      const R = walk(n.a);
+      if (R.reduced) return { node: { t: 'app', f: n.f, a: R.node, id: n.id }, reduced: true };
+    }
+    if (n.t === 'lam') {
+      const b = walk(n.b);
+      if (b.reduced) return { node: { t: 'lam', v: n.v, b: b.node, id: n.id }, reduced: true };
+    }
+    return { node: n, reduced: false };
+  }
+  history.push({ ast: cloneKeep(currentAST), stepCount });
+  if (history.length > 500) history.shift();
+  substOriginMap = {};
+  const result = walk(currentAST);
+  const originMap = substOriginMap;
+  substOriginMap = null;
+  if (result.reduced) {
+    currentAST = result.node;
+    stepCount++;
+    setStatus('step ' + stepCount + ' (manual)');
+    render(STEP_DUR * SPEED_MULT, originMap);
+    if (isRecording) setTimeout(captureFrame, STEP_DUR * SPEED_MULT + 30);
+  } else {
+    history.pop();
+  }
+  updateBackButton();
+}
+
+async function run() {
+  if (!currentAST) return;
+  if (isRunning) return;
+  const myToken = ++runToken;
+  const strat = currentStrategy();
+  const startStep = stepCount;
+  isRunning = true;
+  isPaused = false;
+  document.getElementById('runBtn').style.display = 'none';
+  document.getElementById('pauseBtn').style.display = '';
+  setStatus('running... step ' + stepCount, 'running');
+  updateBackButton();
+
+  // Read max steps fresh
+  const maxStepsInput = document.getElementById('maxSteps').value.trim();
+  const maxSteps = (maxStepsInput === '' || parseInt(maxStepsInput) === 0)
+                   ? Infinity
+                   : parseInt(maxStepsInput);
+  MAX_RUN_STEPS_LIMIT = maxSteps;
+
+  const animDur = RUN_DUR * SPEED_MULT;
+  const interval = RUN_INTERVAL * SPEED_MULT;
+  const batchSize = interval < 20 ? Math.ceil(20 / Math.max(interval, 1)) : 1;
+
+  // Save state at run start so undo from "after run" goes back to "before run"
+  const runStartHistory = { ast: cloneKeep(currentAST), stepCount: startStep };
+
+  try {
+    while (true) {
+      if (myToken !== runToken) return;
+      if (isPaused) {
+        setStatus('paused at step ' + stepCount, 'running');
+        // Wait until unpaused or cancelled
+        while (isPaused && myToken === runToken) {
+          await new Promise(r => setTimeout(r, 100));
+        }
+        if (myToken !== runToken) return;
+        setStatus('running... step ' + stepCount, 'running');
+      }
+      if (stepCount - startStep >= maxSteps) {
+        setStatus('max steps reached (' + stepCount + ')', 'max');
+        return;
+      }
+
+      let lastResult = null;
+      let batchedSteps = 0;
+      for (let b = 0; b < batchSize; b++) {
+        const result = doStep(currentAST, strat);
+        if (!result.reduced) {
+          if (batchedSteps > 0 && lastResult) render(animDur, lastResult.originMap);
+          setStatus('normal form (step ' + stepCount + ')', 'nf');
+          return;
+        }
+        currentAST = result.node;
+        stepCount++;
+        batchedSteps++;
+        lastResult = result;
+        if (stepCount - startStep >= maxSteps) break;
+      }
+      setStatus('running... step ' + stepCount, 'running');
+      render(animDur, lastResult.originMap);
+      if (isRecording) {
+        // Capture once per visible render in run mode
+        setTimeout(captureFrame, animDur + 10);
+      }
+      await new Promise(r => setTimeout(r, Math.max(interval, 4)));
+    }
+  } finally {
+    // Push the snapshot so user can undo the entire run as one big back-step
+    history.push(runStartHistory);
+    if (history.length > 500) history.shift();
+    isRunning = false;
+    isPaused = false;
+    document.getElementById('runBtn').style.display = '';
+    document.getElementById('pauseBtn').style.display = 'none';
+    document.getElementById('pauseBtn').textContent = 'Pause';
+    updateBackButton();
+  }
+}
+
+function pauseRun() {
+  if (!isRunning) return;
+  isPaused = !isPaused;
+  document.getElementById('pauseBtn').textContent = isPaused ? 'Resume' : 'Pause';
+}
+
+function reset() {
+  if (!originalAST) return;
+  runToken++;
+  currentAST = cloneKeep(originalAST);
+  stepCount = 0;
+  history = [];
+  setStatus('step 0');
+  render(STEP_DUR * SPEED_MULT, null);
+  updateBackButton();
+}
+
+function onStrategyChange() { reset(); }
+
+function load(s) { document.getElementById('expr').value = s; draw(); }
+function setScale(v) {
+  SCALE = parseInt(v);
+  document.getElementById('scv').textContent = v + 'px';
+  renderDiagram(250, null);
+}
+function toggleColor() {
+  COLOR_MODE = !COLOR_MODE;
+  const btn = document.getElementById('colorBtn');
+  btn.textContent = 'Color: ' + (COLOR_MODE ? 'ON' : 'OFF');
+  btn.classList.toggle('active', COLOR_MODE);
+  render(300 * SPEED_MULT, null);
+}
+
+function toggleAnim() {
+  ANIM_ENABLED = !ANIM_ENABLED;
+  const btn = document.getElementById('animBtn');
+  btn.textContent = 'Anim: ' + (ANIM_ENABLED ? 'ON' : 'OFF');
+  btn.classList.toggle('active', ANIM_ENABLED);
+}
+
+function setSpeed(v) {
+  // Slider 1..20 maps logarithmically to 0.1x .. 100x
+  // 9 → ~1.0x (slightly past middle, since log scale)
+  const n = parseInt(v);
+  // log10 scale: -1 (0.1x) at n=1, +2 (100x) at n=20
+  const logSpeed = -1 + (n - 1) * (3 / 19); // 1→-1, 20→+2
+  const mult = Math.pow(10, logSpeed);
+  SPEED_MULT = 1 / mult;
+  let label;
+  if (mult < 1)      label = mult.toFixed(2) + 'x';
+  else if (mult < 10) label = mult.toFixed(1) + 'x';
+  else                label = Math.round(mult) + 'x';
+  document.getElementById('speedv').textContent = label;
+}
+
+function toggleFullscreen() {
+  const dw = document.getElementById('out');
+  const wasFs = dw.classList.contains('fullscreen');
+  dw.classList.toggle('fullscreen');
+  if (!wasFs) {
+    // Entering fullscreen: auto-fit at 80% of available space
+    setTimeout(() => autoFit(), 50);
+  } else {
+    // Leaving fullscreen: reset view
+    resetView();
+  }
+}
+
+// ESC to exit fullscreen
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const dw = document.getElementById('out');
+    if (dw.classList.contains('fullscreen')) {
+      dw.classList.remove('fullscreen');
+      resetView();
+    }
+  }
+});
+
+// ═══════════════════════════════════════
+// ZOOM AND PAN
+// ═══════════════════════════════════════
+let viewZoom = 1;
+let viewOffsetX = 0;
+let viewOffsetY = 0;
+
+function applyViewport() {
+  const vp = document.getElementById('viewport');
+  vp.setAttribute('transform', `translate(${viewOffsetX}, ${viewOffsetY}) scale(${viewZoom})`);
+  const lvl = document.getElementById('zoomLevel');
+  if (lvl) lvl.textContent = Math.round(viewZoom * 100) + '%';
+}
+
+function zoomBy(factor, centerX, centerY) {
+  const dw = document.getElementById('out');
+  const rect = dw.getBoundingClientRect();
+  if (centerX === undefined) centerX = rect.width / 2;
+  if (centerY === undefined) centerY = rect.height / 2;
+  // Convert center from container coords to SVG coords (we're inside a centered SVG)
+  const newZoom = Math.min(20, Math.max(0.05, viewZoom * factor));
+  const k = newZoom / viewZoom;
+  viewOffsetX = centerX - (centerX - viewOffsetX) * k;
+  viewOffsetY = centerY - (centerY - viewOffsetY) * k;
+  viewZoom = newZoom;
+  applyViewport();
+}
+
+function resetView() {
+  viewZoom = 1;
+  viewOffsetX = 0;
+  viewOffsetY = 0;
+  applyViewport();
+}
+
+function autoFit() {
+  // Fit current diagram to ~80% of container
+  const dw = document.getElementById('out');
+  const svg = document.getElementById('diagramSVG');
+  const containerW = dw.clientWidth;
+  const containerH = dw.clientHeight;
+  // If container hasn't been laid out yet, retry next frame
+  if (containerW < 50 || containerH < 50) {
+    requestAnimationFrame(autoFit);
+    return;
+  }
+  const svgW = parseFloat(svg.getAttribute('width')) || 1;
+  const svgH = parseFloat(svg.getAttribute('height')) || 1;
+  if (svgW < 2 || svgH < 2) {
+    requestAnimationFrame(autoFit);
+    return;
+  }
+  const padding = 40;
+  const scaleX = (containerW - padding) / svgW;
+  const scaleY = (containerH - padding) / svgH;
+  const target = Math.min(scaleX, scaleY) * 0.9;
+  viewZoom = Math.max(0.05, Math.min(target, 10));
+  // Center the (zoomed) SVG within the container.
+  // The SVG's natural position depends on parent flex centering vs absolute positioning.
+  // We want: after transform, the SVG's center = container's center.
+  // In presentation mode, SVG is positioned at (0,0) absolutely.
+  // In normal mode, SVG is centered by flex, so its top-left is at ((containerW - svgW)/2, ...).
+  // For both cases, the transform centers it correctly if we account for current flow position.
+  if (inPresentation) {
+    // SVG is at top-left. Position it to be centered with the zoom applied.
+    viewOffsetX = (containerW - svgW * viewZoom) / 2;
+    viewOffsetY = (containerH - svgH * viewZoom) / 2;
+  } else {
+    // Flex-centered: SVG natural origin is at (containerW - svgW)/2.
+    // We want net effect: center of zoomed SVG at center of container.
+    // Translation needed = (containerW/2 - svgW/2 * zoom) - (containerW - svgW)/2
+    //                    = svgW/2 - svgW/2 * zoom = svgW/2 * (1 - zoom)
+    viewOffsetX = svgW / 2 * (1 - viewZoom);
+    viewOffsetY = svgH / 2 * (1 - viewZoom);
+  }
+  applyViewport();
+}
+
+// Mouse wheel zoom
+function setupZoomPan() {
+  const dw = document.getElementById('out');
+
+  dw.addEventListener('wheel', (e) => {
+    if (e.target.closest('.zoom-controls') || e.target.closest('.fs-btn')) return;
+    e.preventDefault();
+    const rect = dw.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    const factor = e.deltaY < 0 ? 1.1 : 1/1.1;
+    zoomBy(factor, cx, cy);
+  }, { passive: false });
+
+  let panning = false;
+  let panStartX = 0, panStartY = 0;
+  let panOrigX = 0, panOrigY = 0;
+
+  dw.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.redex-zone')) return;
+    if (e.target.closest('button')) return;
+    if (e.button !== 0 && e.button !== 1) return;
+    panning = true;
+    panStartX = e.clientX;
+    panStartY = e.clientY;
+    panOrigX = viewOffsetX;
+    panOrigY = viewOffsetY;
+    dw.classList.add('panning');
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!panning) return;
+    viewOffsetX = panOrigX + (e.clientX - panStartX);
+    viewOffsetY = panOrigY + (e.clientY - panStartY);
+    applyViewport();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (panning) {
+      panning = false;
+      dw.classList.remove('panning');
+    }
+  });
+}
+
+// ═══════════════════════════════════════
+// EXPORT: PNG + VIDEO
+// ═══════════════════════════════════════
+
+// Render the SVG into a canvas. Optionally at a custom width/height.
+function svgToCanvas(svgEl, scale = 2) {
+  return new Promise((resolve, reject) => {
+    const svgString = new XMLSerializer().serializeToString(svgEl);
+    const w = parseFloat(svgEl.getAttribute('width'));
+    const h = parseFloat(svgEl.getAttribute('height'));
+    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = w * scale;
+      canvas.height = h * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0a0a12';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas);
+    };
+    img.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+    img.src = url;
+  });
+}
+
+async function exportPNG() {
+  const svg = document.getElementById('diagramSVG');
+  if (!svg.getAttribute('width') || parseFloat(svg.getAttribute('width')) === 0) {
+    alert('Nothing to export — draw something first');
+    return;
+  }
+  try {
+    const canvas = await svgToCanvas(svg, 3);
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tromp-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  } catch (e) {
+    alert('Export failed: ' + e.message);
+  }
+}
+
+// Video recording: capture frames during reduction.
+let isRecording = false;
+let recordedFrames = []; // {dataUrl, width, height, duration}
+let recordStartTime = 0;
+
+function toggleRecording() {
+  const btn = document.getElementById('recordBtn');
+  if (!isRecording) {
+    if (!currentAST) { alert('Draw something first'); return; }
+    isRecording = true;
+    recordedFrames = [];
+    recordStartTime = performance.now();
+    btn.textContent = '■ Stop';
+    btn.style.color = '#f08080';
+    btn.style.borderColor = '#f08080';
+    // Record initial frame
+    captureFrame();
+    setStatus('recording... step ' + stepCount, 'running');
+  } else {
+    isRecording = false;
+    btn.textContent = '● Rec';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+    finalizeRecording();
+  }
+}
+
+async function captureFrame() {
+  if (!isRecording) return;
+  const svg = document.getElementById('diagramSVG');
+  try {
+    const canvas = await svgToCanvas(svg, 1.5);
+    const now = performance.now();
+    recordedFrames.push({
+      dataUrl: canvas.toDataURL('image/png'),
+      width: canvas.width,
+      height: canvas.height,
+      time: now - recordStartTime,
+    });
+  } catch (e) {
+    console.error('Frame capture failed:', e);
+  }
+}
+
+async function finalizeRecording() {
+  if (recordedFrames.length === 0) {
+    alert('No frames recorded');
+    return;
+  }
+
+  // Build a video using canvas + MediaRecorder
+  // We'll play the frames at the recorded timing
+  setStatus('encoding video... ' + recordedFrames.length + ' frames', 'running');
+
+  // Find max dimensions
+  let maxW = 0, maxH = 0;
+  for (const f of recordedFrames) {
+    maxW = Math.max(maxW, f.width);
+    maxH = Math.max(maxH, f.height);
+  }
+
+  // Make canvas dimensions even (required by some encoders)
+  maxW = Math.ceil(maxW / 2) * 2;
+  maxH = Math.ceil(maxH / 2) * 2;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = maxW;
+  canvas.height = maxH;
+  const ctx = canvas.getContext('2d');
+
+  // Pre-load all frame images
+  const images = await Promise.all(recordedFrames.map(f => {
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res({ img, time: f.time, w: f.width, h: f.height });
+      img.onerror = rej;
+      img.src = f.dataUrl;
+    });
+  }));
+
+  // Setup MediaRecorder on canvas stream
+  const stream = canvas.captureStream(30);
+  let mimeType = 'video/webm;codecs=vp9';
+  if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp8';
+  if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+  const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 });
+  const chunks = [];
+  recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+
+  const finished = new Promise(resolve => {
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tromp-${Date.now()}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+  });
+
+  recorder.start();
+
+  // Draw each frame at its recorded timing
+  // Use a minimum hold time per frame to ensure encoder picks them up
+  const MIN_HOLD = 50;
+  let lastDraw = 0;
+  for (let i = 0; i < images.length; i++) {
+    const cur = images[i];
+    const next = images[i + 1];
+    ctx.fillStyle = '#0a0a12';
+    ctx.fillRect(0, 0, maxW, maxH);
+    // Center the frame in canvas
+    const ox = (maxW - cur.w) / 2;
+    const oy = (maxH - cur.h) / 2;
+    ctx.drawImage(cur.img, ox, oy, cur.w, cur.h);
+    const holdMs = next ? Math.max(MIN_HOLD, next.time - cur.time) : 500;
+    await new Promise(r => setTimeout(r, holdMs));
+  }
+
+  recorder.stop();
+  await finished;
+  setStatus('video saved (' + recordedFrames.length + ' frames)', 'nf');
+  recordedFrames = [];
+}
+
+// ═══════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════
+function renderSidebar() {
+  const filter = document.getElementById('filter').value.trim().toLowerCase();
+  const matches = (name, expr) =>
+    !filter || name.toLowerCase().includes(filter) || expr.toLowerCase().includes(filter);
+
+  // Builtin categories
+  const catList = document.getElementById('catList');
+  catList.innerHTML = '';
+  for (const [catName, names] of CATEGORIES) {
+    const filtered = names.filter(n => matches(n, BUILTIN_DEFS[n]));
+    if (!filtered.length) continue;
+    const cat = document.createElement('div');
+    cat.className = 'def-cat';
+    cat.innerHTML = `<h3>${catName}</h3><div class="def-list"></div>`;
+    const list = cat.querySelector('.def-list');
+    for (const n of filtered) {
+      list.appendChild(defEntry(n, BUILTIN_DEFS[n], false));
+    }
+    catList.appendChild(cat);
+  }
+
+  // User definitions, grouped by category
+  const userCatsContainer = document.getElementById('userCatsContainer');
+  userCatsContainer.innerHTML = '';
+  const byCategory = {};
+  for (const [name, val] of Object.entries(userDefs)) {
+    const cat = val.category || 'User';
+    if (!matches(name, val.expr)) continue;
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(name);
+  }
+  const sortedCats = Object.keys(byCategory).sort();
+  if (sortedCats.length === 0) {
+    userCatsContainer.innerHTML = '<h3 style="font-size:0.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-weight:400;">User</h3><div class="user-empty">no user definitions yet</div>';
+  } else {
+    for (const cat of sortedCats) {
+      const div = document.createElement('div');
+      div.className = 'def-cat';
+      div.innerHTML = `<h3>${escapeHTML(cat)}</h3><div class="def-list"></div>`;
+      const list = div.querySelector('.def-list');
+      for (const n of byCategory[cat].sort()) {
+        list.appendChild(defEntry(n, userDefs[n].expr, true));
+      }
+      userCatsContainer.appendChild(div);
+    }
+  }
+
+  // Update category datalist for autocompletion in form
+  const datalist = document.getElementById('catOptions');
+  if (datalist) {
+    datalist.innerHTML = '';
+    for (const cat of allUserCategories()) {
+      const opt = document.createElement('option');
+      opt.value = cat;
+      datalist.appendChild(opt);
+    }
+  }
+}
+
+function defEntry(name, expr, isUser) {
+  const div = document.createElement('div');
+  div.className = 'def-entry' + (isUser ? ' user' : '');
+  div.title = `${name} = ${expr}\n\nClick to insert`;
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'def-name';
+  nameSpan.textContent = name;
+  div.appendChild(nameSpan);
+
+  const exprSpan = document.createElement('span');
+  exprSpan.className = 'def-expr';
+  exprSpan.textContent = '= ' + expr.replace(/\\/g, 'λ');
+  div.appendChild(exprSpan);
+
+  div.onclick = (e) => {
+    if (e.target.closest('.def-actions')) return;
+    insertIntoExpr(name);
+  };
+
+  if (isUser) {
+    const actions = document.createElement('span');
+    actions.className = 'def-actions';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'def-act-btn';
+    editBtn.textContent = 'edit';
+    editBtn.onclick = (e) => { e.stopPropagation(); editUserDef(name); };
+    const delBtn = document.createElement('button');
+    delBtn.className = 'def-act-btn del';
+    delBtn.textContent = '✕';
+    delBtn.onclick = (e) => { e.stopPropagation(); deleteUserDef(name); };
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    div.appendChild(actions);
+  }
+
+  return div;
+}
+
+function insertIntoExpr(name) {
+  const input = document.getElementById('expr');
+  const pos = input.selectionStart ?? input.value.length;
+  const before = input.value.slice(0, pos);
+  const after = input.value.slice(pos);
+  const needSpaceBefore = before.length > 0 && !/\s$/.test(before) && !/[(\\.]$/.test(before);
+  const needSpaceAfter = after.length > 0 && !/^\s/.test(after) && !/^[)\s]/.test(after);
+  const insert = (needSpaceBefore ? ' ' : '') + name + (needSpaceAfter ? ' ' : '');
+  input.value = before + insert + after;
+  const newPos = before.length + insert.length;
+  input.focus();
+  input.setSelectionRange(newPos, newPos);
+}
+
+function showAddError(msg) { document.getElementById('addErr').textContent = msg; }
+
+function isValidName(name) {
+  return /^[a-zA-Z_][a-zA-Z0-9_']*$/.test(name);
+}
+
+function addUserDef() {
+  const name = document.getElementById('newName').value.trim();
+  const expr = document.getElementById('newExpr').value.trim();
+  const cat = document.getElementById('newCat').value.trim() || 'User';
+  showAddError('');
+  if (!name) return showAddError('name required');
+  if (!isValidName(name)) return showAddError('invalid name (use letters/digits/_)');
+  if (/^\d+$/.test(name)) return showAddError('name cannot be a numeral');
+  if (!expr) return showAddError('expression required');
+  try { parse(expr); } catch (e) { return showAddError('parse error: ' + e.message); }
+  userDefs[name] = { expr, category: cat };
+  saveUserDefs(userDefs);
+  document.getElementById('newName').value = '';
+  document.getElementById('newExpr').value = '';
+  // keep category for convenience
+  renderSidebar();
+}
+
+function editUserDef(name) {
+  const current = userDefs[name];
+  if (!current) return;
+  const newExpr = prompt(`Edit definition of '${name}':`, current.expr);
+  if (newExpr === null) return;
+  const trimmed = newExpr.trim();
+  if (!trimmed) return;
+  try { parse(trimmed); } catch (e) { alert('Parse error: ' + e.message); return; }
+  const newCat = prompt(`Category for '${name}':`, current.category || 'User');
+  if (newCat === null) return;
+  userDefs[name] = { expr: trimmed, category: newCat.trim() || 'User' };
+  saveUserDefs(userDefs);
+  renderSidebar();
+}
+
+function deleteUserDef(name) {
+  if (!confirm(`Delete user definition '${name}'?`)) return;
+  delete userDefs[name];
+  saveUserDefs(userDefs);
+  renderSidebar();
+}
+
+function resetUserDefs() {
+  if (!Object.keys(userDefs).length) return;
+  if (!confirm('Delete all user definitions?')) return;
+  userDefs = {};
+  saveUserDefs(userDefs);
+  renderSidebar();
+}
+
+function exportUserDefs() {
+  const names = Object.keys(userDefs);
+  if (!names.length) {
+    alert('No user definitions to export.');
+    return;
+  }
+  const data = JSON.stringify(userDefs, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `tromp-defs-${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importUserDefs(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+        throw new Error('JSON must be an object mapping names to expressions');
+      }
+      // Normalize: accept both old format (name: "expr") and new (name: {expr, category})
+      const validated = {};
+      for (const [name, val] of Object.entries(data)) {
+        let expr, category;
+        if (typeof val === 'string') {
+          expr = val; category = 'User';
+        } else if (val && typeof val.expr === 'string') {
+          expr = val.expr; category = val.category || 'User';
+        } else {
+          throw new Error(`'${name}': invalid entry`);
+        }
+        if (!isValidName(name)) {
+          throw new Error(`'${name}': invalid name`);
+        }
+        try { parse(expr); }
+        catch (err) { throw new Error(`'${name}': ${err.message}`); }
+        validated[name] = { expr, category };
+      }
+      const importedCount = Object.keys(validated).length;
+      const conflicts = Object.keys(validated).filter(n => userDefs[n] !== undefined);
+      let mode = 'merge';
+      if (conflicts.length > 0) {
+        const choice = prompt(
+          `${conflicts.length} name(s) conflict with existing user definitions:\n` +
+          `  ${conflicts.slice(0, 5).join(', ')}${conflicts.length > 5 ? ', ...' : ''}\n\n` +
+          `Type "overwrite" to replace, "skip" to keep existing, or cancel.`,
+          'overwrite'
+        );
+        if (choice === null) { event.target.value = ''; return; }
+        const c = choice.trim().toLowerCase();
+        if (c === 'overwrite' || c === 'o') mode = 'overwrite';
+        else if (c === 'skip' || c === 's') mode = 'skip';
+        else { alert('Cancelled.'); event.target.value = ''; return; }
+      }
+      let added = 0, replaced = 0, skipped = 0;
+      for (const [name, val] of Object.entries(validated)) {
+        if (userDefs[name] !== undefined) {
+          if (mode === 'skip') { skipped++; continue; }
+          replaced++;
+        } else {
+          added++;
+        }
+        userDefs[name] = val;
+      }
+      saveUserDefs(userDefs);
+      renderSidebar();
+      alert(`Imported ${importedCount} definition(s):\n  ${added} added, ${replaced} replaced, ${skipped} skipped`);
+    } catch (err) {
+      alert('Import failed: ' + err.message);
+    }
+    event.target.value = '';
+  };
+  reader.onerror = () => {
+    alert('Failed to read file.');
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════
+// PRESENTATION MODE
+// ═══════════════════════════════════════
+let inPresentation = false;
+
+function enterPresentation() {
+  if (!currentAST) { alert('Draw something first'); return; }
+  inPresentation = true;
+  document.body.classList.add('presentation');
+  // Auto-fit after layout settles
+  setTimeout(() => autoFit(), 80);
+  setTimeout(() => updatePresStatus(), 100);
+}
+
+function exitPresentation() {
+  if (!inPresentation) return;
+  inPresentation = false;
+  document.body.classList.remove('presentation');
+  resetView();
+}
+
+function updatePresStatus() {
+  const el = document.getElementById('presStatus');
+  if (!el) return;
+  el.textContent = document.getElementById('status').textContent;
+}
+
+// Keyboard navigation in presentation mode
+document.addEventListener('keydown', e => {
+  // Don't intercept if user is typing in an input
+  const tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+  if (!inPresentation) return;
+
+  if (e.key === 'Escape') {
+    exitPresentation();
+    e.preventDefault();
+    return;
+  }
+  if (e.key === ' ' || e.key === 'ArrowRight') {
+    if (!isRunning) step();
+    e.preventDefault();
+  } else if (e.key === 'ArrowLeft') {
+    if (!isRunning) stepBack();
+    e.preventDefault();
+  } else if (e.key === 'r' || e.key === 'R') {
+    if (!isRunning) run();
+    e.preventDefault();
+  } else if (e.key === 'p' || e.key === 'P') {
+    if (isRunning) pauseRun();
+    e.preventDefault();
+  } else if (e.key === '0') {
+    reset();
+    setTimeout(() => autoFit(), 50);
+    e.preventDefault();
+  } else if (e.key === 'f' || e.key === 'F') {
+    autoFit();
+    e.preventDefault();
+  }
+  setTimeout(updatePresStatus, 10);
+});
+
+// Re-fit on window resize while in presentation
+window.addEventListener('resize', () => {
+  if (inPresentation) setTimeout(autoFit, 50);
+});
+// ═══════════════════════════════════════
+let acSelected = -1;
+let acOptions = [];
+
+function levenshtein(a, b) {
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const dp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i-1][j] + 1, dp[i][j-1] + 1, dp[i-1][j-1] + cost);
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+// Find the word being typed at cursor position. Returns {word, start, end}.
+function getCurrentWord(input) {
+  const v = input.value;
+  const pos = input.selectionStart ?? v.length;
+  let start = pos, end = pos;
+  while (start > 0 && /[a-zA-Z0-9_']/.test(v[start - 1])) start--;
+  while (end < v.length && /[a-zA-Z0-9_']/.test(v[end])) end++;
+  return { word: v.slice(start, end), start, end };
+}
+
+function updateAutocomplete() {
+  const input = document.getElementById('expr');
+  const list = document.getElementById('acList');
+  const { word } = getCurrentWord(input);
+  if (!word || word.length < 1) {
+    list.classList.remove('open');
+    acOptions = [];
+    return;
+  }
+  // Don't autocomplete pure numbers
+  if (/^\d+$/.test(word)) { list.classList.remove('open'); return; }
+
+  const defs = allDefs();
+  const lc = word.toLowerCase();
+  const matches = Object.keys(defs)
+    .filter(name => name.toLowerCase().startsWith(lc))
+    .slice(0, 8);
+  if (matches.length === 0) {
+    list.classList.remove('open');
+    acOptions = [];
+    return;
+  }
+  acOptions = matches;
+  acSelected = 0;
+  renderAutocomplete();
+  list.classList.add('open');
+}
+
+function renderAutocomplete() {
+  const list = document.getElementById('acList');
+  const defs = allDefs();
+  list.innerHTML = '';
+  acOptions.forEach((name, i) => {
+    const item = document.createElement('div');
+    item.className = 'autocomplete-item' + (i === acSelected ? ' selected' : '');
+    item.innerHTML = `<span class="autocomplete-name">${name}</span><span class="autocomplete-expr">${escapeHTML(defs[name].replace(/\\/g, 'λ'))}</span>`;
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      acceptAutocomplete(name);
+    });
+    list.appendChild(item);
+  });
+}
+
+function acceptAutocomplete(name) {
+  const input = document.getElementById('expr');
+  const { start, end } = getCurrentWord(input);
+  const before = input.value.slice(0, start);
+  const after = input.value.slice(end);
+  // Add space after if needed
+  const needSpace = after.length > 0 && !/^\s/.test(after) && !/^\)/.test(after);
+  const insertion = name + (needSpace ? ' ' : '');
+  input.value = before + insertion + after;
+  const newPos = before.length + insertion.length;
+  input.focus();
+  input.setSelectionRange(newPos, newPos);
+  document.getElementById('acList').classList.remove('open');
+  validateExprInput();
+}
+
+function validateExprInput() {
+  const input = document.getElementById('expr');
+  const errEl = document.getElementById('inputError');
+  const src = input.value.trim();
+  if (!src) {
+    input.classList.remove('invalid');
+    errEl.textContent = '';
+    return;
+  }
+  try {
+    const ast = parse(src);
+    // Try elaboration too
+    elaborate(ast, allDefs());
+    input.classList.remove('invalid');
+    errEl.textContent = '';
+    errEl.className = 'input-error';
+  } catch (e) {
+    input.classList.add('invalid');
+    // Look for similar names
+    const msg = e.message;
+    let suggestion = '';
+    // Extract any unknown identifier — a heuristic: find words in src that don't match defs and aren't lambda-bound
+    const defs = allDefs();
+    const words = src.match(/[a-zA-Z_][a-zA-Z0-9_']*/g) || [];
+    const knownNames = new Set(Object.keys(defs));
+    for (const w of words) {
+      if (/^\d+$/.test(w)) continue;
+      if (knownNames.has(w)) continue;
+      // Could be a lambda-bound var. Just show suggestion if there's something close
+      const candidates = Object.keys(defs)
+        .map(d => ({ d, dist: levenshtein(w.toLowerCase(), d.toLowerCase()) }))
+        .filter(x => x.dist > 0 && x.dist <= Math.min(2, Math.floor(w.length / 2) + 1))
+        .sort((a, b) => a.dist - b.dist);
+      if (candidates.length > 0) {
+        suggestion = ` did you mean "${candidates[0].d}"?`;
+        break;
+      }
+    }
+    errEl.textContent = msg + suggestion;
+    errEl.className = 'input-error' + (suggestion ? ' suggestion' : '');
+  }
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+const exprInput = document.getElementById('expr');
+exprInput.addEventListener('keydown', e => {
+  const list = document.getElementById('acList');
+  const isOpen = list.classList.contains('open');
+  if (e.key === 'Enter') {
+    if (isOpen && acSelected >= 0) {
+      e.preventDefault();
+      acceptAutocomplete(acOptions[acSelected]);
+    } else {
+      draw();
+    }
+  } else if (e.key === 'Tab' && isOpen) {
+    e.preventDefault();
+    acceptAutocomplete(acOptions[acSelected]);
+  } else if (e.key === 'ArrowDown' && isOpen) {
+    e.preventDefault();
+    acSelected = (acSelected + 1) % acOptions.length;
+    renderAutocomplete();
+  } else if (e.key === 'ArrowUp' && isOpen) {
+    e.preventDefault();
+    acSelected = (acSelected - 1 + acOptions.length) % acOptions.length;
+    renderAutocomplete();
+  } else if (e.key === 'Escape' && isOpen) {
+    list.classList.remove('open');
+  }
+});
+exprInput.addEventListener('input', () => {
+  updateAutocomplete();
+  validateExprInput();
+});
+exprInput.addEventListener('blur', () => {
+  setTimeout(() => document.getElementById('acList').classList.remove('open'), 150);
+});
+exprInput.addEventListener('focus', updateAutocomplete);
+
+document.getElementById('newExpr').addEventListener('keydown', e => { if (e.key === 'Enter') addUserDef(); });
+document.getElementById('newName').addEventListener('keydown', e => { if (e.key === 'Enter') { document.getElementById('newExpr').focus(); } });
+
+renderSidebar();
+setSpeed(document.getElementById('speed').value);
+validateExprInput();
+setupZoomPan();
+draw();
+</script>
+</body>
+</html>

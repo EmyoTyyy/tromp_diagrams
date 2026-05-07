@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play · Tromp Diagrams</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/visualizer.css">
+<link rel="stylesheet" href="css/pages.css">
+<style>
+  body.page { padding-bottom: 60px; }
+  #playSVG { display: block; }
+</style>
+</head>
+<body class="page">
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="index.html">Home</a>
+  <a href="visualizer.html">Visualizer</a>
+  <a href="learn.html">Learn</a>
+  <a href="play.html" class="active">Play</a>
+  <a href="tree.html">Tree</a>
+  <a href="combinators.html">Combinators</a>
+  <a href="encodings.html">Encodings</a>
+  <a href="halting.html">Halting</a>
+  <a href="history.html">History</a>
+  <a href="cheatsheet.html">Cheatsheet</a>
+  <a href="about.html">About</a>
+</nav>
+
+
+<div class="page-wrap">
+
+  <h1>Play</h1>
+  <p class="lede">
+    Look at the Tromp diagram and type the λ-expression it represents.
+    Difficulty escalates from <code>I</code> to <code>pred</code>.
+  </p>
+
+  <div class="play-frame">
+
+    <div class="play-status">
+      <span class="level" id="puzzleNum">Puzzle 1 / —</span>
+      <span class="diff-stars" id="puzzleDiff" aria-label="difficulty"></span>
+      <span class="score" id="playScore">Score: 0</span>
+      <span style="color:var(--muted);" id="playBest">Best: 0</span>
+    </div>
+
+    <div class="play-progress" aria-hidden="true">
+      <div class="play-progress-fill" id="playProgressFill"></div>
+    </div>
+
+    <div class="play-diagram" id="playDiagramWrap">
+      <svg id="playSVG" xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+        <g id="playSegs"></g>
+        <g id="playZones"></g>
+      </svg>
+    </div>
+
+    <div class="play-stats" id="playStatsLine"></div>
+
+    <div class="play-input-row">
+      <input type="text" id="playInput" placeholder="enter expression... (e.g. \x. x or I)" autocomplete="off" />
+      <button class="btn" onclick="checkAnswer()">Submit</button>
+    </div>
+
+    <div class="play-feedback" id="playFeedback"></div>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-sec" onclick="showHint()">Hint</button>
+      <button class="btn btn-sec tt" data-tt="Color-code variables (free, no penalty)" data-tt-pos="below" id="playColorBtn" onclick="togglePlayColor()">🎨 Color</button>
+      <button class="btn btn-sec" onclick="skipPuzzle()">Skip</button>
+      <button class="btn btn-sec" onclick="giveUp()">Reveal answer</button>
+      <button class="btn btn-sec" onclick="startDaily()" style="margin-left:auto;">🗓 Daily</button>
+      <button class="btn btn-sec" onclick="startRandom()">🎲 Random</button>
+      <button class="btn btn-sec" onclick="startReverse()">↺ Reverse</button>
+      <button class="btn btn-sec" onclick="startSpeedrun()">⏱ Speedrun</button>
+      <button class="btn btn-sec" onclick="startGame()">↻ Restart</button>
+    </div>
+
+    <p class="play-mode-help" id="playModeHelp" style="font-size:0.78rem; color:var(--muted); margin-top:20px;">
+      Acceptable answers include the <i>name</i> of the combinator (e.g. <code>I</code>, <code>K</code>, <code>plus</code>) or any α-equivalent expression.
+      Numerals can be answered with their digit (e.g. <code>2</code>) or their full form.
+    </p>
+
+  </div>
+
+  <footer class="page-footer">
+    <a href="learn.html">← Learn</a> ·
+    <a href="visualizer.html">Visualizer →</a> ·
+    <a href="cheatsheet.html">Cheatsheet</a>
+  </footer>
+
+</div>
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+</script>
+
+<!-- Core (we need parser + elaborate + alphaEqual + render) -->
+<script src="js/defs.js"></script>
+<script src="js/core/ast.js"></script>
+<script src="js/core/parser.js"></script>
+<script src="js/core/elaborate.js"></script>
+<script src="js/core/reduce.js"></script>
+<script src="js/core/encoding.js"></script>
+<script src="js/ui/layout.js"></script>
+<script src="js/ui/render.js"></script>
+<script src="js/modes/play.js"></script>
+<script>initPlay();</script>
+</body>
+</html>

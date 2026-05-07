@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cheatsheet · Tromp Diagrams</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="page">
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="index.html">Home</a>
+  <a href="visualizer.html">Visualizer</a>
+  <a href="learn.html">Learn</a>
+  <a href="play.html">Play</a>
+  <a href="tree.html">Tree</a>
+  <a href="combinators.html">Combinators</a>
+  <a href="encodings.html">Encodings</a>
+  <a href="halting.html">Halting</a>
+  <a href="history.html">History</a>
+  <a href="cheatsheet.html" class="active">Cheatsheet</a>
+  <a href="about.html">About</a>
+</nav>
+
+
+<div class="page-wrap cheatsheet">
+
+  <h1>Cheatsheet</h1>
+  <p class="lede">
+    A one-page reference for the λ-calculus and the visualizer.
+    <button class="btn btn-sec" onclick="window.print()" style="font-size:0.66rem; padding:6px 12px; margin-left:8px;">🖨 Print</button>
+  </p>
+
+  <div class="cheat-grid">
+
+    <!-- ── Syntax ─────────────────────────────────────── -->
+    <section class="cheat-card">
+      <h2>Syntax</h2>
+      <table class="cheat-table">
+        <tr><td><code>x</code></td><td>variable</td></tr>
+        <tr><td><code>λx. M</code></td><td>abstraction (function of <code>x</code>)</td></tr>
+        <tr><td><code>\x. M</code></td><td>same — ASCII alternative</td></tr>
+        <tr><td><code>M N</code></td><td>application (left-associative)</td></tr>
+        <tr><td><code>λx y z. M</code></td><td>= <code>λx. λy. λz. M</code></td></tr>
+        <tr><td><code>let x = e1 in e2</code></td><td>= <code>(λx. e2) e1</code></td></tr>
+        <tr><td><code>let x = e1; y = e2 in e3</code></td><td>chained <code>let</code></td></tr>
+        <tr><td><code># comment</code></td><td>line comment to end-of-line</td></tr>
+      </table>
+    </section>
+
+    <!-- ── Reduction rules ────────────────────────────── -->
+    <section class="cheat-card">
+      <h2>Reduction rules</h2>
+      <table class="cheat-table">
+        <tr>
+          <td><b>α</b> (rename)</td>
+          <td><code>λx. x</code> ≡ <code>λy. y</code></td>
+        </tr>
+        <tr>
+          <td><b>β</b> (apply)</td>
+          <td><code>(λx. M) N</code> → <code>M[x := N]</code></td>
+        </tr>
+        <tr>
+          <td><b>η</b> (extensional)</td>
+          <td><code>λx. f x</code> ≡ <code>f</code> &nbsp;<small>(if x not free in f)</small></td>
+        </tr>
+      </table>
+      <h3>Strategies</h3>
+      <table class="cheat-table">
+        <tr><td><b>normal</b></td><td>leftmost-outermost first; finds normal form if it exists</td></tr>
+        <tr><td><b>applicative</b></td><td>arguments first; can loop where normal terminates</td></tr>
+        <tr><td><b>cbn</b></td><td>like normal but stops at λ-bodies</td></tr>
+        <tr><td><b>cbv</b></td><td>like applicative but stops at λ-bodies</td></tr>
+      </table>
+    </section>
+
+    <!-- ── Combinators ────────────────────────────────── -->
+    <section class="cheat-card">
+      <h2>Combinators</h2>
+      <table class="cheat-table">
+        <tr><td><code>I</code></td><td><code>λx. x</code></td><td>identity</td></tr>
+        <tr><td><code>K</code></td><td><code>λx y. x</code></td><td>constant (= <code>true</code>)</td></tr>
+        <tr><td><code>S</code></td><td><code>λx y z. x z (y z)</code></td><td>"apply, then weave"</td></tr>
+        <tr><td><code>B</code></td><td><code>λf g x. f (g x)</code></td><td>compose</td></tr>
+        <tr><td><code>C</code></td><td><code>λf x y. f y x</code></td><td>flip args</td></tr>
+        <tr><td><code>W</code></td><td><code>λf x. f x x</code></td><td>duplicate arg</td></tr>
+        <tr><td><code>Y</code></td><td><code>λf. (λx. f (x x)) (λx. f (x x))</code></td><td>fixed point (lazy)</td></tr>
+        <tr><td><code>Z</code></td><td><code>λf. (λx. f (λv. x x v)) (λx. f (λv. x x v))</code></td><td>fixed point (strict)</td></tr>
+        <tr><td><code>ω</code></td><td><code>(λx. x x) (λx. x x)</code></td><td>diverges</td></tr>
+      </table>
+    </section>
+
+    <!-- ── Booleans ───────────────────────────────────── -->
+    <section class="cheat-card">
+      <h2>Booleans</h2>
+      <table class="cheat-table">
+        <tr><td><code>true</code></td><td><code>λx y. x</code></td></tr>
+        <tr><td><code>false</code></td><td><code>λx y. y</code></td></tr>
+        <tr><td><code>if</code></td><td><code>λp a b. p a b</code></td></tr>
+        <tr><td><code>not</code></td><td><code>λb. b false true</code></td></tr>
+        <tr><td><code>and</code></td><td><code>λp q. p q p</code></td></tr>
+        <tr><td><code>or</code></td><td><code>λp q. p p q</code></td></tr>
+        <tr><td><code>xor</code></td><td><code>λp q. p (not q) q</code></td></tr>
+      </table>
+    </section>
+
+    <!-- ── Pairs ──────────────────────────────────────── -->
+    <section class="cheat-card">
+      <h2>Pairs</h2>
+      <table class="cheat-table">
+        <tr><td><code>pair</code></td><td><code>λx y s. s x y</code></td></tr>
+        <tr><td><code>fst</code></td><td><code>λp. p true</code></td></tr>
+        <tr><td><code>snd</code></td><td><code>λp. p false</code></td></tr>
+      </table>
+    </section>
+
+    <!-- ── Numerals ───────────────────────────────────── -->
+    <section class="cheat-card">
+      <h2>Church numerals</h2>
+      <table class="cheat-table">
+        <tr><td><code>0</code></td><td><code>λf x. x</code></td></tr>
+        <tr><td><code>1</code></td><td><code>λf x. f x</code></td></tr>
+        <tr><td><code>n</code></td><td><code>λf x. fⁿ x</code> (apply f n times)</td></tr>
+        <tr><td><code>succ</code></td><td><code>λn f x. f (n f x)</code></td></tr>
+        <tr><td><code>plus</code></td><td><code>λm n f x. m f (n f x)</code></td></tr>
+        <tr><td><code>mult</code></td><td><code>λm n f. m (n f)</code></td></tr>
+        <tr><td><code>pow</code></td><td><code>λm n. n m</code> &nbsp;<small>(yes, just <code>n m</code>)</small></td></tr>
+        <tr><td><code>pred</code></td><td><code>λn f x. n (λg h. h (g f)) (λu. x) (λu. u)</code></td></tr>
+        <tr><td><code>iszero</code></td><td><code>λn. n (λx. false) true</code></td></tr>
+        <tr><td><code>sub</code></td><td><code>λm n. n pred m</code></td></tr>
+        <tr><td><code>leq</code></td><td><code>λm n. iszero (sub m n)</code></td></tr>
+        <tr><td><code>eq</code></td><td><code>λm n. and (leq m n) (leq n m)</code></td></tr>
+      </table>
+    </section>
+
+    <!-- ── Lists ──────────────────────────────────────── -->
+    <section class="cheat-card">
+      <h2>Lists (Church-encoded right fold)</h2>
+      <p class="cheat-subtle">
+        A list folds with a cons-style function <code>c</code> over a base case <code>n</code>:
+        <code>[x₁, x₂, x₃] = λc n. c x₁ (c x₂ (c x₃ n))</code>
+      </p>
+      <table class="cheat-table">
+        <tr><td><code>nil</code></td><td><code>λc n. n</code></td></tr>
+        <tr><td><code>cons</code></td><td><code>λh t c n. c h (t c n)</code></td></tr>
+        <tr><td><code>isnil</code></td><td><code>λl. l (λh t. false) true</code></td></tr>
+        <tr><td><code>length</code></td><td><code>λl. l (λh r. succ r) 0</code></td></tr>
+        <tr><td><code>head</code></td><td><code>λl. l (λh t. h) nil</code></td></tr>
+        <tr><td><code>map</code></td><td><code>λf l. l (λh t. cons (f h) t) nil</code></td></tr>
+        <tr><td><code>append</code></td><td><code>λxs ys. xs cons ys</code></td></tr>
+        <tr><td><code>sum</code></td><td><code>λl. l plus 0</code></td></tr>
+      </table>
+      <h3>Scott-encoded lists</h3>
+      <p class="cheat-subtle">
+        Scott encoding pattern-matches directly: <code>scons h t = λn c. c h t</code>.
+        Easier <code>head</code>/<code>tail</code> but no fold-by-default.
+      </p>
+      <table class="cheat-table">
+        <tr><td><code>snil</code></td><td><code>λn c. n</code></td></tr>
+        <tr><td><code>scons</code></td><td><code>λh t n c. c h t</code></td></tr>
+        <tr><td><code>shead</code></td><td><code>λl. l nil (λh t. h)</code></td></tr>
+        <tr><td><code>stail</code></td><td><code>λl. l snil (λh t. t)</code></td></tr>
+      </table>
+    </section>
+
+    <!-- ── BLC ────────────────────────────────────────── -->
+    <section class="cheat-card">
+      <h2>Binary Lambda Calculus</h2>
+      <p class="cheat-subtle">
+        Tromp's tiny binary encoding of closed λ-terms (de Bruijn indices):
+      </p>
+      <table class="cheat-table">
+        <tr><td><code>00 M</code></td><td>λ M (abstraction)</td></tr>
+        <tr><td><code>01 M N</code></td><td>application</td></tr>
+        <tr><td><code>1ⁿ⁺¹ 0</code></td><td>variable with de Bruijn index n</td></tr>
+      </table>
+      <p class="cheat-subtle">
+        E.g. <code>I</code> = <code>λx. x</code> = <code>0010</code>.
+        Toggle <i>BLC</i> in the visualizer to see any term as a bit string.
+      </p>
+    </section>
+
+    <!-- ── Visualizer shortcuts ───────────────────────── -->
+    <section class="cheat-card">
+      <h2>Visualizer shortcuts</h2>
+      <table class="cheat-table">
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>draw current expression</td></tr>
+        <tr><td><kbd>Tab</kbd></td><td>accept autocomplete</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>find / replace</td></tr>
+        <tr><td><kbd>?</kbd></td><td>show all keyboard shortcuts</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>close popup / exit fullscreen / exit presentation</td></tr>
+      </table>
+      <h3>Presentation mode</h3>
+      <table class="cheat-table">
+        <tr><td><kbd>Space</kbd> / <kbd>→</kbd></td><td>step</td></tr>
+        <tr><td><kbd>←</kbd></td><td>step back</td></tr>
+        <tr><td><kbd>R</kbd></td><td>run</td></tr>
+        <tr><td><kbd>P</kbd></td><td>pause / resume</td></tr>
+        <tr><td><kbd>0</kbd></td><td>reset</td></tr>
+        <tr><td><kbd>F</kbd></td><td>fit to viewport</td></tr>
+        <tr><td><kbd>H</kbd></td><td>hide HUD</td></tr>
+      </table>
+    </section>
+
+  </div>
+
+  <footer class="page-footer">
+    <a href="history.html">← History</a> ·
+    <a href="about.html">About →</a> ·
+    <a href="visualizer.html">Visualizer</a>
+  </footer>
+
+</div>
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+</script>
+</body>
+</html>

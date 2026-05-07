@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tree · Tromp Diagrams</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="page tree-page">
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="index.html">Home</a>
+  <a href="visualizer.html">Visualizer</a>
+  <a href="learn.html">Learn</a>
+  <a href="play.html">Play</a>
+  <a href="tree.html" class="active">Tree</a>
+  <a href="combinators.html">Combinators</a>
+  <a href="encodings.html">Encodings</a>
+  <a href="halting.html">Halting</a>
+  <a href="history.html">History</a>
+  <a href="cheatsheet.html">Cheatsheet</a>
+  <a href="about.html">About</a>
+</nav>
+
+
+<div class="page-wrap tree-wrap">
+
+  <h1>Reduction tree</h1>
+  <p class="lede">
+    All four reduction strategies advance in parallel. When two strategies produce
+    different results, the tree branches. When they re-converge to an α-equivalent state,
+    the branches merge back. Drag nodes around — the tree wobbles.
+  </p>
+
+  <div class="tree-toolbar">
+    <input type="text" id="treeExpr" class="tree-expr-input" placeholder="expression... (e.g. plus 2 3)" autocomplete="off" />
+    <button class="btn" onclick="treeReset()">Set</button>
+    <button class="btn btn-sec" onclick="treeStep()">Step</button>
+    <button class="btn btn-sec" id="treeRunBtn" onclick="treeToggleRun()">▶ Run</button>
+    <span class="scr">
+      <span style="font-size:0.62rem; color:var(--muted);">speed</span>
+      <input type="range" id="treeSpeed" min="1" max="8" value="3" oninput="treeSetSpeed(this.value)">
+    </span>
+    <span class="tree-zoom">
+      <button class="btn btn-sec tt" data-tt="Zoom out" data-tt-pos="below" onclick="treeZoomBy(0.8)">−</button>
+      <button class="btn btn-sec tt" data-tt="Fit to view (F)" data-tt-pos="below" onclick="treeFit()">Fit</button>
+      <button class="btn btn-sec tt" data-tt="Zoom in" data-tt-pos="below" onclick="treeZoomBy(1.25)">+</button>
+    </span>
+    <button class="btn btn-sec tt" data-tt="Toggle minimap (M)" data-tt-pos="below" id="treeMinimapBtn" onclick="treeToggleMinimap()">Map</button>
+    <button class="btn btn-sec tt" data-tt="Toggle fullscreen" data-tt-pos="below" id="treeFullscreenBtn" onclick="treeToggleFullscreen()">⛶</button>
+    <button class="btn btn-sec tt" data-tt="Download tree as PNG" data-tt-pos="below" onclick="treeExportPNG()">↓ PNG</button>
+    <span class="tree-stats" id="treeStats"></span>
+  </div>
+
+  <div class="tree-legend">
+    <span class="lg-item lg-strat" data-strat="normal"><i class="lg-dot" style="background:#a0e0ff"></i>normal</span>
+    <span class="lg-item lg-strat" data-strat="applicative"><i class="lg-dot" style="background:#80e0a0"></i>applicative</span>
+    <span class="lg-item lg-strat" data-strat="cbn"><i class="lg-dot" style="background:#ffd066"></i>cbn</span>
+    <span class="lg-item lg-strat" data-strat="cbv"><i class="lg-dot" style="background:#ff8aa0"></i>cbv</span>
+    <span class="lg-item lg-sep">·</span>
+    <span class="lg-item">hover a strategy to highlight its path · drag · scroll to zoom · <button class="btn btn-sec tt" data-tt="Keyboard shortcuts (?)" data-tt-pos="below" onclick="toggleShortcuts()" style="font-weight:500;">?</button> shortcuts</span>
+  </div>
+
+  <div class="tree-canvas-wrap" id="treeCanvasWrap">
+    <button class="tree-fs-exit tt" data-tt="Exit fullscreen (Esc)" data-tt-pos="below" onclick="treeToggleFullscreen()" aria-label="Exit fullscreen">⛶</button>
+    <svg id="treeSVG" xmlns="http://www.w3.org/2000/svg">
+      <g id="treeViewport">
+        <g id="treeEdges"></g>
+        <g id="treeNodes"></g>
+      </g>
+    </svg>
+    <div class="tree-edge-tip" id="treeEdgeTip"></div>
+    <div class="tree-empty" id="treeEmpty">
+      Type an expression above and press <b>Set</b>.
+      <div style="margin-top:14px; font-size:0.72rem; color:var(--muted);">
+        Try: <code>plus 2 3</code> · <code>(\x. x x) (\x. x x)</code> · <code>fact 3</code> · <code>pred 4</code>
+      </div>
+    </div>
+    <svg class="tree-minimap" id="treeMinimap" xmlns="http://www.w3.org/2000/svg" style="display:none;">
+      <rect class="tm-bg" x="0" y="0" width="100%" height="100%"/>
+      <g id="treeMinimapEdges"></g>
+      <g id="treeMinimapNodes"></g>
+      <rect class="tm-vp" id="treeMinimapVP" fill="none" stroke="#a0e0ff" stroke-width="1.5"/>
+    </svg>
+  </div>
+
+  <footer class="page-footer">
+    <a href="visualizer.html">← Visualizer</a> ·
+    <a href="combinators.html">Combinators →</a> ·
+    <a href="learn.html">Learn</a>
+  </footer>
+</div>
+
+<!-- Keyboard shortcuts modal — toggled with the `?` key or the toolbar button. -->
+<div class="shortcuts-overlay" id="shortcutsOverlay" onclick="if(event.target===this)toggleShortcuts()">
+  <div class="shortcuts-card">
+    <div class="shortcuts-head">
+      <span>Keyboard shortcuts</span>
+      <button class="shortcuts-close" onclick="toggleShortcuts()" aria-label="Close">×</button>
+    </div>
+    <div class="shortcuts-body">
+      <section>
+        <h4>Step / run</h4>
+        <dl>
+          <dt><kbd>Space</kbd> / <kbd>→</kbd></dt><dd>Advance one β-step (all strategies in lockstep)</dd>
+          <dt><kbd>R</kbd></dt><dd>Toggle Run (auto-advance)</dd>
+        </dl>
+      </section>
+      <section>
+        <h4>View</h4>
+        <dl>
+          <dt><kbd>F</kbd></dt><dd>Fit the whole tree to the viewport</dd>
+          <dt><kbd>M</kbd></dt><dd>Toggle the minimap</dd>
+          <dt>Mouse wheel</dt><dd>Zoom at cursor</dd>
+          <dt>Click + drag (canvas)</dt><dd>Pan</dd>
+          <dt>Double-click (empty area)</dt><dd>Reset viewport</dd>
+        </dl>
+      </section>
+      <section>
+        <h4>Nodes</h4>
+        <dl>
+          <dt>Click + drag (node)</dt><dd>Move node — drag glides through edges</dd>
+          <dt>Click (no drag)</dt><dd>Open fullscreen for that node</dd>
+          <dt>Hover legend chip</dt><dd>Highlight that strategy's path</dd>
+        </dl>
+      </section>
+      <section>
+        <h4>Fullscreen view</h4>
+        <dl>
+          <dt><kbd>Esc</kbd></dt><dd>Close fullscreen overlay</dd>
+        </dl>
+      </section>
+      <section>
+        <h4>This dialog</h4>
+        <dl>
+          <dt><kbd>?</kbd></dt><dd>Open / close this list</dd>
+        </dl>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen overlay for a single node -->
+<div class="tree-fs" id="treeFs">
+  <div class="tree-fs-inner">
+    <div class="tree-fs-head">
+      <span id="treeFsTitle">Step —</span>
+      <span class="tree-fs-strats" id="treeFsStrats"></span>
+      <button class="tree-fs-close" onclick="treeFsClose()" aria-label="Close">×</button>
+    </div>
+    <svg id="treeFsSVG" xmlns="http://www.w3.org/2000/svg">
+      <g id="treeFsSegs"></g>
+    </svg>
+    <div class="tree-fs-code" id="treeFsCode"></div>
+    <div class="tree-fs-actions">
+      <button class="btn btn-sec" onclick="treeFsDownloadSVG()">↓ SVG</button>
+      <button class="btn btn-sec" onclick="treeFsDownloadPNG()">↓ PNG</button>
+      <button class="btn btn-sec" onclick="treeFsForkFromHere()" title="Use this expression as the new root of a fresh tree">⑂ Fork from here</button>
+      <button class="btn" onclick="treeFsOpenInVisualizer()">Open in Visualizer →</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+function toggleShortcuts() {
+  document.getElementById('shortcutsOverlay').classList.toggle('open');
+}
+</script>
+
+<!-- Core deps (same load order as visualizer.html) -->
+<script src="js/defs.js"></script>
+<script src="js/core/ast.js"></script>
+<script src="js/core/parser.js"></script>
+<script src="js/core/elaborate.js"></script>
+<script src="js/core/reduce.js"></script>
+<script src="js/core/encoding.js"></script>
+<script src="js/ui/layout.js"></script>
+<script src="js/ui/render.js"></script>
+<script src="js/modes/tree.js"></script>
+<script>initTree();</script>
+</body>
+</html>

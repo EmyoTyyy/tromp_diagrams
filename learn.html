@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learn · Tromp Diagrams</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="page">
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="index.html">Home</a>
+  <a href="visualizer.html">Visualizer</a>
+  <a href="learn.html" class="active">Learn</a>
+  <a href="play.html">Play</a>
+  <a href="tree.html">Tree</a>
+  <a href="combinators.html">Combinators</a>
+  <a href="encodings.html">Encodings</a>
+  <a href="halting.html">Halting</a>
+  <a href="history.html">History</a>
+  <a href="cheatsheet.html">Cheatsheet</a>
+  <a href="about.html">About</a>
+</nav>
+
+
+<div class="lesson-progress-bar">
+  <div class="lesson-progress-fill" id="progressFill"></div>
+</div>
+
+<div class="page-wrap">
+
+  <h1>Learn</h1>
+  <p class="lede">
+    A guided tour of the λ-calculus. Each lesson includes a "try it" link
+    that opens the relevant expression in the visualizer.
+  </p>
+
+  <div class="lesson-nav-wrap">
+    <div class="lesson-nav" id="lessonNav"></div>
+  </div>
+
+  <div class="lesson-content" id="lessonContent"></div>
+
+  <hr>
+
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:30px;">
+    <button class="btn btn-sec" id="prevLesson" onclick="prevLesson()">← Previous</button>
+    <span id="lessonProgress" style="font-size:0.78rem; color:var(--muted);"></span>
+    <button class="btn btn-sec" id="nextLesson" onclick="nextLesson()">Next →</button>
+  </div>
+
+  <footer class="page-footer">
+    <a href="index.html">← Home</a> ·
+    <a href="play.html">Play →</a> ·
+    <a href="visualizer.html">Visualizer</a> ·
+    <a href="cheatsheet.html">Cheatsheet</a>
+  </footer>
+
+</div>
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+
+const tryURLV = (expr) => `visualizer.html?expr=${encodeURIComponent(expr)}`;
+const tryLinkV = (expr, label) =>
+  `<div class="try">▶ <a href="${tryURLV(expr)}" target="_blank">${label || 'Try it: <code>' + expr + '</code>'}</a></div>`;
+
+const tryURLTree = (expr) => `tree.html?expr=${encodeURIComponent(expr)}`;
+const tryLinkTree = (expr, label) =>
+  `<div class="try">▶ <a href="${tryURLTree(expr)}" target="_blank">${label || 'Try it: <code>' + expr + '</code>'}</a></div>`;
+
+const LESSONS = [
+  {
+    title: '1. Variables & abstraction',
+    body: `
+      <p>
+        The λ-calculus has only two ways of writing things down: variables and
+        anonymous functions (called <i>abstractions</i>).
+      </p>
+      <p>
+        A variable is just a name: <code>x</code>, <code>y</code>, <code>foo</code>.
+        On its own it doesn't reduce to anything — it's a leaf.
+      </p>
+      <p>
+        An abstraction is written <code>λx. M</code> (or <code>\\x. M</code> in ASCII).
+        It says: "I'm a function. Give me an argument named <code>x</code>, and I'll
+        produce <code>M</code>."
+      </p>
+      <p>The simplest one is the identity function:</p>
+      <pre><code>λx. x</code></pre>
+      ${tryLinkV('\\x. x', 'See <code>λx. x</code> as a Tromp diagram')}
+      <p>
+        In the diagram, the horizontal bar is the λ. The vertical line plugged into it
+        is the variable <code>x</code> appearing in the body.
+      </p>
+    `
+  },
+  {
+    title: '2. Application',
+    body: `
+      <p>
+        The other thing you can do is <i>apply</i> one term to another:
+        <code>M N</code> means "feed <code>N</code> as the argument to <code>M</code>".
+      </p>
+      <p>
+        Application is left-associative: <code>f x y</code> means <code>(f x) y</code>.
+      </p>
+      <pre><code>(λx. x) y</code></pre>
+      ${tryLinkV('(\\x. x) y', 'Apply identity to <code>y</code>')}
+      <p>
+        Click <b>Step ▶</b>. The function <code>λx. x</code> takes its argument <code>y</code>
+        and returns it: the term reduces to just <code>y</code>.
+      </p>
+    `
+  },
+  {
+    title: '3. β-reduction',
+    body: `
+      <p>
+        β-reduction is the engine of computation in the λ-calculus.
+        Whenever you have a "redex" — an application of a λ to an argument —
+      </p>
+      <pre><code>(λx. M) N</code></pre>
+      <p>
+        you can replace it with <code>M</code>, but with every occurrence of
+        <code>x</code> inside <code>M</code> swapped for <code>N</code>.
+        We write this <code>M[x := N]</code>.
+      </p>
+      <p>Example:</p>
+      <pre><code>(λx. x x) y    →    y y</code></pre>
+      ${tryLinkV('(\\x. x x) y', 'Reduce <code>(λx. x x) y</code>')}
+      <p>
+        That's it. The whole λ-calculus is just doing this rule, over and over,
+        until there are no more redexes (you've reached <i>normal form</i>) — or forever.
+      </p>
+    `
+  },
+  {
+    title: '4. Currying & multiple arguments',
+    body: `
+      <p>
+        There's no special syntax for multi-argument functions. Instead, we
+        return a function that takes the next argument:
+      </p>
+      <pre><code>λx. λy. x</code></pre>
+      <p>
+        This takes <code>x</code>, returns a function that takes <code>y</code> and
+        returns <code>x</code>. Apply it to two things:
+      </p>
+      <pre><code>(λx. λy. x) a b   →   (λy. a) b   →   a</code></pre>
+      ${tryLinkV('(\\x. \\y. x) a b', 'Apply <code>K</code> to two arguments')}
+      <p>
+        This combinator is so useful it has a name: <code>K</code>. It's a "constant"
+        function — given any first argument <code>a</code>, it returns a function that
+        ignores its second argument and returns <code>a</code>.
+      </p>
+      <p>
+        We allow shorthand: <code>λx y. x</code> means <code>λx. λy. x</code>.
+      </p>
+    `
+  },
+  {
+    title: '5. Booleans',
+    body: `
+      <p>
+        The λ-calculus has no built-in booleans, integers, or anything else.
+        But we can encode them. Church's idea for booleans:
+      </p>
+      <pre><code>true  := λx y. x
+false := λx y. y</code></pre>
+      <p>
+        Both are 2-argument functions. <code>true</code> picks the first;
+        <code>false</code> picks the second. Then <code>if</code> is just function application:
+      </p>
+      <pre><code>if := λp a b. p a b</code></pre>
+      ${tryLinkV('if true a b', '<code>if true a b</code> reduces to <code>a</code>')}
+      ${tryLinkV('not (and true false)', '<code>not (and true false)</code>')}
+      <p>
+        Try changing <code>true</code> to <code>false</code> and watching what happens.
+        These are not "primitives" — they're functions, just like everything else.
+      </p>
+    `
+  },
+  {
+    title: '6. Pairs',
+    body: `
+      <p>
+        We can do the same trick for pairs. A pair is a function that, when given
+        a "selector", hands it the two components:
+      </p>
+      <pre><code>pair := λx y. λs. s x y
+fst  := λp. p (λx y. x)   = λp. p true
+snd  := λp. p (λx y. y)   = λp. p false</code></pre>
+      ${tryLinkV('fst (pair a b)', '<code>fst (pair a b)</code> → <code>a</code>')}
+      ${tryLinkV('snd (pair a b)', '<code>snd (pair a b)</code> → <code>b</code>')}
+      <p>
+        Notice how <code>fst</code> uses <code>true</code> as its selector, and
+        <code>snd</code> uses <code>false</code>. The whole "if/true/false" pattern
+        comes back here.
+      </p>
+    `
+  },
+  {
+    title: '7. Church numerals',
+    body: `
+      <p>
+        A natural number <code>n</code> is encoded as a function that takes a function
+        <code>f</code> and applies it <code>n</code> times to its argument:
+      </p>
+      <pre><code>0 := λf x. x
+1 := λf x. f x
+2 := λf x. f (f x)
+3 := λf x. f (f (f x))
+...</code></pre>
+      <p>
+        Successor adds one more application:
+      </p>
+      <pre><code>succ := λn f x. f (n f x)</code></pre>
+      ${tryLinkV('succ 4', '<code>succ 4</code> reduces to <code>5</code>')}
+      <p>
+        Addition just composes:
+      </p>
+      <pre><code>plus := λm n f x. m f (n f x)</code></pre>
+      ${tryLinkV('plus 2 3', '<code>2 + 3</code>')}
+      <p>
+        Multiplication, even simpler:
+      </p>
+      <pre><code>mult := λm n f. m (n f)</code></pre>
+      ${tryLinkV('mult 2 3', '<code>2 × 3</code>')}
+      <p>
+        And exponentiation is mind-bending:
+      </p>
+      <pre><code>pow := λm n. n m</code></pre>
+      ${tryLinkV('pow 2 3', '<code>2³ = 8</code>')}
+      <p>
+        Yes — <code>n m</code>. The number <code>n</code>, applied to the number <code>m</code>,
+        gives you <code>m^n</code>. The visualizer shows this beautifully.
+      </p>
+    `
+  },
+  {
+    title: '8. Recursion & the Y combinator',
+    body: `
+      <p>
+        How can a function call itself if it has no name? With a fixed-point combinator.
+      </p>
+      <p>
+        <code>Y</code> is a function such that <code>Y f = f (Y f)</code>. So if <code>f</code> is
+        a "step" (taking a recursive function and a number, doing one iteration), <code>Y f</code>
+        is the recursive function itself.
+      </p>
+      <pre><code>Y := λf. (λx. f (x x)) (λx. f (x x))</code></pre>
+      ${tryLinkV('Y', 'See <code>Y</code>\'s shape')}
+      <p>
+        The diagram has a striking symmetry — the same shape repeats inside itself.
+        That's the duplication that gives <code>Y</code> its self-replicating power.
+      </p>
+      <p>
+        Trying to fully evaluate <code>Y f</code> on a non-terminating <code>f</code>
+        will, predictably, never terminate.
+      </p>
+      <pre><code>omega := (λx. x x) (λx. x x)</code></pre>
+      ${tryLinkV('omega', 'Watch <code>Ω</code> reduce to itself forever')}
+    `
+  },
+  {
+    title: '9. Recursion in practice — using Y',
+    body: `
+      <p>
+        <code>Y</code> gives us recursion, but using it requires a small trick: every
+        recursive function takes <i>itself</i> as an extra argument.
+      </p>
+      <p>
+        Take factorial. With names, you'd write
+        <code>fact n = if n=0 then 1 else n × fact (n-1)</code>. But "fact" needs to refer
+        to itself. In pure λ-calculus we instead write a <i>step</i>:
+      </p>
+      <pre><code>fact-step := λrec. λn. iszero n 1 (mult n (rec (pred n)))</code></pre>
+      <p>
+        <code>rec</code> stands in for "the recursive call". To get the actual recursive
+        function, wrap it in <code>Y</code>:
+      </p>
+      <pre><code>fact := Y (λrec. λn. iszero n 1 (mult n (rec (pred n))))</code></pre>
+      ${tryLinkV('Y (\\rec. \\n. iszero n 1 (mult n (rec (pred n)))) 3', 'Compute <code>fact 3</code> = 6')}
+      <p>
+        Same pattern works for any recursion. Length on a Church-encoded list:
+      </p>
+      <pre><code>length := Y (λrec. λl. isnil l 0 (succ (rec (tail l))))</code></pre>
+      ${tryLinkV('length (cons 1 (cons 2 (cons 3 nil)))', '<code>length [1, 2, 3]</code> = 3')}
+      <p>
+        One catch: this works in <i>normal-order</i> reduction. Under
+        <i>applicative-order</i>, <code>Y f → f (Y f) → f (f (Y f)) → ...</code> unfolds
+        infinitely before <code>f</code> can stop the recursion. The fix is the
+        <code>Z</code> combinator, which η-expands to delay unfolding:
+      </p>
+      <pre><code>Z := λf. (λx. f (λv. x x v)) (λx. f (λv. x x v))</code></pre>
+      ${tryLinkV('Z', 'See the Z combinator')}
+      <p>
+        Once you have <code>Y</code> (or <code>Z</code>), the λ-calculus can express
+        every computable function. That's what "Turing-complete" means.
+      </p>
+    `
+  },
+  {
+    title: '10. Reduction strategies',
+    body: `
+      <p>
+        When a term has several redexes, which one do you reduce first? Different
+        choices give different <i>strategies</i>:
+      </p>
+      <ul>
+        <li><b>normal order</b> — reduce the leftmost-outermost redex first.
+            If a normal form exists, this finds it.</li>
+        <li><b>applicative</b> — reduce arguments before applying. Faster in practice
+            but can loop where normal order would terminate.</li>
+        <li><b>call-by-name</b> — like normal order but doesn't reduce inside λ-bodies.</li>
+        <li><b>call-by-value</b> — like applicative but stops at λ-bodies.</li>
+      </ul>
+      <p>
+        In the visualizer, switch the <i>strategy</i> dropdown and re-run to compare.
+        Try with <code>(λx. y) ((λz. z z) (λz. z z))</code> — normal order terminates,
+        applicative loops forever.
+      </p>
+      ${tryLinkV('(\\x. y) ((\\z. z z) (\\z. z z))', 'Strategy matters')}
+      <p>
+        You can also compare how expressions reduce differently from one strategy to another.
+        Try comparing the reductions of <code>(λx.(λy.x) ((λu.u) (λv.v))) ((λz.z) (λw.w))</code> in the tree page.
+      </p>
+      ${tryLinkTree('(λx.(λy.x) ((λu.u) (λv.v))) ((λz.z) (λw.w))', 'Compare strategies')}
+    `
+  },
+  {
+    title: '11. Going further',
+    body: `
+      <p>You now know the core. Some directions to explore:</p>
+      <ul>
+        <li><b>α-equivalence</b> — two terms are "the same" if they differ only in
+            bound variable names. The <i>Recognize</i> button uses this.</li>
+        <li><b>De Bruijn indices</b> — a way to write λ-terms without names at all,
+            replacing each variable with a number indicating "how many λ's outside
+            do you have to walk to find your binder?"</li>
+        <li><b>Binary Lambda Calculus (BLC)</b> — Tromp's tiny encoding: <code>00</code>
+            for λ, <code>01</code> for application, <code>1...10</code> for variables.
+            Toggle <i>BLC</i> in the visualizer to see any term as a bit string.</li>
+        <li><b>Combinatory logic</b> — the same power, no variables: <code>S</code>,
+            <code>K</code>, <code>I</code>.</li>
+        <li><b>Types</b> — when you start asking "what kind of values does this λ
+            return?", you arrive at the typed λ-calculus, then System F, then dependent types,
+            then proof assistants...</li>
+      </ul>
+      <p>That's all there is. Go play.</p>
+    `
+  },
+];
+
+// Per-lesson practice exercises. Each is either an `expression` task
+// (user types a λ-term, checked by α-equality after elaboration) or an
+// `mc` (multiple-choice) task. Hints are optional.
+const EXERCISES = [
+  /* 1 — Variables & abstraction */ [
+    {
+      type: 'expression',
+      prompt: 'Type the identity function in λ-notation.',
+      expected: '\\x. x',
+      placeholder: 'e.g. \\x. x',
+      hint: 'A function that takes one argument and returns it unchanged. Any name works (α-equivalence).',
+    },
+    {
+      type: 'mc',
+      prompt: 'Which of these is α-equivalent to <code>λx. x</code>?',
+      options: ['λa. a', 'λx. y', 'λx. x x', 'x'],
+      correct: 0,
+      hint: 'α-equivalence allows renaming a bound variable consistently throughout the body.',
+    },
+  ],
+
+  /* 2 — Application */ [
+    {
+      type: 'expression',
+      prompt: 'Reduce <code>(λx. x) foo</code>.',
+      expected: 'foo',
+      hint: 'Identity returns whatever it gets.',
+    },
+    {
+      type: 'expression',
+      prompt: 'Reduce <code>(λx. x) (λy. y)</code>.',
+      expected: '\\y. y',
+      hint: 'Substitute the argument <code>(λy. y)</code> for <code>x</code> in the body.',
+    },
+    {
+      type: 'mc',
+      prompt: '<code>f x y</code> is parsed as:',
+      options: ['(f x) y', 'f (x y)', '((f)(x)) y', 'one big application of f, x and y'],
+      correct: 0,
+      hint: 'Application is left-associative.',
+    },
+  ],
+
+  /* 3 — β-reduction */ [
+    {
+      type: 'expression',
+      prompt: 'Reduce <code>(λx. x x) y</code> in one step.',
+      expected: 'y y',
+      hint: 'Substitute <code>y</code> for every occurrence of <code>x</code> in the body <code>x x</code>.',
+    },
+    {
+      type: 'expression',
+      prompt: 'Fully reduce <code>(λx. (λy. y) x) z</code>.',
+      expected: 'z',
+      hint: 'Two steps: outer <code>λx</code> first, then inner <code>λy</code>.',
+    },
+    {
+      type: 'expression',
+      prompt: 'Reduce <code>(λf. f a) (λx. x)</code>.',
+      expected: 'a',
+      hint: 'After the outer reduction you get <code>(λx. x) a</code>, which is just <code>a</code>.',
+    },
+  ],
+
+  /* 4 — Currying */ [
+    {
+      type: 'expression',
+      prompt: 'What is <code>K a b</code>? (where <code>K = λx. λy. x</code>)',
+      expected: 'a',
+      hint: '<code>K</code> ignores its second argument and returns the first.',
+    },
+    {
+      type: 'expression',
+      prompt: 'Write <code>flip</code> so that <code>flip f x y = f y x</code>.',
+      expected: '\\f. \\x. \\y. f y x',
+      placeholder: 'e.g. \\f. \\x. \\y. ...',
+      hint: 'Three nested abstractions, then <code>f</code> applied with arguments swapped.',
+    },
+    {
+      type: 'mc',
+      prompt: 'The shorthand <code>λx y z. M</code> means:',
+      options: [
+        'λx. λy. λz. M',
+        '(λx)(λy)(λz). M',
+        'λx. M with y and z free',
+        'a syntax error — λ takes one variable',
+      ],
+      correct: 0,
+      hint: 'Currying = nested single-argument abstractions.',
+    },
+  ],
+
+  /* 5 — Booleans */ [
+    {
+      type: 'expression',
+      prompt: 'What is <code>not true</code>?',
+      expected: 'false',
+      hint: '<code>not = λb. b false true</code> — flips a boolean.',
+    },
+    {
+      type: 'expression',
+      prompt: 'What is <code>and true false</code>?',
+      expected: 'false',
+      hint: '<code>and p q = p q p</code> — if <code>p</code> is <code>true</code>, returns <code>q</code>.',
+    },
+    {
+      type: 'expression',
+      prompt: 'What is <code>or false true</code>?',
+      expected: 'true',
+      hint: '<code>or p q = p p q</code> — if <code>p</code> is <code>true</code>, returns <code>p</code>; otherwise <code>q</code>.',
+    },
+    {
+      type: 'mc',
+      prompt: 'Why does <code>true = λx. λy. x</code> work as a boolean?',
+      options: [
+        'It picks the first of two options — perfect for "if-then-else".',
+        'It returns the value true.',
+        'It loops forever.',
+        'It is the identity function.',
+      ],
+      correct: 0,
+      hint: 'Booleans are encoded as their *behavior*: pick the "then" branch (true) or the "else" branch (false).',
+    },
+  ],
+
+  /* 6 — Pairs */ [
+    {
+      type: 'expression',
+      prompt: 'What is <code>fst (pair a b)</code>?',
+      expected: 'a',
+    },
+    {
+      type: 'expression',
+      prompt: 'What is <code>snd (pair x y)</code>?',
+      expected: 'y',
+    },
+    {
+      type: 'expression',
+      prompt: 'Define <code>swap</code> that takes a pair <code>p</code> and returns the pair with components swapped.',
+      expected: '\\p. pair (snd p) (fst p)',
+      placeholder: 'e.g. \\p. pair (snd p) (fst p)',
+      hint: 'Build a new pair using <code>snd p</code> as the first component and <code>fst p</code> as the second.',
+    },
+  ],
+
+  /* 7 — Church numerals */ [
+    {
+      type: 'expression',
+      prompt: 'What is <code>succ 1</code>?',
+      expected: '2',
+      hint: '<code>succ n</code> adds one more application of <code>f</code>: 1 becomes 2.',
+    },
+    {
+      type: 'expression',
+      prompt: 'What is <code>plus 2 3</code>?',
+      expected: '5',
+    },
+    {
+      type: 'expression',
+      prompt: 'What is <code>mult 2 3</code>?',
+      expected: '6',
+    },
+    {
+      type: 'expression',
+      prompt: 'What is <code>pow 2 3</code> (i.e. <code>2³</code>)?',
+      expected: '8',
+      hint: '<code>pow m n = n m</code> — apply <code>n</code> to <code>m</code>.',
+    },
+  ],
+
+  /* 8 — Y combinator */ [
+    {
+      type: 'mc',
+      prompt: 'Y is a fixed-point combinator: <code>Y f</code> is β-equivalent to:',
+      options: ['f (Y f)', 'Y f', 'f f', 'Y'],
+      correct: 0,
+      hint: 'A fixed point of <code>f</code> is a value <code>v</code> such that <code>v = f v</code>.',
+    },
+    {
+      type: 'mc',
+      prompt: 'What does <code>(λx. x x) (λx. x x)</code> reduce to?',
+      options: [
+        'itself — it loops forever',
+        '<code>λx. x</code>',
+        '<code>x x</code>',
+        'a single variable',
+      ],
+      correct: 0,
+      hint: 'Substitute <code>(λx. x x)</code> for <code>x</code> in the body <code>x x</code> — what do you get?',
+    },
+  ],
+
+  /* 9 — Recursion in practice */ [
+    {
+      type: 'mc',
+      prompt: 'How do you write a recursive function with <code>Y</code>?',
+      options: [
+        'Define a "step" that takes a recursive arg <code>rec</code>, then apply <code>Y</code> to it',
+        'Use a <code>recursive</code> keyword in λ-calculus',
+        'Use a global name and self-reference',
+        'You cannot — λ-calculus has no recursion',
+      ],
+      correct: 0,
+      hint: '<code>Y</code> unfolds <code>(λrec. ...)</code> into something where <code>rec</code> behaves exactly like a recursive call.',
+    },
+    {
+      type: 'mc',
+      prompt: 'In <code>fact = Y (λrec. λn. iszero n 1 (mult n (rec (pred n))))</code>, what does <code>rec</code> refer to?',
+      options: [
+        'The recursive call to <code>fact</code> on a smaller argument',
+        'The <code>Y</code> combinator itself',
+        'A free variable defined elsewhere',
+        'Nothing — the term is malformed',
+      ],
+      correct: 0,
+      hint: '<code>Y</code>\'s magic is that it makes <code>rec</code> behave exactly like a recursive call to the surrounding function.',
+    },
+    {
+      type: 'mc',
+      prompt: 'Why does plain <code>Y</code> not work in an applicative-order (eager) language?',
+      options: [
+        '<code>Y f</code> would unfold infinitely before <code>f</code> can guard the recursion',
+        'It would be too fast',
+        'The call-by-value strategy is broken',
+        'It would be ambiguous',
+      ],
+      correct: 0,
+      hint: 'In applicative order, <code>Y f → f (Y f) → f (f (Y f)) → ...</code> never terminates. The <code>Z</code> combinator fixes this by delaying unfolding via η-expansion.',
+    },
+  ],
+
+  /* 10 — Strategies */ [
+    {
+      type: 'mc',
+      prompt: 'Which strategy reduces <code>(λx. y) Ω</code> to <code>y</code>?',
+      options: [
+        'normal order',
+        'applicative order',
+        'neither — it loops in both',
+        'both work',
+      ],
+      correct: 0,
+      hint: 'Normal order picks the leftmost-outermost redex first; the outer <code>λx</code> discards its argument before evaluating it.',
+    },
+    {
+      type: 'mc',
+      prompt: 'Applicative order means:',
+      options: [
+        'reduce arguments before applying',
+        'reduce leftmost-outermost first',
+        'never reduce inside lambdas',
+        'reduce randomly',
+      ],
+      correct: 0,
+      hint: 'It evaluates each argument fully before passing it to the function.',
+    },
+  ],
+
+  /* 11 — Going further */ [],
+];
+
+let currentLesson = 0;
+
+let currentLessonAfterFade = null;
+
+function renderLessonNav() {
+  const nav = document.getElementById('lessonNav');
+  nav.innerHTML = '';
+  LESSONS.forEach((l, i) => {
+    const b = document.createElement('button');
+    b.textContent = String(i + 1);
+    b.title = l.title;
+    if (i === currentLesson) b.classList.add('active');
+    b.onclick = () => gotoLesson(i);
+    nav.appendChild(b);
+  });
+}
+
+function renderLesson() {
+  const l = LESSONS[currentLesson];
+  let html = '<h2>' + l.title + '</h2>' + l.body;
+  const exs = EXERCISES[currentLesson] || [];
+  if (exs.length) html += renderExercises(exs);
+  document.getElementById('lessonContent').innerHTML = html;
+  document.getElementById('lessonProgress').textContent = `Lesson ${currentLesson + 1} / ${LESSONS.length}`;
+  document.getElementById('prevLesson').disabled = currentLesson === 0;
+  document.getElementById('nextLesson').disabled = currentLesson === LESSONS.length - 1;
+  document.getElementById('progressFill').style.width =
+    ((currentLesson + 1) / LESSONS.length * 100) + '%';
+  renderLessonNav();
+  // Save progress
+  try { localStorage.setItem('tromp_lesson_idx', String(currentLesson)); } catch {}
+  // Inline-diagram pass: any <pre><code>EXPR</code></pre> whose content
+  // parses as a valid λ-term gets a real Tromp diagram inserted next to it.
+  injectLessonDiagrams();
+}
+
+function escAttr(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+}
+
+function renderExercises(exs) {
+  let html = '<div class="practice-block"><h3 class="practice-heading">Practice</h3>';
+  exs.forEach((ex, i) => {
+    const id = 'ex_' + currentLesson + '_' + i;
+    html += '<div class="exercise" data-id="' + id + '" id="' + id + '">';
+    html += '<div class="exercise-prompt">' + ex.prompt + '</div>';
+    if (ex.type === 'mc') {
+      html += '<div class="exercise-options">';
+      ex.options.forEach((opt, j) => {
+        html += '<label class="exercise-option">'
+              + '<input type="radio" name="' + id + '" value="' + j + '">'
+              + '<span><code>' + opt + '</code></span>'
+              + '</label>';
+      });
+      html += '</div>';
+      html += '<div class="exercise-actions">'
+            + '<button type="button" class="btn" onclick="checkExerciseById(\'' + id + '\')">Check</button>'
+            + (ex.hint ? '<button type="button" class="btn btn-sec" onclick="hintExerciseById(\'' + id + '\')">Hint</button>' : '')
+            + '</div>';
+    } else {
+      html += '<div class="exercise-input-row">'
+            + '<input type="text" class="exercise-answer" placeholder="' + escAttr(ex.placeholder || 'enter expression…') + '" autocomplete="off" spellcheck="false" onkeydown="exerciseInputKey(event, \'' + id + '\')">'
+            + '<button type="button" class="btn" onclick="checkExerciseById(\'' + id + '\')">Check</button>'
+            + '</div>';
+      html += '<div class="exercise-actions">'
+            + (ex.hint ? '<button type="button" class="btn btn-sec" onclick="hintExerciseById(\'' + id + '\')">Hint</button>' : '')
+            + '</div>';
+    }
+    html += '<div class="exercise-feedback"></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+// Direct, inline-attribute-safe entry points so onclick=… in the rendered HTML
+// always works even if event delegation hits an edge case.
+function checkExerciseById(id) {
+  const exEl = document.getElementById(id);
+  if (!exEl) return;
+  const m = id.match(/^ex_(\d+)_(\d+)$/);
+  if (!m) return;
+  const ex = (EXERCISES[+m[1]] || [])[+m[2]];
+  if (!ex) return;
+  if (ex.type === 'mc') checkMCAnswer(exEl, ex.correct);
+  else checkExprAnswer(exEl, ex.expected);
+}
+function hintExerciseById(id) {
+  const exEl = document.getElementById(id);
+  if (exEl) showExerciseHint(exEl);
+}
+function exerciseInputKey(event, id) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    checkExerciseById(id);
+  }
+}
+
+function setExerciseFeedback(exEl, kind, msg) {
+  const fb = exEl.querySelector('.exercise-feedback');
+  fb.innerHTML = msg;
+  fb.className = 'exercise-feedback ' + kind;
+}
+
+function checkExprAnswer(exEl, expected) {
+  const inputEl = exEl.querySelector('.exercise-answer');
+  const input = (inputEl.value || '').trim();
+  if (!input) {
+    setExerciseFeedback(exEl, 'hint', 'Type an expression first.');
+    return;
+  }
+  let userAst, expectedAst;
+  try { userAst = elaborate(parse(input), allDefs()); }
+  catch (e) { setExerciseFeedback(exEl, 'bad', '✗ parse error: ' + e.message); return; }
+  try { expectedAst = elaborate(parse(expected), allDefs()); }
+  catch { setExerciseFeedback(exEl, 'bad', '(internal) expected answer failed to parse'); return; }
+  if (alphaEqual(userAst, expectedAst)) {
+    setExerciseFeedback(exEl, 'ok', '✓ Correct!');
+    exEl.classList.add('solved');
+    inputEl.disabled = true;
+  } else {
+    setExerciseFeedback(exEl, 'bad', '✗ Not quite — reduce further or check your syntax.');
+  }
+}
+
+function checkMCAnswer(exEl, correctIdx) {
+  const checked = exEl.querySelector('input[type="radio"]:checked');
+  if (!checked) {
+    setExerciseFeedback(exEl, 'hint', 'Pick an option first.');
+    return;
+  }
+  if (parseInt(checked.value, 10) === correctIdx) {
+    setExerciseFeedback(exEl, 'ok', '✓ Correct!');
+    exEl.classList.add('solved');
+    // Disable all radios so the user can't change the answer.
+    exEl.querySelectorAll('input[type="radio"]').forEach(r => r.disabled = true);
+  } else {
+    setExerciseFeedback(exEl, 'bad', '✗ Not quite — try another option.');
+  }
+}
+
+function showExerciseHint(exEl) {
+  const id = exEl.dataset.id;
+  const m = id && id.match(/^ex_(\d+)_(\d+)$/);
+  if (!m) return;
+  const ex = (EXERCISES[+m[1]] || [])[+m[2]];
+  if (ex && ex.hint) setExerciseFeedback(exEl, 'hint', '💡 ' + ex.hint);
+}
+
+// Buttons use inline onclick → direct entry points (checkExerciseById,
+// hintExerciseById, exerciseInputKey). No event-delegation needed.
+
+// Smooth fade between lessons. Caller can be a button click or arrow key.
+function gotoLesson(idx) {
+  if (idx === currentLesson) return;
+  if (idx < 0 || idx >= LESSONS.length) return;
+  const content = document.getElementById('lessonContent');
+  content.classList.add('lesson-fading');
+  currentLessonAfterFade = idx;
+  setTimeout(() => {
+    currentLesson = currentLessonAfterFade;
+    renderLesson();
+    content.classList.remove('lesson-fading');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 200);
+}
+
+function prevLesson() { gotoLesson(currentLesson - 1); }
+function nextLesson() { gotoLesson(currentLesson + 1); }
+
+// Render real Tromp diagrams next to <pre><code>EXPR</code></pre> blocks.
+// We try to parse each block; ones that don't parse (multi-line def lists,
+// reduction arrows, etc.) are silently skipped.
+function injectLessonDiagrams() {
+  if (typeof renderDiagram !== 'function') return; // modules not loaded yet
+  const codes = document.querySelectorAll('#lessonContent pre code');
+  codes.forEach((code, i) => {
+    const pre = code.parentElement;
+    if (pre.dataset.enhanced) return;
+    const text = code.textContent.trim();
+    if (!text || text.length > 200) return;
+    let ast;
+    try { ast = elaborate(parse(text), allDefs()); }
+    catch { return; }
+    pre.dataset.enhanced = '1';
+    const svgId = 'lesson_d_' + currentLesson + '_' + i;
+    const wrap = document.createElement('div');
+    wrap.className = 'lesson-diagram-wrap';
+    wrap.innerHTML =
+      '<svg id="' + svgId + '" class="lesson-diagram tromp-illust" xmlns="http://www.w3.org/2000/svg" width="0" height="0">' +
+        '<g id="' + svgId + '_segs"></g>' +
+        '<g id="' + svgId + '_zones"></g>' +
+      '</svg>';
+    pre.parentNode.insertBefore(wrap, pre.nextSibling);
+    SCALE = 9;
+    ANIM_ENABLED = false;
+    COLOR_MODE = false;
+    renderDiagram(ast, 0, null, {
+      svgId, segsId: svgId + '_segs', zonesId: svgId + '_zones', skipRedexZones: true,
+    });
+    const svg = document.getElementById(svgId);
+    if (svg) {
+      const w = svg.getAttribute('width');
+      const h = svg.getAttribute('height');
+      if (w && h && parseFloat(w) > 0) {
+        svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+        svg.removeAttribute('width');
+        svg.removeAttribute('height');
+      }
+    }
+  });
+}
+
+// Restore last lesson — but a URL param like ?lesson=10 takes priority,
+// so external pages can deep-link straight to a specific lesson.
+try {
+  const params = new URLSearchParams(location.search);
+  const fromUrl = params.get('lesson');
+  if (fromUrl !== null) {
+    const idx = parseInt(fromUrl, 10);
+    if (Number.isFinite(idx) && idx >= 0 && idx < LESSONS.length) {
+      currentLesson = idx;
+    }
+  } else {
+    const saved = parseInt(localStorage.getItem('tromp_lesson_idx') || '0');
+    if (Number.isFinite(saved) && saved >= 0 && saved < LESSONS.length) currentLesson = saved;
+  }
+} catch {}
+
+renderLesson();
+
+// Keyboard nav (skip when typing in a form)
+document.addEventListener('keydown', e => {
+  const t = e.target && e.target.tagName;
+  if (t === 'INPUT' || t === 'TEXTAREA') return;
+  if (e.key === 'ArrowLeft') prevLesson();
+  if (e.key === 'ArrowRight') nextLesson();
+});
+</script>
+
+<!-- Renderer modules so each lesson can show real Tromp diagrams inline. -->
+<script src="js/defs.js"></script>
+<script src="js/core/ast.js"></script>
+<script src="js/core/parser.js"></script>
+<script src="js/core/elaborate.js"></script>
+<script src="js/core/encoding.js"></script>
+<script src="js/ui/layout.js"></script>
+<script src="js/ui/render.js"></script>
+<script>injectLessonDiagrams();</script>
+</body>
+</html>

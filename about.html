@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About · Tromp Diagrams</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="page">
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="index.html">Home</a>
+  <a href="visualizer.html">Visualizer</a>
+  <a href="learn.html">Learn</a>
+  <a href="play.html">Play</a>
+  <a href="tree.html">Tree</a>
+  <a href="combinators.html">Combinators</a>
+  <a href="encodings.html">Encodings</a>
+  <a href="halting.html">Halting</a>
+  <a href="history.html">History</a>
+  <a href="cheatsheet.html">Cheatsheet</a>
+  <a href="about.html" class="active">About</a>
+</nav>
+
+
+<div class="page-wrap">
+
+  <h1>About</h1>
+  <p class="lede">
+    A site for visualizing the λ-calculus through John Tromp's diagrammatic notation —
+    interactive, animated, and built to be played with.
+  </p>
+
+  <h2>Who</h2>
+  <p>
+    Built by <b>EmyoT</b>, with substantial help from <a href="https://claude.com/claude-code" target="_blank">Claude</a> (Anthropic).
+    The whole project — parser, β-reducer, layout engine, animations, UI — was put together
+    iteratively in conversation with the model.
+  </p>
+
+  <h2>Why</h2>
+  <p>
+    The λ-calculus is a beautiful object: small enough to fit in a paragraph, powerful enough
+    to express all of computation. Most introductions to it lean heavily on syntax and rewrite rules,
+    which make it feel abstract. Tromp diagrams reverse that: they give you something concrete and
+    spatial. Watching <code>plus 2 3</code> reduce, line by line, into the Church numeral for <code>5</code>
+    is a different kind of understanding than reading the same reduction on paper.
+  </p>
+  <p>
+    This site is an excuse to spend more time with that visual intuition.
+  </p>
+
+  <h2>Credits and references</h2>
+  <ul>
+    <li><a href="https://tromp.github.io/cl/diagrams.html" target="_blank">John Tromp — Binary Lambda Calculus and Combinatory Logic</a> (the source of the diagram notation and BLC encoding)</li>
+    <li><a href="https://en.wikipedia.org/wiki/Lambda_calculus" target="_blank">Lambda calculus — Wikipedia</a></li>
+    <li><a href="https://en.wikipedia.org/wiki/Church_encoding" target="_blank">Church encoding — Wikipedia</a></li>
+    <li><a href="https://en.wikipedia.org/wiki/De_Bruijn_index" target="_blank">De Bruijn indices — Wikipedia</a></li>
+    <li><a href="https://en.wikipedia.org/wiki/Fixed-point_combinator" target="_blank">Fixed-point combinators — Wikipedia</a></li>
+  </ul>
+
+  <h2>Stack</h2>
+  <p>
+    Pure HTML / CSS / JavaScript — no build step, no framework, no dependencies.
+    Just open the files in a browser. The visualizer's animation engine uses <code>requestAnimationFrame</code>
+    on raw SVG elements, with line-level transitions tracked through a substitution origin map
+    so each line "knows" where it came from after a β-reduction.
+  </p>
+
+  <h2>Source</h2>
+  <p>
+    The project is local-first — all your user definitions and history are stored in your browser's
+    <code>localStorage</code>. Nothing is sent anywhere.
+  </p>
+
+  <h2>Special thanks</h2>
+  <ul>
+    <li><b>Claude</b> (Anthropic) — co-author for every line of code. Most of this site
+        was iterated through conversation; if it weren't obvious from the dev notes,
+        none of it would exist at this scale otherwise.</li>
+    <li><b>Beta testers</b> — friends who clicked through half-broken builds, found
+        the rough edges, and didn't roll their eyes when the diagrams broke.</li>
+    <li><b>You</b> — for actually reading this far. Tromp diagrams are a niche
+        within a niche; you being here is the whole point.</li>
+  </ul>
+
+  <h2>Contact</h2>
+  <p>
+    Bug reports, ideas, or just hello: <a href="mailto:titouan69670@gmail.com">titouan69670@gmail.com</a>.
+  </p>
+
+  <hr>
+
+  <p style="font-size:0.78rem; color:var(--muted);">
+    If you spot a bug or have an idea, the easiest place to look is the source: open
+    <code>visualizer.html</code> and the JS modules in <code>js/</code>.
+  </p>
+
+  <footer class="page-footer">
+    <a href="cheatsheet.html">← Cheatsheet</a> ·
+    <a href="index.html">Home →</a> ·
+    <a href="mailto:titouan69670@gmail.com">Email</a> ·
+    <a href="https://github.com/EmyoTyyy" target="_blank">GitHub</a>
+  </footer>
+
+</div>
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+</script>
+</body>
+</html>

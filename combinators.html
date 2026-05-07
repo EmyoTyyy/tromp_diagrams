@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Combinators · Tromp Diagrams</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="page">
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="index.html">Home</a>
+  <a href="visualizer.html">Visualizer</a>
+  <a href="learn.html">Learn</a>
+  <a href="play.html">Play</a>
+  <a href="tree.html">Tree</a>
+  <a href="combinators.html" class="active">Combinators</a>
+  <a href="encodings.html">Encodings</a>
+  <a href="halting.html">Halting</a>
+  <a href="history.html">History</a>
+  <a href="cheatsheet.html">Cheatsheet</a>
+  <a href="about.html">About</a>
+</nav>
+
+<div class="page-wrap zoo-wrap">
+
+  <h1>Combinator zoo</h1>
+  <p class="lede">
+    A combinator is a closed λ-term — no free variables. Every fold of computation
+    can be built from a small handful of them. Smullyan named them after birds
+    in <i>To Mock a Mockingbird</i>; we keep his names.
+  </p>
+
+  <div class="zoo-filter">
+    <button class="btn btn-sec zoo-cat-btn active" data-cat="all">all</button>
+    <button class="btn btn-sec zoo-cat-btn" data-cat="basic">basic</button>
+    <button class="btn btn-sec zoo-cat-btn" data-cat="comp">composition</button>
+    <button class="btn btn-sec zoo-cat-btn" data-cat="self">self-application</button>
+    <button class="btn btn-sec zoo-cat-btn" data-cat="fix">fixed point</button>
+    <button class="btn btn-sec zoo-cat-btn" data-cat="div">divergent</button>
+  </div>
+
+  <div class="zoo-grid" id="zooGrid"></div>
+
+  <p class="zoo-note">
+    All these combinators are loaded as built-ins in the
+    <a href="visualizer.html">visualizer</a> — type them by name (<code>S</code>,
+    <code>Y</code>, <code>theta</code>…) and they expand to the diagrams above.
+    The page <a href="learn.html">Learn</a> covers how SKI alone is enough
+    to encode anything else.
+  </p>
+
+  <footer class="page-footer">
+    <a href="tree.html">← Tree</a> ·
+    <a href="encodings.html">Encodings →</a> ·
+    <a href="visualizer.html">Visualizer</a>
+  </footer>
+</div>
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+</script>
+
+<script src="js/defs.js"></script>
+<script src="js/core/ast.js"></script>
+<script src="js/core/parser.js"></script>
+<script src="js/core/elaborate.js"></script>
+<script src="js/core/encoding.js"></script>
+<script src="js/ui/layout.js"></script>
+
+<script>
+// ─── Data: each combinator's symbol, bird, λ-form, category, blurb,
+//     and a one-step example reduction. Order is loosely pedagogical
+//     (basic first, then composition, self-app, fixed-points, divergent).
+const COMBINATORS = [
+  // ── basic ─────────────────────────────────
+  { sym: 'I',  bird: 'Idiot',         cat: 'basic',
+    expr: '\\x. x',
+    desc: 'Identity. Returns its argument unchanged. The simplest combinator.',
+    example: 'I a  →  a' },
+  { sym: 'K',  bird: 'Kestrel',       cat: 'basic',
+    expr: '\\x. \\y. x',
+    desc: 'Constant. Returns its first argument, throws away the second.',
+    example: 'K a b  →  a' },
+  { sym: 'KI', bird: 'Kite',          cat: 'basic',
+    expr: 'K I',
+    desc: 'Returns its second argument, throws away the first. Equal to Church-encoded false.',
+    example: 'KI a b  →  b' },
+  { sym: 'S',  bird: 'Starling',      cat: 'basic',
+    expr: '\\x. \\y. \\z. x z (y z)',
+    desc: 'Application. Distributes the third argument to both function and argument. With K and I it can encode every λ-term — that is the SKI completeness theorem.',
+    example: 'S f g x  →  f x (g x)' },
+
+  // ── composition / argument shuffling ──────
+  { sym: 'B',  bird: 'Bluebird',      cat: 'comp',
+    expr: '\\f. \\g. \\x. f (g x)',
+    desc: 'Composition. The classic ∘ operator: feed x to g, then to f.',
+    example: 'B f g x  →  f (g x)' },
+  { sym: 'C',  bird: 'Cardinal',      cat: 'comp',
+    expr: '\\f. \\x. \\y. f y x',
+    desc: 'Flip. Reverses the order of f\'s two arguments.',
+    example: 'C f a b  →  f b a' },
+  { sym: 'W',  bird: 'Warbler',       cat: 'comp',
+    expr: '\\f. \\x. f x x',
+    desc: 'Duplication. Applies f to x twice. The dual of K — instead of dropping an argument, it doubles it.',
+    example: 'W f x  →  f x x' },
+  { sym: 'T',  bird: 'Thrush',        cat: 'comp',
+    expr: '\\x. \\f. f x',
+    desc: 'Reverse application. Hands x to f. Same shape as λ-encoded "method call".',
+    example: 'T x f  →  f x' },
+  { sym: 'V',  bird: 'Vireo',         cat: 'comp',
+    expr: '\\a. \\b. \\f. f a b',
+    desc: 'Pair constructor. Stores a and b, hands them to f when asked. Church-encoded pair.',
+    example: 'V a b f  →  f a b' },
+
+  // ── self-application ─────────────────────
+  { sym: 'M',  bird: 'Mockingbird',   cat: 'self',
+    expr: '\\x. x x',
+    desc: 'Self-application. Applies its argument to itself. The seed of all paradoxes.',
+    example: 'M f  →  f f' },
+  { sym: 'L',  bird: 'Lark',          cat: 'self',
+    expr: '\\x. \\y. x (y y)',
+    desc: 'Composition with self-applied second argument. Used in some encodings of recursion.',
+    example: 'L x y  →  x (y y)' },
+
+  // ── fixed-point combinators ──────────────
+  { sym: 'Y',  bird: 'Y combinator',  cat: 'fix',
+    expr: '\\f. (\\x. f (x x)) (\\x. f (x x))',
+    desc: 'Fixed-point combinator. For any function f, Y f reduces to f (Y f) — the equation that turns recursion into normal-order substitution. Diverges under applicative-order evaluation.',
+    example: 'Y f  →  f (Y f)' },
+  { sym: 'Z',  bird: 'Z combinator',  cat: 'fix',
+    expr: '\\f. (\\x. f (\\v. x x v)) (\\x. f (\\v. x x v))',
+    desc: 'Strict fixed-point combinator. Same idea as Y but the recursive call is wrapped in a thunk, so it works under call-by-value.',
+    example: 'Z f  →  f (\\v. Z f v)' },
+  { sym: 'theta', bird: 'Turing\'s Θ', cat: 'fix',
+    expr: '(\\x. \\f. f (x x f)) (\\x. \\f. f (x x f))',
+    desc: 'Turing\'s fixed-point combinator. Same fixed-point property as Y, but discovered independently by Turing in 1937, and structurally simpler in some ways.',
+    example: 'Θ f  →  f (Θ f)' },
+
+  // ── divergent ────────────────────────────
+  { sym: 'omega', bird: 'small ω',    cat: 'div',
+    expr: '\\x. x x',
+    desc: 'Same shape as M (Mockingbird). Used in pair with itself to build the divergent term Ω.',
+    example: 'ω x  →  x x' },
+  { sym: 'Omega', bird: 'big Ω',      cat: 'div',
+    expr: '(\\x. x x) (\\x. x x)',
+    desc: 'The smallest divergent λ-term. Reduces to itself in one β-step — never reaches a normal form. Historical: Church and Curry\'s first proof that a calculus could fail to terminate.',
+    example: 'Ω  →  Ω  →  Ω  …' },
+];
+
+const ZOO_CATS = {
+  basic: 'basic',
+  comp:  'composition',
+  self:  'self-application',
+  fix:   'fixed point',
+  div:   'divergent',
+};
+
+// ─── Render ──────────────────────────────────
+function zooRender(filter = 'all') {
+  const grid = document.getElementById('zooGrid');
+  grid.innerHTML = '';
+  const NS = 'http://www.w3.org/2000/svg';
+  let visible = 0;
+  for (let i = 0; i < COMBINATORS.length; i++) {
+    const c = COMBINATORS[i];
+    if (filter !== 'all' && c.cat !== filter) continue;
+    visible++;
+    const card = document.createElement('div');
+    card.className = 'zoo-card';
+    const url = 'visualizer.html?expr=' + encodeURIComponent(c.expr);
+    card.innerHTML = `
+      <div class="zoo-head">
+        <div class="zoo-sym">${escapeHtml(c.sym)}</div>
+        <div class="zoo-meta">
+          <div class="zoo-bird">${escapeHtml(c.bird)}</div>
+          <div class="zoo-cat-tag">${ZOO_CATS[c.cat] || c.cat}</div>
+        </div>
+      </div>
+      <svg class="zoo-diag" id="zoo-diag-${i}" xmlns="http://www.w3.org/2000/svg"></svg>
+      <pre class="zoo-expr"><code>${escapeHtml(c.expr).replace(/\\/g, 'λ')}</code></pre>
+      <p class="zoo-desc">${escapeHtml(c.desc)}</p>
+      <div class="zoo-example"><code>${escapeHtml(c.example)}</code></div>
+      <div class="zoo-actions">
+        <a class="btn btn-sec" href="${url}" target="_blank">Open in Visualizer ↗</a>
+      </div>
+    `;
+    grid.appendChild(card);
+    drawZooDiagram('zoo-diag-' + i, c.expr);
+  }
+  if (visible === 0) {
+    grid.innerHTML = '<div class="zoo-empty">No combinator in this category.</div>';
+  }
+}
+
+function drawZooDiagram(svgId, code) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  let ast;
+  try {
+    ast = elaborate(parse(code), allDefs());
+  } catch (e) {
+    return;
+  }
+  const SCALE = 11;
+  const PAD = 2;
+  const { segs, gridW, gridH } = computeDiagram(ast);
+  const W = (gridW + PAD * 2) * SCALE;
+  const H = (gridH + PAD * 2) * SCALE;
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const sw = Math.max(2, SCALE * 0.55);
+  const NS = 'http://www.w3.org/2000/svg';
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  for (const s of segs) {
+    const ln = document.createElementNS(NS, 'line');
+    ln.setAttribute('x1', (PAD + s.x1) * SCALE);
+    ln.setAttribute('y1', (PAD + s.y1) * SCALE);
+    ln.setAttribute('x2', (PAD + s.x2) * SCALE);
+    ln.setAttribute('y2', (PAD + s.y2) * SCALE);
+    ln.setAttribute('stroke', '#ffffff');
+    ln.setAttribute('stroke-width', sw);
+    ln.setAttribute('stroke-linecap', s.kind === 'V' ? 'butt' : 'square');
+    svg.appendChild(ln);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[<>&"']/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+// Filter buttons
+for (const btn of document.querySelectorAll('.zoo-cat-btn')) {
+  btn.addEventListener('click', () => {
+    for (const b of document.querySelectorAll('.zoo-cat-btn')) b.classList.remove('active');
+    btn.classList.add('active');
+    zooRender(btn.dataset.cat);
+  });
+}
+
+zooRender('all');
+</script>
+</body>
+</html>

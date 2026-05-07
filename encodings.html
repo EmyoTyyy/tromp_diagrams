@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Encodings · Tromp Diagrams</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="page">
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="index.html">Home</a>
+  <a href="visualizer.html">Visualizer</a>
+  <a href="learn.html">Learn</a>
+  <a href="play.html">Play</a>
+  <a href="tree.html">Tree</a>
+  <a href="combinators.html">Combinators</a>
+  <a href="encodings.html" class="active">Encodings</a>
+  <a href="halting.html">Halting</a>
+  <a href="history.html">History</a>
+  <a href="cheatsheet.html">Cheatsheet</a>
+  <a href="about.html">About</a>
+</nav>
+
+<div class="page-wrap enc-wrap">
+
+  <h1>Encoding lab</h1>
+  <p class="lede">
+    The λ-calculus has no built-in data — only functions. Yet you can <i>encode</i>
+    numbers, lists, trees, anything. Different encodings give different diagrams,
+    different costs, different feelings. Side by side: same value, different shape.
+  </p>
+
+  <div class="enc-tabs">
+    <button class="enc-tab active" data-tab="naturals">Naturals</button>
+    <button class="enc-tab" data-tab="lists">Lists</button>
+    <button class="enc-tab" data-tab="booleans">Booleans</button>
+    <button class="enc-tab" data-tab="pairs">Pairs</button>
+  </div>
+
+  <div class="enc-panel" id="encPanel"></div>
+
+  <footer class="page-footer">
+    <a href="combinators.html">← Combinators</a> ·
+    <a href="halting.html">Halting →</a> ·
+    <a href="visualizer.html">Visualizer →</a>
+  </footer>
+</div>
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+</script>
+
+<script src="js/defs.js"></script>
+<script src="js/core/ast.js"></script>
+<script src="js/core/parser.js"></script>
+<script src="js/core/elaborate.js"></script>
+<script src="js/core/encoding.js"></script>
+<script src="js/ui/layout.js"></script>
+
+<script>
+// ─── Encoding data ─────────────────────────────────────────────
+// For each datatype we list one or more encodings. Each encoding carries
+// the canonical formula, a one-line trade-off, and concrete values
+// (already as λ-source, ready to parse and render).
+const ENC_DATA = {
+  naturals: {
+    title: 'Naturals',
+    blurb: `
+      Three encodings of the same numbers. Church is the original (1933):
+      a numeral n is "iterate f, n times". Scott (Curry, ~1960s) stores n+1
+      as the pair "successor of <something>", giving O(1) predecessor.
+      Parigot (1988) packs both an iterator and a recursive form, so
+      predecessor AND fold are O(1) — at the cost of exponential size growth.
+    `,
+    values: ['0', '1', '2', '3'],
+    encodings: [
+      {
+        name: 'Church',
+        formula: 'n = λf.λx. fⁿ x',
+        tradeoff: 'small, fold is the numeral itself. predecessor is O(n).',
+        values: [
+          '\\f. \\x. x',
+          '\\f. \\x. f x',
+          '\\f. \\x. f (f x)',
+          '\\f. \\x. f (f (f x))',
+        ],
+      },
+      {
+        name: 'Scott',
+        formula: '0 = λz.λs. z, n+1 = λz.λs. s n',
+        tradeoff: 'O(1) predecessor by destructuring. Fold needs Y.',
+        values: [
+          '\\z. \\s. z',
+          '\\z. \\s. s (\\z. \\s. z)',
+          '\\z. \\s. s (\\z. \\s. s (\\z. \\s. z))',
+          '\\z. \\s. s (\\z. \\s. s (\\z. \\s. s (\\z. \\s. z)))',
+        ],
+      },
+      {
+        name: 'Parigot',
+        formula: '0 = λs.λz. z, n+1 = λs.λz. s n (n s z)',
+        tradeoff: 'O(1) predecessor AND O(n) fold. Size doubles per increment.',
+        values: [
+          '\\s. \\z. z',
+          '\\s. \\z. s (\\s. \\z. z) ((\\s. \\z. z) s z)',
+          '\\s. \\z. s (\\s. \\z. s (\\s. \\z. z) ((\\s. \\z. z) s z)) ((\\s. \\z. s (\\s. \\z. z) ((\\s. \\z. z) s z)) s z)',
+          // Parigot 3 is too large to fit usefully — show as elision
+          null,
+        ],
+      },
+    ],
+  },
+
+  lists: {
+    title: 'Lists',
+    blurb: `
+      Two list encodings shipped with the visualizer. Church-style lists
+      <i>are</i> their right-fold: a list [a, b, c] is the function that takes
+      a combiner c and a base n and returns c a (c b (c c n)). Scott-style
+      lists are pattern-match objects: each cons stores its head and tail
+      directly, so head/tail are O(1) but length and map need recursion.
+    `,
+    values: ['[]', '[1]', '[1, 2]', '[1, 2, 3]'],
+    encodings: [
+      {
+        name: 'Church (foldr)',
+        formula: '[] = λc.λn. n, x:xs = λc.λn. c x (xs c n)',
+        tradeoff: 'list IS its own fold — sum, map, etc. are one β-reduction.',
+        values: [
+          'nil',
+          'cons 1 nil',
+          'cons 1 (cons 2 nil)',
+          'cons 1 (cons 2 (cons 3 nil))',
+        ],
+      },
+      {
+        name: 'Scott (pattern)',
+        formula: '[] = λn.λc. n, x:xs = λn.λc. c x xs',
+        tradeoff: 'O(1) head/tail. length, map need Y. O(1) decomposition.',
+        values: [
+          'snil',
+          'scons 1 snil',
+          'scons 1 (scons 2 snil)',
+          'scons 1 (scons 2 (scons 3 snil))',
+        ],
+      },
+    ],
+  },
+
+  booleans: {
+    title: 'Booleans',
+    blurb: `
+      For booleans the Church encoding is essentially the only one used in
+      practice. true picks its first argument, false picks its second —
+      that's enough for if-then-else as a single application: <code>p a b</code>
+      already evaluates to a if p is true, b otherwise. The same pair of
+      functions also serves as the canonical pair-projection K and KI.
+    `,
+    values: ['true', 'false'],
+    encodings: [
+      {
+        name: 'Church',
+        formula: 'true = λx.λy. x, false = λx.λy. y',
+        tradeoff: 'if p a b reduces in two β-steps. Same shape as K and KI.',
+        values: [
+          '\\x. \\y. x',
+          '\\x. \\y. y',
+        ],
+      },
+    ],
+  },
+
+  pairs: {
+    title: 'Pairs',
+    blurb: `
+      Pair = "give me a function and I'll feed both of my fields to it".
+      fst/snd are then just (·) true / (·) false using Church booleans.
+      The encoding generalises directly to n-tuples and to records.
+    `,
+    values: ['(a, b)', '(1, 2)', '(true, false)'],
+    encodings: [
+      {
+        name: 'Church',
+        formula: '(x, y) = λf. f x y',
+        tradeoff: 'fst/snd are 2-step β-reductions. Triplets etc. extend trivially.',
+        values: [
+          'pair a b',
+          'pair 1 2',
+          'pair true false',
+        ],
+      },
+    ],
+  },
+};
+
+// ─── Render ────────────────────────────────────────────────────
+const panel = document.getElementById('encPanel');
+
+function encRender(tabKey) {
+  const data = ENC_DATA[tabKey];
+  panel.innerHTML = '';
+
+  // Heading + blurb
+  const intro = document.createElement('div');
+  intro.className = 'enc-intro';
+  intro.innerHTML = `<h2>${data.title}</h2><p class="enc-blurb">${data.blurb}</p>`;
+  panel.appendChild(intro);
+
+  // Encoding header row (formula cards)
+  const head = document.createElement('div');
+  head.className = 'enc-encodings';
+  for (const e of data.encodings) {
+    const card = document.createElement('div');
+    card.className = 'enc-encoding-card';
+    card.innerHTML = `
+      <div class="enc-name">${e.name}</div>
+      <pre class="enc-formula"><code>${escapeHtml(e.formula)}</code></pre>
+      <div class="enc-tradeoff">${e.tradeoff}</div>
+    `;
+    head.appendChild(card);
+  }
+  panel.appendChild(head);
+
+  // Side-by-side grid: rows = values, cols = encodings.
+  const grid = document.createElement('div');
+  grid.className = 'enc-grid';
+  // Column count CSS variable so the grid can adapt.
+  grid.style.setProperty('--cols', data.encodings.length + 1);
+  // Header
+  grid.appendChild(makeHeaderCell('value'));
+  for (const e of data.encodings) grid.appendChild(makeHeaderCell(e.name));
+  // Rows
+  for (let i = 0; i < data.values.length; i++) {
+    const valLabel = data.values[i];
+    grid.appendChild(makeValueLabelCell(valLabel));
+    for (let j = 0; j < data.encodings.length; j++) {
+      const code = data.encodings[j].values[i];
+      grid.appendChild(makeDiagramCell(code, valLabel, data.encodings[j].name));
+    }
+  }
+  panel.appendChild(grid);
+}
+
+function makeHeaderCell(text) {
+  const div = document.createElement('div');
+  div.className = 'enc-grid-h';
+  div.textContent = text;
+  return div;
+}
+function makeValueLabelCell(label) {
+  const div = document.createElement('div');
+  div.className = 'enc-grid-vl';
+  div.innerHTML = `<code>${escapeHtml(label)}</code>`;
+  return div;
+}
+function makeDiagramCell(code, valLabel, encName) {
+  const div = document.createElement('div');
+  div.className = 'enc-grid-d';
+  if (code === null) {
+    div.innerHTML = '<span class="enc-elide">(too large to render)</span>';
+    return div;
+  }
+  const url = 'visualizer.html?expr=' + encodeURIComponent(code);
+  const id = 'enc-svg-' + Math.random().toString(36).slice(2, 8);
+  div.innerHTML = `
+    <svg id="${id}" xmlns="http://www.w3.org/2000/svg"></svg>
+    <a class="enc-open" href="${url}" target="_blank" title="Open ${encName} ${valLabel} in visualizer">↗</a>
+  `;
+  // Defer so the SVG element is in the DOM.
+  setTimeout(() => drawEncDiagram(id, code), 0);
+  return div;
+}
+
+function drawEncDiagram(svgId, code) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  let ast;
+  try {
+    ast = elaborate(parse(code), allDefs());
+  } catch (e) {
+    svg.outerHTML = '<span class="enc-elide">parse error</span>';
+    return;
+  }
+  const SCALE = 8;
+  const PAD = 2;
+  const { segs, gridW, gridH } = computeDiagram(ast);
+  const W = (gridW + PAD * 2) * SCALE;
+  const H = (gridH + PAD * 2) * SCALE;
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const sw = Math.max(2, SCALE * 0.55);
+  const NS = 'http://www.w3.org/2000/svg';
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  for (const s of segs) {
+    const ln = document.createElementNS(NS, 'line');
+    ln.setAttribute('x1', (PAD + s.x1) * SCALE);
+    ln.setAttribute('y1', (PAD + s.y1) * SCALE);
+    ln.setAttribute('x2', (PAD + s.x2) * SCALE);
+    ln.setAttribute('y2', (PAD + s.y2) * SCALE);
+    ln.setAttribute('stroke', '#ffffff');
+    ln.setAttribute('stroke-width', sw);
+    ln.setAttribute('stroke-linecap', s.kind === 'V' ? 'butt' : 'square');
+    svg.appendChild(ln);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[<>&"']/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+// Tab buttons
+for (const btn of document.querySelectorAll('.enc-tab')) {
+  btn.addEventListener('click', () => {
+    for (const b of document.querySelectorAll('.enc-tab')) b.classList.remove('active');
+    btn.classList.add('active');
+    encRender(btn.dataset.tab);
+  });
+}
+
+encRender('naturals');
+</script>
+</body>
+</html>

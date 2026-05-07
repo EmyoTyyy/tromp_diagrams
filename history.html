@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>History · Tromp Diagrams</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="page">
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="index.html">Home</a>
+  <a href="visualizer.html">Visualizer</a>
+  <a href="learn.html">Learn</a>
+  <a href="play.html">Play</a>
+  <a href="tree.html">Tree</a>
+  <a href="combinators.html">Combinators</a>
+  <a href="encodings.html">Encodings</a>
+  <a href="halting.html">Halting</a>
+  <a href="history.html" class="active">History</a>
+  <a href="cheatsheet.html">Cheatsheet</a>
+  <a href="about.html">About</a>
+</nav>
+
+<!-- Floating timeline indicator -->
+<div class="hist-pill" id="histPill">
+  <div class="hist-pill-year" id="histYear">1900</div>
+  <div class="hist-pill-progress"><div class="hist-pill-progress-fill" id="histProgress"></div></div>
+</div>
+
+<div class="page-wrap hist-wrap">
+
+  <h1>Une brève histoire du <span class="keep-lower">λ</span>-calcul</h1>
+  <p class="lede">
+    De la crise des fondements jusqu'aux diagrammes de Tromp,
+    un siècle de recherche pour donner une forme à l'idée de calcul.
+  </p>
+
+  <!-- ─── 1900 ─────────────────────────────────────────────────── -->
+  <section class="hist-section" data-year="1900" data-label="1900–1928">
+    <div class="hist-marker"><span>1900</span></div>
+    <div class="hist-content">
+      <h2>Un trou dans les fondations</h2>
+      <p>
+        En 1901, <b>Bertrand Russell</b> trouve un paradoxe qui fissure la théorie naïve
+        des ensembles : « l'ensemble des ensembles qui ne se contiennent pas eux-mêmes ».
+        S'il se contient, il ne devrait pas. S'il ne se contient pas, il devrait.
+        Le projet de fonder toutes les mathématiques sur la logique vacille.
+      </p>
+      <p>
+        En réponse, <b>David Hilbert</b> formule au congrès international de 1900 un
+        programme : axiomatiser les mathématiques, prouver leur cohérence, leur
+        complétude, et — ambition fatidique — leur <i>décidabilité</i>. C'est
+        l'<b>Entscheidungsproblem</b> (problème de la décision), posé en 1928 :
+        existe-t-il un algorithme qui, donné une formule logique, décide en temps fini
+        si elle est valide ?
+      </p>
+      <p class="hist-aside">
+        À l'époque, personne ne sait définir précisément ce qu'est un « algorithme ».
+        Le λ-calcul naîtra de cette tension.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── 1932 ─────────────────────────────────────────────────── -->
+  <section class="hist-section" data-year="1932" data-label="1932–1934">
+    <div class="hist-marker"><span>1932</span></div>
+    <div class="hist-content">
+      <h2>Church à Princeton</h2>
+      <p>
+        <b>Alonzo Church</b> (1903–1995), jeune professeur à Princeton, ne croit pas
+        au programme de Russell tel quel. Trop lourd, trop arbitraire dans ses axiomes.
+        Il propose à la place un système formel minimal où <b>tout est fonction</b>,
+        avec deux opérateurs primitifs :
+        <code>Λ</code> pour quantifier sur les types, <code>λ</code> pour les fonctions
+        ordinaires.
+      </p>
+      <p>
+        L'idée géniale : remplacer la notion d'ensemble par celle de fonction.
+        Plus de paradoxe de Russell, parce que les fonctions sont stratifiées.
+        Le système, publié en 1932 sous le titre
+        <i>"A Set of Postulates for the Foundation of Logic"</i>, doit servir
+        de fondement aux mathématiques.
+      </p>
+      <p class="hist-aside">
+        L'origine du symbole λ est anecdotique : Church voulait écrire <code>x̂</code>
+        (« x avec un chapeau »), comme dans Russell, mais l'imprimeur ne savait pas
+        gérer cet accent. Il a écrit le chapeau à part, ça donnait <code>∧x</code>,
+        puis s'est dégradé en <code>λx</code>. Un accident typographique a baptisé
+        toute une famille de langages.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── 1935 ─────────────────────────────────────────────────── -->
+  <section class="hist-section" data-year="1935" data-label="1935">
+    <div class="hist-marker"><span>1935</span></div>
+    <div class="hist-content">
+      <h2>L'inconsistance, et la résurrection</h2>
+      <p>
+        Deux étudiants de Church, <b>Stephen Kleene</b> et <b>J. Barkley Rosser</b>,
+        découvrent en 1935 que le système initial est <b>inconsistant</b> : on peut
+        y dériver toute formule, vraie comme fausse. Catastrophe pour les fondations.
+      </p>
+      <p>
+        Mais Church remarque alors un fait crucial. Si on retire la machinerie
+        logique et qu'on ne garde que l'ossature des fonctions — <code>λx. M</code>
+        et l'application — ce sous-système, le <b>λ-calcul non typé</b>, reste
+        parfaitement cohérent comme calcul. Plus une logique, mais un système de
+        manipulation symbolique. C'est ce qui survivra et fera l'histoire.
+      </p>
+      <div class="hist-diagram-row">
+        <div class="hist-diagram-card">
+          <svg id="hist-diag-omega" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="hist-diagram-cap">
+            <code>Ω = (λx. x x)(λx. x x)</code><br>
+            le terme qui se réduit en lui-même, <i>ad infinitum</i> —
+            la première preuve qu'un système de calcul peut diverger.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 1936 — Church-Rosser ─────────────────────────────────── -->
+  <section class="hist-section" data-year="1936" data-label="1936">
+    <div class="hist-marker"><span>1936</span></div>
+    <div class="hist-content">
+      <h2>Le théorème de Church-Rosser</h2>
+      <p>
+        Toujours en 1936, Church et Rosser publient un résultat fondamental :
+        <b>la confluence</b>. Si on β-réduit un terme λ par n'importe quel ordre,
+        et qu'on atteint une forme normale, alors on atteint <i>la même</i> forme
+        normale. L'ordre n'a pas d'importance pour le résultat — seulement pour la
+        terminaison.
+      </p>
+      <p>
+        C'est exactement ce que ta page <a href="tree.html">Tree</a> visualise :
+        les quatre stratégies divergent, parfois s'entrelacent, mais quand elles
+        terminent, elles tombent toujours sur la même feuille. Le théorème est
+        aussi appelé « propriété du diamant » à cause de la forme du diagramme
+        des co-réductions qui se rejoignent.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── 1936 — l'année double ────────────────────────────────── -->
+  <section class="hist-section" data-year="1936" data-label="1936 (avril–mai)">
+    <div class="hist-marker"><span>1936</span></div>
+    <div class="hist-content">
+      <h2>L'année du calcul</h2>
+      <p>
+        En avril 1936, Church publie <i>"An Unsolvable Problem of Elementary Number
+        Theory"</i>. Verdict pour Hilbert : l'Entscheidungsproblem est <b>indécidable</b>.
+        Aucun algorithme ne peut décider la validité de toute formule logique.
+        La preuve repose sur le λ-calcul.
+      </p>
+      <p>
+        Quelques semaines plus tard, à Cambridge, un certain <b>Alan Turing</b>,
+        24 ans, achève sans connaître les travaux de Church son article
+        <i>"On Computable Numbers"</i>. Il y définit ce qu'on appelera les
+        <b>machines de Turing</b> et démontre, par un autre chemin, exactement le
+        même résultat.
+      </p>
+      <p>
+        Turing apprend l'existence du papier de Church juste avant de soumettre le
+        sien. Il ajoute une annexe pour montrer que les deux formalismes — λ-calcul
+        et machines de Turing — sont <b>équivalents</b> : ils calculent exactement
+        la même classe de fonctions. C'est la <b>thèse de Church-Turing</b> :
+        ce qui est intuitivement « calculable » coïncide avec ce que ces deux
+        modèles peuvent faire.
+      </p>
+      <p>
+        Turing rejoint Church à Princeton fin 1936 pour son doctorat. Deux des
+        mathématiciens les plus importants du XXᵉ siècle, dans le même bureau.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── Curry, années 30-40 ──────────────────────────────────── -->
+  <section class="hist-section" data-year="1940" data-label="1929–1958">
+    <div class="hist-marker"><span>1940</span></div>
+    <div class="hist-content">
+      <h2>Curry, et la logique sans variables</h2>
+      <p>
+        Pendant que Church construit le λ-calcul, <b>Haskell Curry</b> (1900–1982)
+        développe en parallèle depuis 1929 la <b>logique combinatoire</b>. Son
+        objectif : se débarrasser complètement des variables liées, source de
+        bugs subtils (capture, renommage). À la place, trois combinateurs
+        primitifs : <code>S</code>, <code>K</code>, <code>I</code>.
+      </p>
+      <div class="hist-diagram-row">
+        <div class="hist-diagram-card">
+          <svg id="hist-diag-S" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="hist-diagram-cap"><code>S = λx.λy.λz. x z (y z)</code></div>
+        </div>
+        <div class="hist-diagram-card">
+          <svg id="hist-diag-K" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="hist-diagram-cap"><code>K = λx.λy. x</code></div>
+        </div>
+        <div class="hist-diagram-card">
+          <svg id="hist-diag-I" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="hist-diagram-cap"><code>I = λx. x</code></div>
+        </div>
+      </div>
+      <p>
+        Théorème : <b>tout terme λ peut être traduit en SKI</b>, sans aucune
+        variable. C'est un résultat surprenant — on dirait que les variables sont
+        essentielles, mais elles sont juste un confort syntaxique.
+      </p>
+      <p class="hist-aside">
+        Le langage <b>Haskell</b> (1990) est nommé en l'honneur de Curry. Et son
+        nom de famille a aussi donné le verbe <b>curry</b> en programmation
+        fonctionnelle (transformer <code>f(x, y)</code> en <code>f(x)(y)</code>) —
+        bien que la technique soit en fait due à Schönfinkel, antérieur.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── 1958 ─────────────────────────────────────────────────── -->
+  <section class="hist-section" data-year="1958" data-label="1958">
+    <div class="hist-marker"><span>1958</span></div>
+    <div class="hist-content">
+      <h2>McCarthy invente LISP</h2>
+      <p>
+        <b>John McCarthy</b>, au MIT, cherche un langage pour ce qu'on appellera
+        bientôt l'<i>intelligence artificielle</i>. Il lit Church, est frappé par
+        la simplicité du λ-calcul, et conçoit en 1958 <b>LISP</b>
+        (LISt Processor) — le premier langage de programmation à incorporer
+        directement le concept :
+      </p>
+      <pre><code>(lambda (x) (* x x))</code></pre>
+      <p>
+        Le mot-clé <code>lambda</code> arrive directement de Church. LISP introduit
+        aussi les fonctions de première classe, le ramasse-miettes, l'évaluation
+        récursive, et la métaprogrammation par homoïconicité (le code et les
+        données ont la même représentation). Toutes ces idées sont aujourd'hui
+        partout — mais en 1958 elles étaient révolutionnaires.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── ML, Haskell ──────────────────────────────────────────── -->
+  <section class="hist-section" data-year="1973" data-label="1973–1990">
+    <div class="hist-marker"><span>1973</span></div>
+    <div class="hist-content">
+      <h2>ML, Hindley-Milner, et la lignée fonctionnelle</h2>
+      <p>
+        <b>Robin Milner</b> à Édimbourg conçoit en 1973 <b>ML</b>
+        (« Meta Language »). Il y résout un problème ouvert depuis Curry :
+        comment <b>inférer automatiquement</b> les types d'un programme λ ? Le
+        système qu'il développe avec Roger Hindley est devenu la base de tous
+        les langages fonctionnels typés modernes : OCaml, Haskell, Rust (en
+        partie), Elm, F#, Swift.
+      </p>
+      <p>
+        En parallèle, <b>Gordon Plotkin</b> formalise en 1975 la distinction
+        entre <b>call-by-name</b> et <b>call-by-value</b> — les deux stratégies
+        que ta page <a href="tree.html">Tree</a> visualise côte à côte. Plotkin
+        montre qu'elles ne sont pas équivalentes en présence d'effets de bord ou
+        de divergence.
+      </p>
+      <p>
+        En 1990, un comité de chercheurs formalise <b>Haskell</b>, l'aboutissement
+        direct de cette lignée : λ-calcul typé, paresseux, pur. Le langage est nommé
+        en hommage à Curry ; et même si peu de gens écrivent du Haskell au quotidien,
+        ses idées (immutabilité, typage fort, effets explicites) ont influencé tous
+        les langages modernes — y compris Rust et TypeScript.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── System F ─────────────────────────────────────────────── -->
+  <section class="hist-section" data-year="1972" data-label="1972–1980">
+    <div class="hist-marker"><span>1972</span></div>
+    <div class="hist-content">
+      <h2>System F : le polymorphisme</h2>
+      <p>
+        En 1972, <b>Jean-Yves Girard</b>, en France, développe le <b>System F</b>
+        pour démontrer la cohérence de l'arithmétique d'ordre supérieur.
+        Indépendamment, en 1974 à Carnegie Mellon, <b>John Reynolds</b> arrive
+        au même système, motivé par la programmation.
+      </p>
+      <p>
+        System F étend le λ-calcul typé avec <b>la quantification sur les types</b> :
+        on peut écrire des fonctions qui marchent <i>pour tout type</i>.
+        L'identité polymorphe :
+      </p>
+      <pre><code>id : ∀α. α → α
+id = Λα. λ(x : α). x</code></pre>
+      <p>
+        C'est la base théorique des <b>generics</b> en Java, des <b>templates</b> en
+        C++, des <b>type parameters</b> en Rust et Swift, des type classes en Haskell.
+        Le polymorphisme paramétrique a transformé l'industrie sans que la plupart
+        des programmeurs n'aient jamais entendu le nom de Girard ou Reynolds.
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── Tromp, années 2000 ───────────────────────────────────── -->
+  <section class="hist-section" data-year="2004" data-label="2004 → aujourd'hui">
+    <div class="hist-marker"><span>2004</span></div>
+    <div class="hist-content">
+      <h2>John Tromp et la géométrie du λ</h2>
+      <p>
+        Au début des années 2000, <b>John Tromp</b> publie le
+        <b>Binary Lambda Calculus</b> (BLC) : un encodage de tout terme λ en suite
+        de bits, avec exactement trois règles. L'objectif est minimaliste, presque
+        obsessionnel : trouver le programme universel le plus court possible.
+      </p>
+      <p>
+        Tromp démontre l'existence d'un <b>auto-interprète</b> en 210 bits : un
+        terme λ qui, donné l'encodage binaire d'un autre terme λ, simule sa
+        réduction. Une <b>machine de Turing universelle de la taille d'un tweet</b>.
+      </p>
+      <p>
+        En parallèle, il invente la notation diagrammatique que ce site exploite :
+        variables = traits verticaux, abstractions = barres horizontales, applications
+        = jonctions en T. Une représentation purement géométrique d'un calcul,
+        qui rend visible — littéralement — ce qu'une β-réduction <i>fait</i> au
+        terme.
+      </p>
+      <div class="hist-diagram-row">
+        <div class="hist-diagram-card">
+          <svg id="hist-diag-Y" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="hist-diagram-cap">
+            <code>Y = λf. (λx. f (x x))(λx. f (x x))</code><br>
+            le combinateur de point fixe — la récursion sans nommage
+          </div>
+        </div>
+      </div>
+      <p>
+        Le cycle se referme. Church voulait fonder les mathématiques par les
+        fonctions. Un siècle plus tard, on regarde ces fonctions comme des
+        <i>formes</i> qui se déforment lorsqu'elles s'appliquent à elles-mêmes,
+        et on tient là quelque chose de plus profond qu'une notation : un objet
+        géométrique. Ce site est une excuse pour le contempler.
+      </p>
+    </div>
+  </section>
+
+  <footer class="page-footer">
+    <a href="halting.html">← Halting</a> ·
+    <a href="cheatsheet.html">Cheatsheet →</a> ·
+    <a href="visualizer.html">Visualizer</a>
+  </footer>
+
+</div>
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+</script>
+
+<!-- Just enough deps to render the inline historical diagrams. -->
+<script src="js/defs.js"></script>
+<script src="js/core/ast.js"></script>
+<script src="js/core/parser.js"></script>
+<script src="js/core/elaborate.js"></script>
+<script src="js/core/encoding.js"></script>
+<script src="js/ui/layout.js"></script>
+
+<script>
+// ─── Static mini-diagram renderer ──────────────────────────────
+// Reuses computeDiagram() from layout.js, draws to an arbitrary SVG.
+// Independent of the visualizer's main render path so we don't pull in
+// animation, origin maps, redex zones, etc.
+function histDrawDiagram(svgId, code, opts = {}) {
+  const SCALE = opts.scale || 12;
+  const PAD   = 2;
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  let ast;
+  try {
+    ast = elaborate(parse(code), allDefs());
+  } catch (e) {
+    svg.outerHTML = '<div class="hist-diagram-err">parse error: ' +
+      String(e.message || e).replace(/[<>&]/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;' }[c])) +
+      '</div>';
+    return;
+  }
+  const { segs, gridW, gridH } = computeDiagram(ast);
+  const W = (gridW + PAD * 2) * SCALE;
+  const H = (gridH + PAD * 2) * SCALE;
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const sw = Math.max(2, SCALE * 0.55);
+  const NS = 'http://www.w3.org/2000/svg';
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  for (const s of segs) {
+    const ln = document.createElementNS(NS, 'line');
+    ln.setAttribute('x1', (PAD + s.x1) * SCALE);
+    ln.setAttribute('y1', (PAD + s.y1) * SCALE);
+    ln.setAttribute('x2', (PAD + s.x2) * SCALE);
+    ln.setAttribute('y2', (PAD + s.y2) * SCALE);
+    ln.setAttribute('stroke', '#ffffff');
+    ln.setAttribute('stroke-width', sw);
+    ln.setAttribute('stroke-linecap', s.kind === 'V' ? 'butt' : 'square');
+    svg.appendChild(ln);
+  }
+}
+
+// Draw all the historical diagrams once on load.
+window.addEventListener('DOMContentLoaded', () => {
+  histDrawDiagram('hist-diag-omega', '(\\x. x x) (\\x. x x)', { scale: 12 });
+  histDrawDiagram('hist-diag-S',     'S', { scale: 11 });
+  histDrawDiagram('hist-diag-K',     'K', { scale: 11 });
+  histDrawDiagram('hist-diag-I',     'I', { scale: 11 });
+  histDrawDiagram('hist-diag-Y',     'Y', { scale: 10 });
+});
+
+// ─── Floating year pill ────────────────────────────────────────
+// The pill in the top-right shows the current era + a thin progress
+// bar through the page. We update both on scroll.
+const histSections = Array.from(document.querySelectorAll('.hist-section'));
+const histPill   = document.getElementById('histPill');
+const histYear   = document.getElementById('histYear');
+const histFill   = document.getElementById('histProgress');
+
+function histUpdatePill() {
+  const scrollY = window.scrollY;
+  const docH = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = docH > 0 ? Math.min(1, Math.max(0, scrollY / docH)) : 0;
+  histFill.style.width = (progress * 100) + '%';
+
+  // Pick whichever section's top is closest above the viewport mid-line.
+  const mid = scrollY + window.innerHeight * 0.4;
+  let best = histSections[0];
+  for (const s of histSections) {
+    if (s.offsetTop <= mid) best = s;
+  }
+  if (best) histYear.textContent = best.dataset.label || best.dataset.year;
+}
+window.addEventListener('scroll', histUpdatePill, { passive: true });
+histUpdatePill();
+</script>
+</body>
+</html>

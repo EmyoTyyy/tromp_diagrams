@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tromp Diagrams · Visualizer</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/visualizer.css">
+</head>
+<body>
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="index.html">Home</a>
+  <a href="visualizer.html" class="active">Visualizer</a>
+  <a href="learn.html">Learn</a>
+  <a href="play.html">Play</a>
+  <a href="tree.html">Tree</a>
+  <a href="combinators.html">Combinators</a>
+  <a href="encodings.html">Encodings</a>
+  <a href="halting.html">Halting</a>
+  <a href="history.html">History</a>
+  <a href="cheatsheet.html">Cheatsheet</a>
+  <a href="about.html">About</a>
+</nav>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="sb-header">
+      <span class="sb-title">Definitions</span>
+      <div style="display:flex; gap:4px;">
+        <button class="btn btn-sec tt" data-tt="Download user defs as JSON" data-tt-pos="below" style="font-size:0.6rem; padding:4px 7px;" onclick="exportUserDefs()">Export</button>
+        <button class="btn btn-sec tt" data-tt="Load defs from JSON" data-tt-pos="below" style="font-size:0.6rem; padding:4px 7px;" onclick="document.getElementById('importFile').click()">Import</button>
+        <button class="btn btn-sec tt" data-tt="Delete all user defs" data-tt-pos="below" style="font-size:0.6rem; padding:4px 7px;" onclick="resetUserDefs()">Clear</button>
+      </div>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importUserDefs(event)" />
+    <input type="text" class="sb-filter" id="filter" placeholder="filter..." oninput="renderSidebar()" />
+
+    <div id="catList"></div>
+    <div class="def-cat" id="userCatsContainer"></div>
+
+    <div class="def-cat">
+      <h3>+ Add new</h3>
+      <div class="add-def-form">
+        <input type="text" id="newName" placeholder="Name (e.g. flip)" />
+        <input type="text" id="newExpr" placeholder="Expression (e.g. \f. \x. \y. f y x)" />
+        <input type="text" id="newCat" placeholder="Category (default: User)" list="catOptions" />
+        <datalist id="catOptions"></datalist>
+        <div class="row">
+          <button class="btn" onclick="addUserDef()">Save</button>
+        </div>
+        <div class="err-msg" id="addErr"></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="right-col">
+    <div class="header-row">
+      <div>
+        <h1>Tromp Diagrams</h1>
+        <div class="sub">multi-pane lambda calculus visualizer</div>
+      </div>
+    </div>
+
+    <!-- Global toolbar (display settings shared across all panes) -->
+    <div class="global-bar">
+      <div class="scr">
+        <span>scale:</span>
+        <input type="range" id="sc" min="2" max="24" value="8" oninput="setScale(this.value)">
+        <span id="scv">8px</span>
+      </div>
+      <div class="scr">
+        <span>speed:</span>
+        <input type="range" id="speed" min="1" max="20" value="9" oninput="setSpeed(this.value)">
+        <span id="speedv">1.0x</span>
+      </div>
+      <button class="btn btn-toggle tt" data-tt="Color-code variables" data-tt-pos="below" id="colorBtn" onclick="toggleColor()">Color: OFF</button>
+      <button class="btn btn-toggle active tt" data-tt="Animate transitions" data-tt-pos="below" id="animBtn" onclick="toggleAnim()">Anim: ON</button>
+      <button class="btn btn-toggle tt" data-tt="Show explicit parentheses" data-tt-pos="below" id="parensBtn" onclick="toggleParens()">Parens: OFF</button>
+      <button class="btn btn-toggle tt" data-tt="Stack panes vertically (default) or place them side-by-side" data-tt-pos="below" id="layoutBtn" onclick="togglePanesLayout()">Stacked</button>
+      <button class="btn btn-toggle tt" data-tt="Sync step/run/reset across all panes" data-tt-pos="below" id="syncBtn" onclick="toggleSync()">Sync: OFF</button>
+      <button class="btn btn-sec tt" data-tt="Step in all panes (sync mode)" data-tt-pos="below" onclick="syncStep()" style="display:none" id="syncStepBtn">Step</button>
+      <button class="btn btn-sec tt" data-tt="Run all panes (sync mode)" data-tt-pos="below" onclick="syncRun()" style="display:none" id="syncRunBtn">Run</button>
+      <button class="btn btn-sec tt" data-tt="Reset all panes" data-tt-pos="below" onclick="syncReset()" style="display:none" id="syncResetBtn">Reset</button>
+      <button class="btn btn-sec tt" data-tt="Presentation mode (keyboard nav)" data-tt-pos="below" style="margin-left:auto;" onclick="enterPresentation()">▶ Present</button>
+      <button class="btn btn-sec tt" data-tt="Keyboard shortcuts (?)" data-tt-pos="below" onclick="toggleShortcuts()" style="font-weight:500;">?</button>
+    </div>
+
+    <!-- The panes container -->
+    <div class="panes-host" id="panesHost">
+      <button class="add-pane-btn" id="addPaneBtn" title="Add another visualizer">+</button>
+    </div>
+
+    <div class="info">
+      Each pane is independent. Click <kbd>+</kbd> to add another. Use <i>Sync</i> in the toolbar
+      to step / run all panes together — useful for comparing reduction strategies side-by-side.
+      Multiline input is on by default (Ctrl+Enter to draw, Enter for newline). Long λ-bodies
+      can be folded with the ⌄ button on each pane.
+    </div>
+  </div>
+
+</div>
+
+<div class="presentation-hud" id="presHud">
+  <span><kbd>Space</kbd>/<kbd>→</kbd> step</span>
+  <span><kbd>←</kbd> back</span>
+  <span><kbd>R</kbd> run</span>
+  <span><kbd>P</kbd> pause</span>
+  <span><kbd>0</kbd> reset</span>
+  <span><kbd>F</kbd> fit</span>
+  <span><kbd>H</kbd> hide HUD</span>
+  <span><kbd>Esc</kbd> exit</span>
+</div>
+
+<!-- Keyboard shortcuts modal — toggled with the `?` key or the toolbar button.
+     Shows every shortcut available across normal, edit and presentation modes. -->
+<div class="shortcuts-overlay" id="shortcutsOverlay" onclick="if(event.target===this)toggleShortcuts()">
+  <div class="shortcuts-card">
+    <div class="shortcuts-head">
+      <span>Keyboard shortcuts</span>
+      <button class="shortcuts-close" onclick="toggleShortcuts()" aria-label="Close">×</button>
+    </div>
+    <div class="shortcuts-body">
+      <section>
+        <h4>Editor</h4>
+        <dl>
+          <dt><kbd>Ctrl</kbd>+<kbd>Enter</kbd></dt><dd>Draw the current expression</dd>
+          <dt><kbd>Enter</kbd></dt><dd>Newline (expression spans multiple lines)</dd>
+          <dt><kbd>Tab</kbd></dt><dd>Accept the highlighted autocomplete suggestion</dd>
+          <dt><kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Navigate autocomplete</dd>
+          <dt><kbd>Esc</kbd></dt><dd>Close autocomplete or find bar</dd>
+        </dl>
+      </section>
+      <section>
+        <h4>Find / replace</h4>
+        <dl>
+          <dt><kbd>Ctrl</kbd>+<kbd>F</kbd></dt><dd>Open find bar in the active pane</dd>
+          <dt><kbd>Esc</kbd></dt><dd>Close the find bar</dd>
+        </dl>
+      </section>
+      <section>
+        <h4>View</h4>
+        <dl>
+          <dt><kbd>Esc</kbd></dt><dd>Exit fullscreen / presentation</dd>
+          <dt>Mouse wheel</dt><dd>Zoom in / out at cursor</dd>
+          <dt>Click + drag</dt><dd>Pan diagram</dd>
+        </dl>
+      </section>
+      <section>
+        <h4>Presentation mode (▶ Present)</h4>
+        <dl>
+          <dt><kbd>Space</kbd> / <kbd>→</kbd></dt><dd>Step forward</dd>
+          <dt><kbd>←</kbd></dt><dd>Step back</dd>
+          <dt><kbd>R</kbd></dt><dd>Run</dd>
+          <dt><kbd>P</kbd></dt><dd>Pause / resume</dd>
+          <dt><kbd>0</kbd></dt><dd>Reset</dd>
+          <dt><kbd>F</kbd></dt><dd>Fit diagram to viewport</dd>
+          <dt><kbd>H</kbd></dt><dd>Hide HUD &amp; code overlay</dd>
+        </dl>
+      </section>
+      <section>
+        <h4>This dialog</h4>
+        <dl>
+          <dt><kbd>?</kbd></dt><dd>Open / close this list</dd>
+        </dl>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+</script>
+
+<!-- Module loading order -->
+<script src="js/defs.js"></script>
+<script src="js/core/ast.js"></script>
+<script src="js/core/parser.js"></script>
+<script src="js/core/elaborate.js"></script>
+<script src="js/core/reduce.js"></script>
+<script src="js/core/encoding.js"></script>
+<script src="js/ui/layout.js"></script>
+<script src="js/ui/render.js"></script>
+<script src="js/ui/sidebar.js"></script>
+<script src="js/ui/autocomplete.js"></script>
+<script src="js/ui/export.js"></script>
+<script src="js/ui/editor.js"></script>
+<script src="js/ui/pane.js"></script>
+<script src="js/app.js"></script>
+<script>
+// Patch toggleSync to also show/hide the sync action buttons
+(function() {
+  const orig = toggleSync;
+  toggleSync = function() {
+    orig();
+    const disp = SYNC_MODE ? '' : 'none';
+    document.getElementById('syncStepBtn').style.display = disp;
+    document.getElementById('syncRunBtn').style.display = disp;
+    document.getElementById('syncResetBtn').style.display = disp;
+  };
+})();
+
+initVisualizer();
+
+// Keyboard shortcuts modal: '?' toggles, Esc closes.
+function toggleShortcuts() {
+  document.getElementById('shortcutsOverlay').classList.toggle('open');
+}
+document.addEventListener('keydown', (e) => {
+  const t = e.target && e.target.tagName;
+  const inEditable = t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT'
+    || (e.target && e.target.isContentEditable);
+  if (e.key === '?' && !inEditable) {
+    e.preventDefault();
+    toggleShortcuts();
+  } else if (e.key === 'Escape' && document.getElementById('shortcutsOverlay').classList.contains('open')) {
+    document.getElementById('shortcutsOverlay').classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>

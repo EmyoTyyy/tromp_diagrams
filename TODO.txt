@@ -1,0 +1,14 @@
+x (B) Remplacer toutes les références à Titouan par EmyoT @all +identité
+x (A) Faire un README qui contient notamment l'information sur l'utilisation du site et l'exportation/importation des custom variables @README.md
+x (A) Changer l'interaction du +modèle3D dans @index.html pour qu'elle soit plus naturelle, pour l'instant ça donne juste l'impression d'empecher l'utilisateur de descendre plus bas. Pour régler cela il faut d'abord réduire le nombre de modèle à 1 (qui sera chisi aléatoirement dans une liste), et pendant que le modèle 3D tourne en scollant, la page scrollera plus lentement pour indiquer à l'utilisateur qu'il peut descendre plus bas dans la page
+(E) Trouver un +nom pour projet et l'affciher dans @index.html en titre au dessus de Tromp diagrams
+(E) Trouver un +layout plus ergonomic et qui utilise mieux l'espace pour les dagrammes des +pane dans @visualiseur.html (me demander avant de revoir toute la page)
+x (B) Dans @learn.html faire en sorte que les +boutons des leçons soient collés au haut de la page quand ils suivent la fenêtre quand on scroll
+x (A) Rendre plus difficile les +daily puzzles dans @play.html et les faire pas seulement choisir aléatoirement un niveau déjà existant. On utilisera la date pour le génerer. On ajoutera la possibilité de colorier ce diagramme sans pénalité
+x (B) Le premier +hint de @play.html colorie le diagramme si cela aide vraiment (gros diagrammes seulement)
+x (B) Ajouter des vrai +puzzles random dans @play.html
+x (C) Mettre des +liens qui font sens en bas de @all pages
+x (D) Changer la couleur du +tableau dans @encoding.html qui est trop contrastée avec le reste du site
+x (B) Optimiser l'espace du +pdf à imprimer dans @cheatsheet.html
+x (C) Ajouter une page +special thanks ou les ajouter dans @about.html qui contient notamment Claude(if it wasn't obvious), beta testers and YOU
+x (B) Ajouter mes +contacts dans @about.html

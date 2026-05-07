@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halting · Tromp Diagrams</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="page">
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="index.html">Home</a>
+  <a href="visualizer.html">Visualizer</a>
+  <a href="learn.html">Learn</a>
+  <a href="play.html">Play</a>
+  <a href="tree.html">Tree</a>
+  <a href="combinators.html">Combinators</a>
+  <a href="encodings.html">Encodings</a>
+  <a href="halting.html" class="active">Halting</a>
+  <a href="history.html">History</a>
+  <a href="cheatsheet.html">Cheatsheet</a>
+  <a href="about.html">About</a>
+</nav>
+
+<div class="page-wrap halt-wrap">
+
+  <h1>The halting problem, in <span class="keep-lower">λ</span>-calculus</h1>
+  <p class="lede">
+    Why no program can decide whether another program halts —
+    Church's 1936 proof, built one step at a time. Click <b>Next</b> to advance.
+  </p>
+
+  <div class="halt-progress" aria-hidden="true">
+    <div class="halt-progress-fill" id="haltProgress"></div>
+  </div>
+
+  <div class="halt-steps" id="haltSteps">
+
+    <!-- ── Step 1 ──────────────────────────────────────────── -->
+    <article class="halt-step revealed" data-step="1">
+      <div class="halt-step-num">1</div>
+      <div class="halt-step-body">
+        <h2>The question</h2>
+        <p>
+          Some λ-terms reduce to a normal form (they halt). Others don't —
+          like <code>Ω = (λx. x x)(λx. x x)</code>, which β-reduces to itself
+          forever.
+        </p>
+        <p>
+          Could there be a single λ-term <code>H</code> that <i>decides</i>
+          halting? Specifically: a closed term such that for every closed
+          term <code>M</code>:
+        </p>
+        <pre><code>H M  →*  true   if M reduces to a normal form
+H M  →*  false  if M reduces forever</code></pre>
+        <p>
+          That would be a programmatic answer to "does this code terminate?"
+          — the dream of every static analyser. We're going to show it can't
+          exist.
+        </p>
+      </div>
+    </article>
+
+    <!-- ── Step 2 ──────────────────────────────────────────── -->
+    <article class="halt-step" data-step="2">
+      <div class="halt-step-num">2</div>
+      <div class="halt-step-body">
+        <h2>Suppose H exists</h2>
+        <p>
+          We argue by contradiction. Assume some such <code>H</code> exists.
+          We don't know its definition; we only know its specification —
+          <code>H M</code> reduces to <code>true</code> exactly when
+          <code>M</code> halts.
+        </p>
+        <p>
+          Using <code>H</code>, we'll build a small λ-term that turns out to
+          be impossible for <code>H</code> to classify.
+        </p>
+      </div>
+    </article>
+
+    <!-- ── Step 3 ──────────────────────────────────────────── -->
+    <article class="halt-step" data-step="3">
+      <div class="halt-step-num">3</div>
+      <div class="halt-step-body">
+        <h2>The diagonal trick</h2>
+        <p>
+          Define a term <code>D</code> that takes an input <code>x</code>,
+          asks <code>H</code> whether <code>x x</code> halts, and then
+          deliberately does the opposite:
+        </p>
+        <pre><code>D = λx. H (x x) Ω I</code></pre>
+        <p>
+          Reading this with Church booleans: if <code>H (x x) = true</code>
+          (so <code>x x</code> halts), <code>D</code> picks <code>Ω</code> —
+          the canonical non-terminating term. If <code>H (x x) = false</code>
+          (so <code>x x</code> diverges), <code>D</code> picks <code>I</code>
+          — the identity, which halts trivially.
+        </p>
+        <p>
+          So <code>D x</code> halts iff <code>x x</code> doesn't.
+        </p>
+        <div class="halt-diag-row">
+          <div class="halt-diag-card">
+            <svg id="halt-D" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div class="halt-diag-cap">D — pre-application</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ── Step 4 ──────────────────────────────────────────── -->
+    <article class="halt-step" data-step="4">
+      <div class="halt-step-num">4</div>
+      <div class="halt-step-body">
+        <h2>Now apply D to itself</h2>
+        <p>
+          The contradiction comes from feeding <code>D</code> to itself:
+        </p>
+        <pre><code>D D  =  (λx. H (x x) Ω I) D
+     →  H (D D) Ω I</code></pre>
+        <p>
+          This <code>D D</code> term either halts or it doesn't. We'll
+          examine both cases — and both will lead nowhere good for
+          <code>H</code>.
+        </p>
+      </div>
+    </article>
+
+    <!-- ── Step 5 ──────────────────────────────────────────── -->
+    <article class="halt-step" data-step="5">
+      <div class="halt-step-num">5</div>
+      <div class="halt-step-body">
+        <h2>Case 1: H says D D halts</h2>
+        <p>
+          Suppose <code>H (D D) = true</code>. By our assumption that
+          means <code>D D</code> halts. Now reduce <code>D D</code>:
+        </p>
+        <pre><code>D D  →  H (D D) Ω I  →  true Ω I  →  Ω</code></pre>
+        <p>
+          But <code>Ω</code> diverges. So <code>D D</code> reduces to a
+          divergent term, meaning <code>D D</code> itself diverges. That
+          contradicts our assumption that it halts.
+        </p>
+        <div class="halt-verdict halt-verdict-bad">⚠ contradiction</div>
+      </div>
+    </article>
+
+    <!-- ── Step 6 ──────────────────────────────────────────── -->
+    <article class="halt-step" data-step="6">
+      <div class="halt-step-num">6</div>
+      <div class="halt-step-body">
+        <h2>Case 2: H says D D diverges</h2>
+        <p>
+          Now suppose <code>H (D D) = false</code> — <code>D D</code>
+          doesn't halt, according to <code>H</code>. Reduce again:
+        </p>
+        <pre><code>D D  →  H (D D) Ω I  →  false Ω I  →  I</code></pre>
+        <p>
+          But <code>I</code> is the identity — it's already a normal form.
+          So <code>D D</code> halts. That contradicts our assumption that
+          it diverges.
+        </p>
+        <div class="halt-verdict halt-verdict-bad">⚠ contradiction</div>
+      </div>
+    </article>
+
+    <!-- ── Step 7 ──────────────────────────────────────────── -->
+    <article class="halt-step" data-step="7">
+      <div class="halt-step-num">7</div>
+      <div class="halt-step-body">
+        <h2>Both cases contradict the assumption</h2>
+        <p>
+          Whatever <code>H</code> says about <code>D D</code>, the term
+          itself does the opposite. Since this works for <i>any</i>
+          hypothetical <code>H</code>, the only consistent conclusion is
+          that no such <code>H</code> can exist.
+        </p>
+        <p>
+          The halting problem is <b>undecidable</b> in λ-calculus.
+        </p>
+        <div class="halt-verdict halt-verdict-good">∎ Q.E.D.</div>
+      </div>
+    </article>
+
+    <!-- ── Step 8 ──────────────────────────────────────────── -->
+    <article class="halt-step" data-step="8">
+      <div class="halt-step-num">8</div>
+      <div class="halt-step-body">
+        <h2>What this is, historically</h2>
+        <p>
+          This is essentially Church's 1936 proof that the
+          <a href="history.html">Entscheidungsproblem</a> is unsolvable.
+          A few months later, Turing proved the same result independently
+          using machines that read and write tape — and the proofs share
+          the same diagonal shape: build a program that contradicts any
+          oracle deciding its own behavior.
+        </p>
+        <p>
+          The diagonal trick goes back to Cantor (1891) — used to show
+          that the reals are uncountable — and is the same machinery that
+          powers Gödel's incompleteness (1931). Three foundational results
+          in mathematics, all built on the same idea: if there were a
+          decision procedure, you could fool it by asking about itself.
+        </p>
+        <p style="margin-top: 24px;">
+          <a class="btn btn-sec" href="visualizer.html?expr=%28%5Cx.+x+x%29+%28%5Cx.+x+x%29">Try Ω in the visualizer ↗</a>
+        </p>
+      </div>
+    </article>
+  </div>
+
+  <div class="halt-controls" id="haltControls">
+    <button class="btn btn-sec" id="haltPrev" onclick="haltStep(-1)">← Previous</button>
+    <span class="halt-counter" id="haltCounter">1 / 8</span>
+    <button class="btn" id="haltNext" onclick="haltStep(1)">Next →</button>
+    <button class="btn btn-sec" id="haltAll" onclick="haltShowAll()" style="margin-left:auto;">Reveal all</button>
+  </div>
+
+  <footer class="page-footer">
+    <a href="encodings.html">← Encodings</a> ·
+    <a href="history.html">History →</a> ·
+    <a href="visualizer.html">Visualizer →</a>
+  </footer>
+</div>
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+</script>
+
+<script src="js/defs.js"></script>
+<script src="js/core/ast.js"></script>
+<script src="js/core/parser.js"></script>
+<script src="js/core/elaborate.js"></script>
+<script src="js/core/encoding.js"></script>
+<script src="js/ui/layout.js"></script>
+
+<script>
+// ─── Mini static diagram renderer (same pattern as other pages) ──
+function haltDrawDiagram(svgId, code, scale = 12) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  let ast;
+  try { ast = elaborate(parse(code), allDefs()); }
+  catch (e) { return; }
+  const PAD = 2;
+  const { segs, gridW, gridH } = computeDiagram(ast);
+  const W = (gridW + PAD * 2) * scale;
+  const H = (gridH + PAD * 2) * scale;
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const sw = Math.max(2, scale * 0.55);
+  const NS = 'http://www.w3.org/2000/svg';
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  for (const s of segs) {
+    const ln = document.createElementNS(NS, 'line');
+    ln.setAttribute('x1', (PAD + s.x1) * scale);
+    ln.setAttribute('y1', (PAD + s.y1) * scale);
+    ln.setAttribute('x2', (PAD + s.x2) * scale);
+    ln.setAttribute('y2', (PAD + s.y2) * scale);
+    ln.setAttribute('stroke', '#ffffff');
+    ln.setAttribute('stroke-width', sw);
+    ln.setAttribute('stroke-linecap', s.kind === 'V' ? 'butt' : 'square');
+    svg.appendChild(ln);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  // The D term: λx. H (x x) Ω I — we use a placeholder H since H is
+  // hypothetical. Render the structure with a free variable named "H".
+  haltDrawDiagram('halt-D', '\\x. H (x x) ((\\y. y y)(\\y. y y)) (\\z. z)', 11);
+});
+
+// ─── Step navigation ──────────────────────────────────────────
+const steps = Array.from(document.querySelectorAll('.halt-step'));
+const totalSteps = steps.length;
+let currentStep = 1;
+
+function haltUpdate() {
+  for (let i = 0; i < steps.length; i++) {
+    steps[i].classList.toggle('revealed', i < currentStep);
+  }
+  document.getElementById('haltCounter').textContent = currentStep + ' / ' + totalSteps;
+  document.getElementById('haltPrev').disabled = currentStep <= 1;
+  document.getElementById('haltNext').disabled = currentStep >= totalSteps;
+  const pct = ((currentStep - 1) / (totalSteps - 1)) * 100;
+  document.getElementById('haltProgress').style.width = pct + '%';
+}
+
+function haltStep(delta) {
+  const next = currentStep + delta;
+  if (next < 1 || next > totalSteps) return;
+  currentStep = next;
+  haltUpdate();
+  // Scroll the newly-revealed step into view (only when going forward
+  // and the user is below the next step's top).
+  if (delta > 0) {
+    const el = steps[currentStep - 1];
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function haltShowAll() {
+  currentStep = totalSteps;
+  haltUpdate();
+}
+
+// Keyboard: ←/→ navigate, Space advances.
+document.addEventListener('keydown', (ev) => {
+  const t = ev.target && ev.target.tagName;
+  if (t === 'INPUT' || t === 'TEXTAREA') return;
+  if (ev.key === 'ArrowRight' || ev.key === ' ') {
+    ev.preventDefault();
+    haltStep(1);
+  } else if (ev.key === 'ArrowLeft') {
+    ev.preventDefault();
+    haltStep(-1);
+  }
+});
+
+haltUpdate();
+</script>
+</body>
+</html>

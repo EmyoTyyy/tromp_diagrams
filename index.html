@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tromp Diagrams</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="page page-home">
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="index.html" class="active">Home</a>
+  <a href="visualizer.html">Visualizer</a>
+  <a href="learn.html">Learn</a>
+  <a href="play.html">Play</a>
+  <a href="tree.html">Tree</a>
+  <a href="combinators.html">Combinators</a>
+  <a href="encodings.html">Encodings</a>
+  <a href="halting.html">Halting</a>
+  <a href="history.html">History</a>
+  <a href="cheatsheet.html">Cheatsheet</a>
+  <a href="about.html">About</a>
+</nav>
+
+
+<div class="page-wrap">
+
+  <section class="hero">
+    <div class="hero-bg-lambda" aria-hidden="true">λ</div>
+    <div class="hero-eyebrow">λ.bar</div>
+    <h1>Tromp Diagrams</h1>
+    <div class="subtitle">An interactive playground for the λ-calculus</div>
+    <div class="hero-illustration">
+      <svg id="heroDiagram" class="tromp-illust" xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+        <g id="heroSegs"></g>
+        <g id="heroZones"></g>
+      </svg>
+      <div class="hero-illust-caption">the Y combinator</div>
+    </div>
+    <div class="cta">
+      <a href="visualizer.html" class="primary">Open visualizer</a>
+      <a href="learn.html">Learn the basics</a>
+    </div>
+                                                                                  </section>
+
+  <hr>
+
+  <section class="scroll-reveal">
+    <h2>What is the λ-calculus?</h2>
+    <p>
+      The λ-calculus is a tiny formal language invented by Alonzo Church in the 1930s.
+      It has only three building blocks:
+    </p>
+    <ul>
+      <li><b>variables</b> — names like <code>x</code>, <code>y</code>, <code>f</code></li>
+      <li><b>abstraction</b> — <code>λx. M</code>, an anonymous function taking <code>x</code> and returning <code>M</code></li>
+      <li><b>application</b> — <code>M N</code>, applying function <code>M</code> to argument <code>N</code></li>
+    </ul>
+
+    <div class="primitives-row">
+      <div class="primitive">
+        <svg viewBox="0 0 40 80" aria-hidden="true">
+          <line x1="20" y1="6" x2="20" y2="74" stroke="#e8e8f0" stroke-width="3.5" stroke-linecap="butt"/>
+        </svg>
+        <span class="primitive-label"><code>x</code></span>
+        <small>variable</small>
+      </div>
+      <div class="primitive">
+        <svg viewBox="0 0 50 80" aria-hidden="true">
+          <line x1="2" y1="14" x2="48" y2="14" stroke="#e8e8f0" stroke-width="3.5" stroke-linecap="square"/>
+          <line x1="25" y1="14" x2="25" y2="74" stroke="#e8e8f0" stroke-width="3.5" stroke-linecap="butt"/>
+        </svg>
+        <span class="primitive-label"><code>λx. x</code></span>
+        <small>abstraction</small>
+      </div>
+      <div class="primitive">
+        <svg viewBox="0 0 80 80" aria-hidden="true">
+          <line x1="14" y1="6" x2="14" y2="50" stroke="#e8e8f0" stroke-width="3.5" stroke-linecap="butt"/>
+          <line x1="66" y1="6" x2="66" y2="50" stroke="#e8e8f0" stroke-width="3.5" stroke-linecap="butt"/>
+          <line x1="14" y1="50" x2="66" y2="50" stroke="#e8e8f0" stroke-width="3.5" stroke-linecap="square"/>
+          <line x1="14" y1="50" x2="14" y2="74" stroke="#e8e8f0" stroke-width="3.5" stroke-linecap="butt"/>
+        </svg>
+        <span class="primitive-label"><code>M N</code></span>
+        <small>application</small>
+      </div>
+    </div>
+
+    <p>
+      From these three primitives, plus a single computation rule (<i>β-reduction</i>:
+      replace <code>(λx. M) N</code> by <code>M</code> with <code>N</code> substituted for <code>x</code>),
+      you can build everything: numbers, booleans, pairs, recursion, the whole of computation.
+      The λ-calculus is Turing-complete with one rule and one syntactic form.
+    </p>
+  </section>
+
+  <section class="scroll-reveal">
+    <h2>Tromp diagrams</h2>
+    <p>
+      John Tromp introduced a remarkable graphical notation that turns abstract λ-terms
+      into something you can <i>look at</i>. Lambdas become horizontal bars; applications
+      become connecting bars; variables are vertical wires plugging into their binder.
+    </p>
+    <p>
+      The result is that every λ-term has a unique geometric shape — and β-reduction
+      becomes a kind of physical rearrangement of these shapes. The visualizer on this site
+      animates that rearrangement step by step.
+    </p>
+
+    <div class="reduction-demo">
+      <div class="reduction-step">
+        <svg id="redexBefore" class="tromp-illust" xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+          <g id="redexBeforeSegs"></g>
+          <g id="redexBeforeZones"></g>
+        </svg>
+        <small class="reduction-label"><code>(λx. x x) y</code></small>
+      </div>
+      <div class="reduction-arrow" aria-hidden="true">→</div>
+      <div class="reduction-step">
+        <svg id="redexAfter" class="tromp-illust" xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+          <g id="redexAfterSegs"></g>
+          <g id="redexAfterZones"></g>
+        </svg>
+        <small class="reduction-label"><code>y y</code></small>
+      </div>
+    </div>
+  </section>
+
+  <!-- Scroll-driven 3D viewer.  The section is taller than the viewport;
+       its inner pinned block stays fixed on screen while the user scrolls
+       through the section, which drives the rotation and the model cycle. -->
+  <section class="scroll-3d-section" id="scroll3dSection">
+    <div class="scroll-3d-pinned">
+      <div class="scroll-3d-bg" aria-hidden="true">
+        <h3 class="scroll-3d-bg-title">λ.bar</h3>
+        <p class="scroll-3d-bg-blurb">
+          Lambdas become bars. Variables become wires. Applications connect them.
+          Every λ-term has its own geometric body — read it from any angle.
+        </p>
+      </div>
+      <div class="scroll-3d-stage" id="scroll3dStage"></div>
+      <div class="scroll-3d-meta">
+        <div class="scroll-3d-name" id="scroll3dName">Y</div>
+        <div class="scroll-3d-desc" id="scroll3dDesc">the fixed-point combinator</div>
+      </div>
+      <div class="scroll-3d-hint" aria-hidden="true">scroll ↓</div>
+    </div>
+  </section>
+
+  <section class="scroll-reveal">
+    <h2>A few classic shapes</h2>
+    <p>
+      Each λ-term has its own geometric signature. Click any of these to
+      open it in the visualizer.
+    </p>
+    <div class="combinator-grid" id="combinatorGrid"></div>
+  </section>
+
+  <section class="scroll-reveal explore-section">
+    <h2>Explore</h2>
+    <div class="tile-grid">
+      <a class="tile" href="visualizer.html">
+        <h3>▶ Visualizer</h3>
+        <p>Type any λ-expression and watch it reduce. Multiple strategies, animations,
+           BLC encoding, presentation mode, and more.</p>
+      </a>
+      <a class="tile" href="learn.html">
+        <h3>📖 Learn</h3>
+        <p>A guided tour through the λ-calculus, from variables to Church numerals,
+           booleans, and the Y combinator.</p>
+      </a>
+      <a class="tile" href="play.html">
+        <h3>🎮 Play</h3>
+        <p>Look at a Tromp diagram and try to guess the λ-expression. Difficulty
+           escalates from <code>I</code> to <code>pred</code>.</p>
+      </a>
+      <a class="tile" href="about.html">
+        <h3>ℹ About</h3>
+        <p>Who built this and why. Credits, references, and useful links.</p>
+      </a>
+    </div>
+  </section>
+
+  <section class="scroll-reveal">
+    <h2>Quick taste</h2>
+    <p>Some things to try in the visualizer:</p>
+    <ul>
+      <li><code>plus 2 3</code> — Church addition reduces to <code>5</code></li>
+      <li><code>Y</code> — the fixed-point combinator, with its iconic self-replicating shape</li>
+      <li><code>omega</code> — <code>(λx. x x) (λx. x x)</code>, an infinite loop</li>
+      <li><code>fst (pair a b)</code> — pairs and projections</li>
+      <li>Switch reduction <a href="learn.html?lesson=9"><i>strategies</i></a> to see how β-reduction order changes things</li>
+    </ul>
+  </section>
+
+  <footer class="page-footer scroll-reveal">
+    Built by <a href="https://github.com/EmyoTyyy">EmyoT</a> with <a href="https://claude.com/claude-code" target="_blank">Claude</a> ·
+    <a href="https://en.wikipedia.org/wiki/Lambda_calculus" target="_blank">Lambda calculus on Wikipedia</a> ·
+    <a href="https://tromp.github.io/cl/diagrams.html" target="_blank">John Tromp's original diagrams</a>
+  </footer>
+
+</div>
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+
+// Scroll-progress indicator. Updates the body's --scroll-progress CSS var
+// which the ::before pseudo-element uses to set its width.
+(function() {
+  const body = document.body;
+  body.dataset.scroll = '1';
+  let raf = 0;
+  function update() {
+    raf = 0;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
+    body.style.setProperty('--scroll-progress', pct.toFixed(2) + '%');
+  }
+  window.addEventListener('scroll', () => {
+    if (!raf) raf = requestAnimationFrame(update);
+  }, { passive: true });
+  update();
+})();
+</script>
+
+<!-- Renderer modules so the inline diagrams can be drawn from real λ-terms -->
+<script src="js/defs.js"></script>
+<script src="js/core/ast.js"></script>
+<script src="js/core/parser.js"></script>
+<script src="js/core/elaborate.js"></script>
+<script src="js/ui/layout.js"></script>
+<script src="js/ui/render.js"></script>
+
+<script>
+(function() {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Render a real Tromp diagram into the given <svg>/<g> ids using the
+  // visualizer's actual layout + render code (so shapes are exact).
+  //
+  // The visualizer's renderDiagram pads the SVG asymmetrically (it adds
+  // an extra grid column on the right for trailing wires that don't
+  // exist on simple terms like I, K, 0), which left those small
+  // diagrams visibly off-center inside their cards. We fix that here by
+  // computing the actual rendered bounding box with getBBox() and
+  // setting a tight, symmetrically-padded viewBox.
+  function renderTromp(expr, svgId, segsId, zonesId, scale) {
+    try {
+      const ast = elaborate(parse(expr), allDefs());
+      SCALE = scale;
+      ANIM_ENABLED = false;
+      COLOR_MODE = false;
+      renderDiagram(ast, 0, null, { svgId, segsId, zonesId, skipRedexZones: true });
+      const svg = document.getElementById(svgId);
+      if (!svg) return;
+      // Drop fixed pixel sizing so CSS can size the SVG freely.
+      svg.removeAttribute('width');
+      svg.removeAttribute('height');
+      // Tight content bbox + symmetric padding. getBBox needs the SVG
+      // to be in the DOM and visible; it is by the time this runs.
+      let bbox;
+      try { bbox = svg.getBBox(); } catch { bbox = null; }
+      if (bbox && bbox.width > 0 && bbox.height > 0) {
+        const pad = scale;
+        svg.setAttribute('viewBox',
+          (bbox.x - pad) + ' ' +
+          (bbox.y - pad) + ' ' +
+          (bbox.width  + pad * 2) + ' ' +
+          (bbox.height + pad * 2));
+      }
+    } catch (e) { console.error('Render failed:', expr, e); }
+  }
+
+  renderTromp('Y',                'heroDiagram',  'heroSegs',         'heroZones',         13);
+  renderTromp('(\\x. x x) y',     'redexBefore',  'redexBeforeSegs',  'redexBeforeZones',  12);
+  renderTromp('y y',              'redexAfter',   'redexAfterSegs',   'redexAfterZones',   12);
+
+  // ── Combinator gallery ──────────────────────────────
+  // Each card opens the visualizer with its expression pre-loaded.
+  const COMBS = [
+    { name: 'I',   expr: '\\x. x',                    label: 'identity'  },
+    { name: 'K',   expr: '\\x. \\y. x',               label: 'constant'  },
+    { name: 'S',   expr: '\\x. \\y. \\z. x z (y z)',  label: 'apply'     },
+    { name: '0',   expr: '\\f. \\x. x',               label: 'church 0'  },
+    { name: '1',   expr: '\\f. \\x. f x',             label: 'church 1'  },
+    { name: '2',   expr: '\\f. \\x. f (f x)',         label: 'church 2'  },
+    { name: 'ω',   expr: '(\\x. x x) (\\x. x x)',    label: 'omega'     },
+  ];
+  const grid = document.getElementById('combinatorGrid');
+  if (grid) {
+    COMBS.forEach((c, i) => {
+      const card = document.createElement('a');
+      card.className = 'combinator-card';
+      card.href = 'visualizer.html?expr=' + encodeURIComponent(c.expr);
+      card.title = c.expr.replace(/\\/g, 'λ') + '  ·  open in visualizer';
+      const svgId   = 'comb_' + i;
+      const segsId  = svgId + '_segs';
+      const zonesId = svgId + '_zones';
+      card.innerHTML =
+        `<div class="card-svg-wrap">` +
+          `<svg id="${svgId}" class="tromp-illust" xmlns="http://www.w3.org/2000/svg" width="0" height="0">` +
+            `<g id="${segsId}"></g><g id="${zonesId}"></g>` +
+          `</svg>` +
+        `</div>` +
+        `<div class="combinator-name">${c.name}</div>` +
+        `<div class="combinator-label">${c.label}</div>`;
+      grid.appendChild(card);
+      renderTromp(c.expr, svgId, segsId, zonesId, 8);
+    });
+  }
+
+  // Stagger-draw each line of an SVG using stroke-dashoffset → 0.
+  // Each line gets a dash equal to its own length, so the draw-in is
+  // proportional regardless of how long the segment is.
+  function drawIn(svgId, baseDelay) {
+    if (reduceMotion) return;
+    const lines = document.querySelectorAll('#' + svgId + ' line');
+    lines.forEach((l, i) => {
+      const x1 = parseFloat(l.getAttribute('x1'));
+      const y1 = parseFloat(l.getAttribute('y1'));
+      const x2 = parseFloat(l.getAttribute('x2'));
+      const y2 = parseFloat(l.getAttribute('y2'));
+      const len = Math.hypot(x2 - x1, y2 - y1) + 8;
+      l.style.strokeDasharray = len;
+      l.style.strokeDashoffset = len;
+      l.style.opacity = '0';
+      setTimeout(() => {
+        l.style.transition = 'stroke-dashoffset 750ms cubic-bezier(0.4,0,0.2,1), opacity 220ms ease-out';
+        l.style.strokeDashoffset = '0';
+        l.style.opacity = '1';
+      }, baseDelay + i * 32);
+    });
+  }
+
+  // Hero diagram animates after the hero entrance settles.
+  drawIn('heroDiagram', 700);
+
+  // Reveal sections + draw the diagrams inside when they enter the viewport.
+  // When a section contains multiple Tromp SVGs (the gallery), stagger their
+  // draw-in by ~120ms each so the section comes alive in cascade.
+  if (reduceMotion) {
+    document.querySelectorAll('.scroll-reveal').forEach(s => s.classList.add('revealed'));
+  } else if ('IntersectionObserver' in window) {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        e.target.classList.add('revealed');
+        const svgs = Array.from(e.target.querySelectorAll('.tromp-illust'))
+          .filter(s => s.id !== 'heroDiagram' && !s.dataset.drawn);
+        svgs.forEach((svg, i) => {
+          svg.dataset.drawn = '1';
+          drawIn(svg.id, 200 + i * 120);
+        });
+        obs.unobserve(e.target);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -50px 0px' });
+    document.querySelectorAll('.scroll-reveal').forEach(s => obs.observe(s));
+  } else {
+    // No observer — just reveal everything.
+    document.querySelectorAll('.scroll-reveal').forEach(s => s.classList.add('revealed'));
+  }
+
+  // ── Scroll-driven 3D viewer ─────────────────────────
+  // Loads Three.js asynchronously (does not block initial paint), builds a
+  // 3D Tromp diagram by extruding layout segments into thin cuboids, then
+  // pilots rotation + model-cycling from the user's scroll position
+  // through the host section. Reading the section's bounding rect each
+  // frame is free; we never need to listen for `scroll` directly.
+  function init3D() {
+    if (typeof THREE === 'undefined' || reduceMotion) return;
+    const stage = document.getElementById('scroll3dStage');
+    const sectionEl = document.getElementById('scroll3dSection');
+    const nameEl = document.getElementById('scroll3dName');
+    const descEl = document.getElementById('scroll3dDesc');
+    if (!stage || !sectionEl) return;
+
+    const W = () => stage.clientWidth;
+    const H = () => stage.clientHeight;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(W(), H());
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    stage.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(38, W() / H(), 0.1, 500);
+    camera.position.set(0, 0, 80);
+    camera.lookAt(0, 0, 0);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const k1 = new THREE.DirectionalLight(0xa0e0ff, 1.0);
+    k1.position.set(8, 12, 12);
+    scene.add(k1);
+    const k2 = new THREE.DirectionalLight(0xb0f070, 0.35);
+    k2.position.set(-10, -6, -10);
+    scene.add(k2);
+
+    const diagramGroup = new THREE.Group();
+    scene.add(diagramGroup);
+
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xeef0f8,
+      metalness: 0.55,
+      roughness: 0.28,
+      transparent: true,
+      opacity: 1,
+    });
+
+    function buildFromExpr(expr) {
+      while (diagramGroup.children.length) {
+        const c = diagramGroup.children[0];
+        if (c.geometry) c.geometry.dispose();
+        diagramGroup.remove(c);
+      }
+      let cd;
+      try {
+        const ast = elaborate(parse(expr), allDefs());
+        cd = computeDiagram(ast);
+      } catch (e) { console.error('3D build:', expr, e); return; }
+      const cx = cd.gridW / 2;
+      const cy = cd.gridH / 2;
+      const thickness = 0.55;
+      for (const s of cd.segs) {
+        const x1 = s.x1 - cx;
+        const y1 = -(s.y1 - cy);   // flip Y (grid is top-down, world is up)
+        const x2 = s.x2 - cx;
+        const y2 = -(s.y2 - cy);
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.hypot(dx, dy) + thickness * 0.6;
+        const geom = new THREE.BoxGeometry(len, thickness, thickness);
+        const mesh = new THREE.Mesh(geom, material);
+        mesh.position.set((x1 + x2) / 2, (y1 + y2) / 2, 0);
+        mesh.rotation.z = Math.atan2(dy, dx);
+        diagramGroup.add(mesh);
+      }
+      const maxDim = Math.max(cd.gridW, cd.gridH);
+      diagramGroup.scale.setScalar(40 / maxDim);
+    }
+
+    // Pool of candidate models. ONE is chosen at random per page load —
+    // we don't cycle anymore, because rotating the same shape under the
+    // user's gaze reads as "look here for a moment, then keep scrolling"
+    // rather than "five things to wait through".
+    const EXPRS = [
+      { name: 'Y',         expr: 'Y',                desc: 'fixed-point combinator — recursion without naming' },
+      { name: 'S',         expr: 'S',                desc: 'apply, then weave the argument through' },
+      { name: 'ω',         expr: 'omega',            desc: '(λx. x x) (λx. x x) — diverges forever' },
+      { name: 'plus 2 3',  expr: 'plus 2 3',         desc: 'church addition — folds into 5' },
+      { name: 'pred 3',    expr: 'pred 3',           desc: 'predecessor — clever subtraction in pure λ' },
+    ];
+    const chosen = EXPRS[Math.floor(Math.random() * EXPRS.length)];
+    buildFromExpr(chosen.expr);
+    if (nameEl) nameEl.textContent = chosen.name;
+    if (descEl) descEl.textContent = chosen.desc;
+
+    // Smooth rotation: target is derived from scroll progress, current is
+    // eased toward target so the rotation feels weighted (not robotically
+    // pinned to scroll position).
+    let rotYTarget = 0;
+    let rotY = 0;
+    let tabVisible = !document.hidden;
+    document.addEventListener('visibilitychange', () => { tabVisible = !document.hidden; });
+    let lastTime = performance.now();
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+      if (!tabVisible) return;
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+
+      // Compute progress through the section: 0 when top reaches viewport
+      // top, 1 when section bottom reaches viewport bottom.
+      const rect = sectionEl.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const total = sectionEl.offsetHeight - vh;
+      let progress = total > 0 ? (-rect.top) / total : 0;
+      progress = Math.max(0, Math.min(1, progress));
+
+      // Only render when the pinned block is in (or near) the viewport.
+      const inView = rect.bottom > -100 && rect.top < vh + 100;
+      if (!inView) return;
+
+      // Hint dismissal once the user has scrolled in.
+      if (progress > 0.02) sectionEl.classList.add('engaged');
+
+      // One full turn across the section, plus a gentle wobble for depth.
+      // A single rotation is enough to read the model from all angles
+      // without feeling like the page has hijacked the user's scroll.
+      rotYTarget = progress * Math.PI * 2;
+      rotY += (rotYTarget - rotY) * Math.min(1, dt * 6);
+      diagramGroup.rotation.y = rotY;
+      diagramGroup.rotation.x = Math.sin(progress * Math.PI * 2) * 0.16;
+
+      renderer.render(scene, camera);
+    }
+    animate(performance.now());
+
+    window.addEventListener('resize', () => {
+      renderer.setSize(W(), H());
+      camera.aspect = W() / H();
+      camera.updateProjectionMatrix();
+    });
+  }
+
+  if (!reduceMotion) {
+    const t3 = document.createElement('script');
+    t3.src = 'https://cdn.jsdelivr.net/npm/three@0.158/build/three.min.js';
+    t3.async = true;
+    t3.onload = init3D;
+    document.head.appendChild(t3);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+/* ═══════════════════════════════════════
+   THEME — variables & shared base styles
+   ═══════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+:root {
+  --bg: #0a0a12;
+  --surface: #10101a;
+  --surface-2: #14141f;
+  --border: #252535;
+  --text: #e8e8f0;
+  --muted: #555570;
+  --accent: #a0e0ff;
+  --accent-2: #80e0a0;
+  --warn: #f0c060;
+  --danger: #f08080;
+  --dur: 800ms;
+  --ease: cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 300;
+  min-height: 100vh;
+  /* Crisper rendering for the IBM Plex glyphs against the dark theme. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Branded text selection */
+::selection { background: rgba(160, 224, 255, 0.25); color: var(--text); }
+::-moz-selection { background: rgba(160, 224, 255, 0.25); color: var(--text); }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Inputs ─────────────────────────────────────── */
+input[type=text], input[type=number], textarea, select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  padding: 10px 13px;
+  outline: none;
+  transition: border-color .2s;
+}
+input[type=text]:focus, input[type=number]:focus, textarea:focus, select:focus {
+  border-color: var(--accent);
+}
+input[type=text].invalid { border-color: var(--danger); }
+
+/* ── Buttons ─────────────────────────────────────── */
+.btn {
+  background: var(--accent);
+  color: #0a0a12;
+  border: none;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: .12em;
+  padding: 10px 16px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: opacity .15s;
+}
+.btn:hover { opacity: .85; }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.btn-sec {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn-sec:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
+
+.btn-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.btn-toggle.active {
+  background: var(--accent);
+  color: #0a0a12;
+  border-color: var(--accent);
+}
+
+/* ── Top navigation ─────────────────────────────────────── */
+.topnav {
+  position: fixed;
+  top: 0; right: 0;
+  z-index: 5000;
+  display: flex;
+  gap: 0;
+}
+.nav-toggle {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-right: none;
+  color: var(--text);
+  width: 44px; height: 44px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-toggle:hover { color: var(--accent); }
+.nav-drawer {
+  position: fixed;
+  top: 0; right: -300px;
+  width: 280px; height: 100vh;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  padding: 60px 0 20px 0;
+  transition: right .28s var(--ease);
+  z-index: 4900;
+  display: flex; flex-direction: column;
+}
+.nav-drawer.open { right: 0; }
+.nav-drawer a {
+  padding: 14px 24px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.85rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  transition: background .15s, color .15s;
+}
+.nav-drawer a:hover { background: var(--surface-2); color: var(--accent); }
+.nav-drawer a.active { color: var(--accent); }
+.nav-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  opacity: 0; pointer-events: none;
+  transition: opacity .28s;
+  z-index: 4800;
+}
+.nav-overlay.open { opacity: 1; pointer-events: auto; }
+
+/* ── Tooltip ─────────────────────────────────────── */
+.tt {
+  position: relative;
+}
+.tt[data-tt]:hover::after {
+  content: attr(data-tt);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0a0a12;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 5px 9px;
+  font-size: 0.7rem;
+  /* Explicit line-height so icon buttons (which use line-height:0 to
+     vertically align their SVG) don't collapse the tooltip's text. */
+  line-height: 1.4;
+  white-space: nowrap;
+  letter-spacing: .04em;
+  text-transform: none;
+  pointer-events: none;
+  z-index: 9999;
+  font-weight: 300;
+}
+.tt[data-tt-pos="below"]:hover::after {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+
+/* ── Toast / warnings ─────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 12px 20px;
+  font-size: 0.78rem;
+  color: var(--text);
+  z-index: 9000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s, transform .22s;
+  max-width: 70vw;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast.warn { border-color: var(--warn); color: var(--warn); }
+.toast.danger { border-color: var(--danger); color: var(--danger); }
+.toast.ok { border-color: var(--accent-2); color: var(--accent-2); }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); }
+::-webkit-scrollbar-thumb:hover { background: #353550; }

@@ -1,0 +1,925 @@
+/* ═══════════════════════════════════════
+   VISUALIZER — multi-pane layout
+   ═══════════════════════════════════════ */
+
+body { padding: 24px 18px; }
+
+.app {
+  display: flex;
+  gap: 18px;
+  max-width: 1900px;
+  margin: 0 auto;
+  align-items: flex-start;
+}
+
+/* ── Header / global toolbar ─────────────────────── */
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.header-row h1 {
+  font-size: 0.95rem;
+  letter-spacing: .18em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.header-row .sub {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.global-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.global-bar .scr { display: flex; align-items: center; gap: 8px; }
+
+/* ── Right column = panes container ─────────────── */
+.right-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* Default layout: panes stack vertically so each one gets the full
+   available width (the diagram is the dominant zone, and a 360-px-wide
+   pane crowds the diagram). The legacy `.stack` class flips back to a
+   wrapping flex grid for users who still want side-by-side comparison. */
+.panes-host {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 6px;
+}
+.panes-host.stack {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+.panes-host.stack .pane { flex: 1 1 480px; }
+.add-pane-btn {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.78rem;
+  padding: 14px 18px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  transition: border-color .15s, color .15s;
+}
+/* In stacked (side-by-side) mode the add button stretches vertically;
+   in default vertical mode it spans the full row width and stays short. */
+.panes-host.stack .add-pane-btn { align-self: stretch; padding: 0 18px; min-width: 60px; }
+.add-pane-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── A single pane ─────────────────────────────── */
+/* Layout favours the diagram: the editor + controls collapse to compact
+   rows, and the diagram window keeps `flex: 1` so it grows with the
+   pane. The min-height keeps the default size short enough that the
+   "+ Add another" button stays visible without scrolling — users who
+   want a taller diagram can resize the window or fullscreen the pane. */
+.pane {
+  width: 100%;
+  min-width: 0;
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 12px;
+}
+.pane.focused { border-color: var(--accent-2); }
+
+.pane-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.pane-title {
+  font-size: 0.7rem;
+  letter-spacing: .14em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.pane-actions { display: flex; gap: 4px; margin-left: auto; }
+.pane-close, .pane-fold {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 22px; height: 22px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: inherit;
+}
+.pane-close:hover { color: var(--danger); border-color: var(--danger); }
+.pane-fold:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Editor row ─────────────────────────────────── */
+.pane .ir {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.pane .editor-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+/* Foldable code editor (contenteditable) */
+.editor {
+  flex: 1;
+  min-height: 44px;
+  max-height: 320px;
+  overflow-y: auto;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  outline: none;
+  transition: border-color .15s;
+}
+.editor:focus { border-color: var(--accent-2); }
+.editor.invalid { border-color: var(--danger); }
+.editor[placeholder]:empty::before {
+  content: attr(placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* Keyboard focus ring inside the visualizer — green to stay consistent
+   with the .pane.focused border. Only applied here (not via a global
+   theme rule) to avoid the Opera-side rendering quirk that was painting
+   the left/right edges of focused panes white.
+   Form fields (input, select, textarea) and the contenteditable editor
+   are excluded because they ALREADY show focus via their own
+   border-color change — adding an outline on top would draw two parallel
+   rings. Only buttons / links / other "borderless" interactive elements
+   actually need the focus ring for keyboard accessibility. */
+.app :focus-visible {
+  outline: 1px solid var(--accent-2);
+  outline-offset: 2px;
+}
+.app input:focus-visible,
+.app select:focus-visible,
+.app textarea:focus-visible,
+.app .editor:focus-visible {
+  outline: none;
+}
+.app :focus:not(:focus-visible) { outline: none; }
+
+/* Foldable λ-bodies */
+.editor .fold {
+  display: inline;
+  cursor: default;
+}
+.editor .fold-toggle {
+  display: inline-block;
+  cursor: pointer;
+  color: var(--accent);
+  user-select: none;
+  font-weight: 500;
+  margin-right: 2px;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+.editor .fold-toggle:hover { background: var(--surface-2); }
+.editor .fold.collapsed > .fold-body { display: none; }
+.editor .fold.collapsed > .fold-placeholder { display: inline; color: var(--muted); font-style: italic; }
+.editor .fold:not(.collapsed) > .fold-placeholder { display: none; }
+
+/* Autocomplete dropdown */
+.autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0; right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+}
+.autocomplete-list.open { display: block; }
+.autocomplete-item {
+  padding: 8px 13px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border-bottom: 1px solid #181820;
+}
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-item:hover, .autocomplete-item.selected { background: #1a1a25; }
+.autocomplete-name { color: var(--accent); font-weight: 500; min-width: 60px; }
+.autocomplete-expr {
+  color: var(--muted);
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.input-error {
+  font-size: 0.7rem;
+  color: var(--danger);
+  margin-top: 4px;
+  min-height: 1em;
+}
+.input-error.suggestion { color: var(--warn); }
+
+/* ── Find bar ─────────────────────────────────── */
+.find-bar {
+  display: none;
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.find-bar.open { display: flex; }
+.find-bar input {
+  flex: 1;
+  min-width: 100px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+.find-bar button { padding: 6px 10px; font-size: 0.66rem; }
+.find-bar .count { color: var(--muted); font-size: 0.7rem; min-width: 50px; }
+
+/* ── Per-pane control bar (single row) ─────────── */
+.ctrl-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.ctrl-bar .btn { padding: 7px 13px; font-size: 0.78rem; }
+/* Strategy dropdown sits inline with the rest of the controls. */
+.ctrl-bar .strat-sel {
+  font-size: 0.78rem;
+  padding: 6px 10px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.ctrl-sep {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  margin: 0 3px;
+}
+.ctrl-max {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.ctrl-max input.max-steps {
+  width: 64px;
+  padding: 6px 8px;
+  font-size: 0.78rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+/* Icon button: square, shows a single glyph; padded to roughly match
+   .btn height so the row stays visually aligned. */
+.ctrl-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+}
+/* Icon button: square box with a single SVG centered inside. The flex
+   centering handles SVG positioning, so we don't need line-height tricks
+   that would also crush the tooltip's text. */
+.icon-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: inherit;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+  padding: 0;
+}
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  flex-shrink: 0;
+}
+.icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+.icon-btn[data-act="rec"] { color: #f08080; }
+.icon-btn[data-act="rec"].active { background: rgba(240, 128, 128, 0.18); }
+
+.scr { display: flex; align-items: center; gap: 6px; }
+input[type=range] { accent-color: var(--accent); width: 90px; }
+
+.status { font-size: 0.7rem; color: var(--muted); margin-left: auto; }
+.status.nf { color: var(--accent-2); }
+.status.max { color: var(--warn); }
+.status.running { color: var(--accent); }
+
+/* ── Code display ─────────────────────────────── */
+.code-display {
+  font-size: 0.88rem;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  letter-spacing: .02em;
+  overflow-x: auto;
+  white-space: nowrap;
+  position: relative;
+}
+.code-display .copy-btn {
+  position: absolute;
+  top: 4px; right: 4px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.6rem;
+  padding: 2px 6px;
+  cursor: pointer;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity .15s, color .15s;
+}
+.code-display:hover .copy-btn { opacity: 1; }
+.code-display .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+.code-display .var-occ.highlight {
+  background: rgba(255, 128, 96, 0.25);
+  outline: 1px solid #ff8060;
+  border-radius: 2px;
+}
+
+/* ── Diagram window ─────────────────────────────── */
+/* Diagram keeps flex:1 so it eats whatever vertical space is left after
+   the controls + code display. The min-height is intentionally modest:
+   tall enough to read a typical reduction at a glance, short enough
+   that the page-level "+ Add another visualizer" button stays in view
+   on a normal laptop. */
+.dw {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 14px;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+  flex: 1;
+}
+.dw.panning { cursor: grabbing; }
+.dw:not(.panning) { cursor: grab; }
+.dw svg { transition: width var(--dur) var(--ease), height var(--dur) var(--ease); }
+/* No `opacity` transition here — JS RAF (animateLine) drives line opacity
+   directly, and a CSS transition on the same property fights with it and
+   makes fade-outs invisible. Stroke can still transition (color changes are
+   rare with stable hashing, but smooth when they do happen). */
+.dw svg line { transition: stroke 200ms linear; }
+.dw svg line.highlighted { stroke: #ff8060 !important; filter: drop-shadow(0 0 3px #ff8060); }
+.dw svg .redex-zone {
+  fill: transparent;
+  cursor: pointer;
+  transition: fill 150ms;
+}
+.dw svg .redex-zone:hover { fill: rgba(255, 128, 96, 0.08); }
+
+/* Brief flash on the lines of a redex right before β-reduction kicks in.
+   Pure-CSS keyframe so it doesn't interfere with the position/opacity RAF. */
+@keyframes redex-flash {
+  0%   { filter: drop-shadow(0 0 0 transparent); }
+  40%  { filter: drop-shadow(0 0 8px #ffd060) brightness(1.6); }
+  100% { filter: drop-shadow(0 0 0 transparent); }
+}
+.dw svg line.redex-flash { animation: redex-flash 220ms ease-out; }
+
+.zoom-controls {
+  position: absolute;
+  bottom: 6px; right: 6px;
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 3px;
+  z-index: 10;
+  font-size: 0.7rem;
+}
+.zoom-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  width: 24px; height: 24px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+.zoom-btn:hover { color: var(--accent); }
+.zoom-level {
+  color: var(--muted);
+  padding: 0 6px;
+  align-self: center;
+  min-width: 40px;
+  text-align: center;
+}
+.fs-btn {
+  position: absolute;
+  top: 6px; right: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 26px; height: 26px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  z-index: 10;
+}
+.fs-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Fullscreen for an individual pane */
+.dw.fullscreen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1000;
+  padding: 60px 24px 24px 24px;
+  min-height: 100vh;
+  max-height: 100vh;
+  border: none;
+  display: block;
+  overflow: auto;
+  /* Match the SVG's internal background <rect> color (#0a0a12) so the
+     SVG box blends seamlessly with the rest of the fullscreen surface. */
+  background: #0a0a12;
+}
+.dw.fullscreen .fs-btn { top: 16px; right: 16px; }
+/* When any pane is in fullscreen, hide the burger nav so it doesn't cover
+   the ⛶ exit button at top-right. Esc or the ⛶ button still exit. */
+body.has-fullscreen-pane .topnav,
+body.has-fullscreen-pane .nav-drawer,
+body.has-fullscreen-pane .nav-overlay { display: none !important; }
+.dw.fullscreen svg {
+  position: absolute;
+  top: 60px; left: 24px;
+  transform-origin: 0 0;
+  /* The SVG's intrinsic width/height stay sized to the diagram. autoFit
+     scales the inner <g> up to fill the viewport, so without this the
+     enlarged content gets clipped by the SVG's default overflow:hidden
+     (showing only a tiny rect in the top-left corner). */
+  overflow: visible;
+}
+
+/* ── Sync controls (multi-pane) ─────────────── */
+.sync-bar {
+  display: flex;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  align-items: center;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.sync-bar .label { letter-spacing: .12em; text-transform: uppercase; }
+
+/* ── Presentation mode ─────────────────────────── */
+body.presentation { padding: 0; overflow: hidden; }
+body.presentation .app > .sidebar,
+body.presentation .global-bar,
+body.presentation .header-row,
+body.presentation .topnav,
+body.presentation .sync-bar,
+body.presentation .add-pane-btn,
+body.presentation .pane-header,
+body.presentation .pane .ir,
+body.presentation .pane .find-bar,
+body.presentation .pane .input-error,
+body.presentation .pane .ctrl-bar,
+body.presentation .info {
+  display: none !important;
+}
+body.presentation .app {
+  flex-direction: column;
+  gap: 0;
+  max-width: none;
+  padding: 0;
+  margin: 0;
+  height: 100vh;
+}
+body.presentation .right-col {
+  flex: 1;
+  height: 100vh;
+  padding: 60px 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+}
+body.presentation .panes-host {
+  flex: 1;
+  overflow: visible;
+  padding: 0;
+  gap: 30px;
+}
+body.presentation .pane {
+  background: transparent;
+  border: none;
+  padding: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+body.presentation .pane .code-display {
+  text-align: center;
+  font-size: 1.4rem;
+  padding: 18px;
+  background: transparent;
+  border: none;
+}
+body.presentation .pane .dw {
+  flex: 1;
+  padding: 0;
+  border: none;
+  background: transparent;
+  min-height: 0;
+  display: block;
+  position: relative;
+}
+body.presentation .pane .dw svg {
+  position: absolute;
+  top: 0; left: 0;
+  transform-origin: 0 0;
+  overflow: visible;
+}
+body.presentation .pane .fs-btn,
+body.presentation .pane .zoom-controls { display: none; }
+body.presentation .presentation-hud { display: flex !important; }
+body.presentation.hud-hidden .presentation-hud,
+body.presentation.hud-hidden .pane .code-display { display: none !important; }
+
+.presentation-hud {
+  display: none;
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(16, 16, 26, 0.85);
+  border: 1px solid var(--border);
+  padding: 10px 20px;
+  font-size: 0.7rem;
+  color: var(--muted);
+  gap: 18px;
+  align-items: center;
+  border-radius: 3px;
+  z-index: 2000;
+  backdrop-filter: blur(8px);
+}
+.presentation-hud kbd {
+  background: #0a0a12;
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--accent);
+}
+
+/* ── Keyboard shortcuts modal ─────────────────────────── */
+.shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 18, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9500;
+  padding: 24px;
+}
+.shortcuts-overlay.open { display: flex; animation: shortcuts-fade 180ms ease-out; }
+@keyframes shortcuts-fade { from { opacity: 0; } to { opacity: 1; } }
+.shortcuts-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  max-width: 700px;
+  width: 100%;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+.shortcuts-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.shortcuts-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 28px; height: 28px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: inherit;
+  line-height: 1;
+}
+.shortcuts-close:hover { color: var(--danger); border-color: var(--danger); }
+.shortcuts-body {
+  padding: 18px 22px 20px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px 26px;
+}
+.shortcuts-body section h4 {
+  font-size: 0.66rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 10px;
+  font-weight: 500;
+}
+.shortcuts-body dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 14px;
+  row-gap: 7px;
+  font-size: 0.78rem;
+  margin: 0;
+}
+.shortcuts-body dt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  color: var(--text);
+}
+.shortcuts-body dd {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.shortcuts-body kbd {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.74rem;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.err { color: var(--danger); font-size: 0.82rem; }
+.info { font-size: 0.65rem; color: var(--muted); line-height: 1.7; padding: 0 4px; }
+
+/* ── Sidebar ─────────────────────────────────── */
+.sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 16px 14px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  position: sticky;
+  top: 24px;
+  font-size: 0.78rem;
+}
+.sb-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sb-title {
+  font-size: 0.72rem;
+  letter-spacing: .15em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.sb-filter { width: 100%; padding: 7px 10px; font-size: 0.76rem; margin-bottom: 12px; }
+
+.def-cat { margin-bottom: 16px; }
+.def-cat h3 {
+  font-size: 0.62rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.def-cat h3 .cat-name { flex: 1; }
+.def-cat h3 .cat-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity .15s;
+}
+.def-cat:hover h3 .cat-actions { opacity: 1; }
+.def-cat h3 .cat-action {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 1px 5px;
+  line-height: 1;
+  transition: color .12s, border-color .12s;
+}
+.def-cat h3 .cat-action:hover {
+  color: var(--accent);
+  border-color: var(--border);
+}
+.def-cat h3 .cat-action[data-act="delete"]:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.def-list { display: flex; flex-direction: column; gap: 2px; }
+.def-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background .12s;
+  position: relative;
+}
+.def-entry:hover { background: #1a1a25; }
+.def-name {
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 0.76rem;
+  min-width: 50px;
+}
+.def-expr {
+  color: var(--muted);
+  font-size: 0.7rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.def-actions { display: none; gap: 4px; }
+.def-entry.user:hover .def-actions { display: flex; }
+.def-entry.user:hover .def-expr { display: none; }
+.def-act-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.6rem;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.def-act-btn:hover { color: var(--accent); border-color: var(--accent); }
+.def-act-btn.del:hover { color: var(--danger); border-color: var(--danger); }
+
+.add-def-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: #0d0d15;
+  border: 1px dashed var(--border);
+  border-radius: 3px;
+  margin-top: 6px;
+}
+.add-def-form input { padding: 7px 10px; font-size: 0.74rem; }
+.add-def-form .row { display: flex; gap: 6px; }
+.add-def-form .btn { padding: 6px 12px; font-size: 0.64rem; flex: 1; }
+.add-def-form .err-msg { color: var(--danger); font-size: 0.66rem; min-height: 1em; }
+
+.user-empty { font-size: 0.7rem; color: var(--muted); font-style: italic; padding: 6px 8px; }
+
+/* ── Drag-and-drop: move user defs between user categories ──────────── */
+.def-entry.user[draggable="true"] { cursor: grab; }
+.def-entry.user[draggable="true"]:active { cursor: grabbing; }
+.def-entry.user.dragging { opacity: 0.4; }
+.def-cat.drop-target-pending h3 {
+  color: var(--accent);
+  transition: color 150ms;
+}
+.def-cat.drop-target {
+  background: rgba(160, 224, 255, 0.06);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  border-radius: 3px;
+}
+/* "Drop here to create a new category" zone */
+.def-cat.new-cat-zone {
+  border: 1px dashed var(--border);
+  border-radius: 3px;
+  padding: 12px 8px;
+  margin-top: 4px;
+  text-align: center;
+  transition: border-color 150ms, background 150ms;
+}
+.def-cat.new-cat-zone .new-cat-hint {
+  font-size: 0.66rem;
+  color: var(--muted);
+  letter-spacing: .04em;
+  font-style: italic;
+}
+.def-cat.new-cat-zone.drop-target {
+  border-color: var(--accent);
+  border-style: dashed;
+  background: rgba(160, 224, 255, 0.06);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* ── History dropdown ─────────────────────────────────── */
+.history-pop {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  min-width: 280px;
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 200;
+  display: none;
+  margin-top: 4px;
+}
+.history-pop.open { display: block; }
+.history-item {
+  padding: 8px 12px;
+  font-size: 0.74rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.history-item:hover { background: var(--surface-2); }
+.history-item .del-h { color: var(--muted); font-size: 0.7rem; margin-left: auto; }
+.history-item .del-h:hover { color: var(--danger); }
+.history-item.empty { color: var(--muted); font-style: italic; cursor: default; }
+.history-item.empty:hover { background: transparent; }
+
+@media (max-width: 1100px) {
+  .app { flex-direction: column; align-items: stretch; }
+  .sidebar { width: 100%; position: static; max-height: none; }
+  .pane { min-width: 0; }
+}

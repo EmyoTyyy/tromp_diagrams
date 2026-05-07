@@ -1,0 +1,2411 @@
+/* ═══════════════════════════════════════
+   PAGES — homepage, learn, play, about
+   ═══════════════════════════════════════ */
+
+body.page {
+  padding: 80px 24px 40px;
+  line-height: 1.7;
+}
+
+/* ── Scroll progress indicator ──────────────────────────────────────────
+   A 2px bar at the top of the viewport that fills as the user scrolls.
+   Pure CSS (no JS) using the new `animation-timeline: scroll()` where
+   supported, with a JS-driven fallback hooked from index.html. */
+body.page::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0;
+  height: 2px;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+  z-index: 9000;
+  transform-origin: 0 50%;
+  transition: width 80ms linear;
+  pointer-events: none;
+}
+body.page[data-scroll]::before { width: var(--scroll-progress, 0%); }
+.page-wrap {
+  max-width: 760px;
+  margin: 0 auto;
+}
+.page-wrap h1 {
+  font-size: 1.6rem;
+  letter-spacing: .12em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.keep-lower {
+  text-transform: lowercase;
+}
+
+.page-wrap h2 {
+  font-size: 1.15rem;
+  /* No text-transform: uppercase here — it converts the lowercase λ glyph
+     to Λ which is both visually unwanted and prone to apex-clipping. h2 is
+     sentence-case, h1 stays uppercase as the dominant heading. */
+  line-height: 1.4;
+  letter-spacing: .02em;
+  color: var(--text);
+  margin-top: 40px;
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+.page-wrap h3 {
+  font-size: 0.92rem;
+  color: var(--accent);
+  margin-top: 24px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.page-wrap .lede {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 32px;
+}
+.page-wrap p { margin-bottom: 14px; font-size: 0.88rem; color: var(--text); }
+.page-wrap ul, .page-wrap ol { margin: 12px 0 16px 24px; }
+.page-wrap li { margin-bottom: 6px; font-size: 0.88rem; }
+.page-wrap code, .page-wrap kbd {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85em;
+  color: var(--accent);
+}
+.page-wrap pre {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 14px 18px;
+  overflow-x: auto;
+  margin: 12px 0;
+  font-size: 0.85rem;
+}
+.page-wrap pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--text);
+}
+/* Section divider: instead of a flat 1px line, a subtle horizontal gradient
+   that fades in from edge to edge — feels more designed than a plain rule. */
+.page-wrap hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--border) 20%,
+    var(--border) 80%,
+    transparent 100%);
+  margin: 48px 0;
+  opacity: 0.7;
+}
+
+.hero {
+  text-align: center;
+  padding: 60px 0 40px;
+}
+.hero-eyebrow {
+  /* Project name displayed above the main title — small, monospace,
+     low-key. Pairs with the same `λ.bar` mark used as the faint
+     background title in the 3D scrollytelling section below. */
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.32em;
+  color: var(--accent-2);
+  text-transform: lowercase;
+  margin-bottom: 12px;
+  opacity: 0.85;
+}
+.hero h1 {
+  /* Larger and more confident — scales fluidly from mobile to desktop. */
+  font-size: clamp(2rem, 5.5vw, 3.4rem);
+  letter-spacing: .14em;
+  margin-bottom: 18px;
+  font-weight: 300;
+  line-height: 1.05;
+}
+.hero .subtitle {
+  font-size: clamp(0.9rem, 1.5vw, 1.05rem);
+  color: var(--muted);
+  margin-bottom: 32px;
+  letter-spacing: .02em;
+}
+.hero .cta {
+  display: inline-flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.hero .cta a {
+  position: relative;
+  padding: 14px 26px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  font-size: 0.78rem;
+  text-decoration: none;
+  transition: background .18s ease-out, color .18s ease-out, transform .18s ease-out, box-shadow .18s ease-out;
+  overflow: hidden;
+}
+.hero .cta a:hover {
+  background: var(--accent);
+  color: var(--bg);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(160, 224, 255, 0.18);
+}
+.hero .cta a.primary { background: var(--accent); color: var(--bg); }
+.hero .cta a.primary:hover {
+  background: transparent;
+  color: var(--accent);
+  box-shadow: 0 8px 22px rgba(160, 224, 255, 0.22);
+}
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 30px 0;
+}
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 22px;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color .22s ease-out, transform .22s ease-out, box-shadow .22s ease-out, background .22s ease-out;
+  display: block;
+}
+.tile:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  text-decoration: none;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--accent);
+  background: linear-gradient(180deg, var(--surface), #181828);
+}
+.tile h3 {
+  color: var(--accent);
+  font-size: 0.85rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.tile p {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ── Learn page ─────────────────────────────────── */
+/* Top-of-viewport progress bar that tracks lesson index. */
+.lesson-progress-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  z-index: 4500;
+}
+.lesson-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 450ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sticky lesson-number nav: stays at the top of the viewport while reading
+   long lessons. top:50px keeps it clear of the 44px topnav burger. */
+.lesson-nav-wrap {
+  position: sticky;
+  top: 0;
+  background: rgba(10, 10, 18, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 12px 24px 0;
+  margin: 0 -24px 24px;
+  z-index: 50;
+  /* Subtle drop-shadow appears once the nav sticks against the viewport
+     top — gives users a visual cue that the nav is now floating. */
+  box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.5);
+}
+.lesson-nav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+.lesson-nav button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  letter-spacing: .06em;
+  transition: color 150ms, border-color 150ms;
+}
+.lesson-nav button.active {
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.lesson-nav button:hover:not(.active) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Lesson body fades during transitions. */
+.lesson-content {
+  min-height: 400px;
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+.lesson-content.lesson-fading {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+}
+
+/* Inline Tromp diagrams injected next to <pre><code>EXPR</code></pre>. */
+.lesson-diagram-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 14px;
+  margin: -8px 0 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+}
+.lesson-diagram {
+  display: block;
+  width: auto;
+  height: 110px;
+  max-width: 100%;
+  filter: drop-shadow(0 0 10px rgba(160, 224, 255, 0.10));
+}
+
+/* ── Practice block (per-lesson exercises) ─────────── */
+.practice-block {
+  margin-top: 44px;
+  padding: 26px 24px 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent-2);
+}
+.practice-heading {
+  font-size: 0.7rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  margin: 0 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 500;
+}
+
+.exercise {
+  position: relative;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+  transition: opacity 220ms ease-out;
+}
+.exercise:first-of-type { padding-top: 4px; }
+.exercise:last-child { border-bottom: none; padding-bottom: 4px; }
+
+.exercise-prompt {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  margin-bottom: 14px;
+  color: var(--text);
+}
+.exercise-prompt code {
+  font-size: 0.9em;
+}
+
+/* Free-form expression answer field */
+.exercise-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.exercise-input-row input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.86rem;
+  outline: none;
+  transition: border-color .15s;
+}
+.exercise-input-row input:focus { border-color: var(--accent-2); }
+.exercise-input-row input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  border-color: var(--accent-2);
+}
+.exercise-input-row .btn {
+  padding: 8px 18px;
+  font-size: 0.7rem;
+}
+
+/* Multiple-choice options */
+.exercise-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.exercise-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  font-size: 0.84rem;
+}
+.exercise-option:hover { border-color: var(--accent-2); }
+.exercise-option input[type="radio"] {
+  accent-color: var(--accent-2);
+  flex-shrink: 0;
+}
+.exercise-option input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+.exercise-option code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--text);
+}
+
+.exercise-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.exercise-actions .btn {
+  padding: 6px 14px;
+  font-size: 0.66rem;
+}
+
+.exercise-feedback {
+  font-size: 0.8rem;
+  min-height: 1.3em;
+  padding: 6px 0 0;
+  font-style: italic;
+  line-height: 1.5;
+}
+.exercise-feedback.ok    { color: var(--accent-2); font-style: normal; font-weight: 500; }
+.exercise-feedback.bad   { color: var(--danger);   font-style: normal; }
+.exercise-feedback.hint  { color: var(--warn);     font-style: normal; }
+
+/* Solved exercise: subtle dimming + checkmark in the top-right corner. */
+.exercise.solved::after {
+  content: '✓';
+  position: absolute;
+  top: 16px;
+  right: 0;
+  color: var(--accent-2);
+  font-size: 1.1rem;
+  font-weight: 500;
+  animation: solved-pop 360ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes solved-pop {
+  from { opacity: 0; transform: scale(0.4); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Cheatsheet page ─────────────────────────────── */
+.page-wrap.cheatsheet { max-width: 1200px; }
+.page-wrap.cheatsheet .lede { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.cheat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 18px;
+  margin: 28px 0 12px;
+}
+.cheat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 20px 22px 18px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.cheat-card h2 {
+  font-size: 0.78rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 500;
+}
+.cheat-card h3 {
+  font-size: 0.66rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 18px 0 10px;
+  font-weight: 500;
+}
+.cheat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.cheat-table td {
+  padding: 5px 6px;
+  vertical-align: top;
+  line-height: 1.5;
+}
+.cheat-table td:first-child {
+  white-space: nowrap;
+  color: var(--text);
+  font-weight: 500;
+}
+.cheat-table td:not(:first-child) {
+  color: var(--muted);
+}
+.cheat-table code {
+  font-size: 0.95em;
+}
+.cheat-card kbd {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+}
+.cheat-subtle {
+  font-size: 0.74rem !important;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 0 10px !important;
+  font-style: italic;
+}
+.cheat-subtle code { font-style: normal; }
+
+/* Print: drop the dark theme, render two-column on A4, fit on as few
+   pages as possible without crowding. */
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  body.page {
+    background: white;
+    color: black;
+    padding: 0;
+    line-height: 1.35;
+    font-size: 9pt;
+  }
+  .topnav, .nav-drawer, .nav-overlay, footer.page-footer { display: none !important; }
+  .page-wrap.cheatsheet {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  .page-wrap.cheatsheet h1 {
+    font-size: 16pt;
+    color: #000;
+    border-bottom: 1.5pt solid #000;
+    padding-bottom: 4pt;
+    margin-bottom: 8pt;
+  }
+  .page-wrap.cheatsheet .lede {
+    font-size: 8pt;
+    color: #444;
+    margin-bottom: 8pt;
+  }
+  .lede .btn { display: none; }
+  /* Two columns of cards, tightly packed; let the browser break the
+     grid across pages naturally — but never split a card. */
+  .cheat-grid { grid-template-columns: 1fr 1fr; gap: 8pt; }
+  .cheat-card {
+    background: white;
+    border: 0.5pt solid #999;
+    padding: 6pt 8pt;
+    box-shadow: none;
+    color: black;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .cheat-card h2 {
+    color: #000;
+    font-size: 10pt;
+    border-bottom: 0.5pt solid #999;
+    padding-bottom: 2pt;
+    margin-bottom: 4pt;
+  }
+  .cheat-card h3 {
+    color: #444;
+    font-size: 9pt;
+    margin-top: 4pt;
+    margin-bottom: 2pt;
+  }
+  .cheat-card p,
+  .cheat-card li { font-size: 8.5pt; line-height: 1.35; }
+  .cheat-table { font-size: 8pt; }
+  .cheat-table td { color: #000; padding: 2pt 4pt; }
+  .cheat-table td:not(:first-child) { color: #444; }
+  .cheat-card code,
+  .cheat-table code {
+    color: #000;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 8pt;
+  }
+  .cheat-card kbd { background: #f5f5f5; border-color: #999; color: #000; }
+  .cheat-subtle { color: #555; font-size: 7.5pt; }
+  /* Hide anything that's interactive-only. */
+  .cheat-card button,
+  .cheat-card .btn { display: none !important; }
+}
+.lesson-content .demo {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 14px;
+  margin: 16px 0;
+}
+.lesson-content .demo .demo-label {
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  margin-bottom: 8px;
+}
+.lesson-content .try {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  padding: 14px 18px;
+  margin: 16px 0;
+}
+.lesson-content .try a {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* ── Play page ─────────────────────────────────── */
+.play-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.play-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  flex-wrap: wrap;
+}
+.play-status .score { color: var(--accent-2); }
+.play-status .level { color: var(--accent); }
+.play-status .timer { color: var(--warn); }
+
+/* Difficulty rendered as filled / hollow stars instead of "Difficulty: ★…" */
+.diff-stars { display: inline-flex; gap: 2px; letter-spacing: 0; }
+.diff-stars .star { font-size: 0.85rem; line-height: 1; }
+.diff-stars .star.filled { color: var(--warn); }
+.diff-stars .star.hollow { color: var(--border); }
+
+/* Progress through all puzzles. */
+.play-progress {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  margin: -8px 0 0;
+}
+.play-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 450ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Bigger, more "stage"-y diagram zone with a subtle glow gradient. */
+.play-diagram {
+  background: radial-gradient(ellipse at center,
+    rgba(160, 224, 255, 0.05) 0%, var(--surface) 70%);
+  border: 1px solid var(--border);
+  padding: 50px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  position: relative;
+  overflow: hidden;
+}
+.play-diagram svg {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  width: auto;
+  height: auto;
+  filter: drop-shadow(0 0 12px rgba(160, 224, 255, 0.10));
+  transition: opacity 280ms cubic-bezier(0.4, 0, 0.2, 1),
+              transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.play-diagram.puzzle-out svg {
+  opacity: 0;
+  transform: translateX(-32px);
+}
+.play-diagram.puzzle-in svg {
+  animation: puzzle-in 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes puzzle-in {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Success: gentle green pulse + drop-shadow flash. */
+.play-diagram.flash-success svg {
+  animation: flash-success 700ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+@keyframes flash-success {
+  0%   { filter: drop-shadow(0 0 12px rgba(160, 224, 255, 0.10)); transform: scale(1); }
+  35%  { filter: drop-shadow(0 0 22px rgba(128, 224, 160, 0.55)); transform: scale(1.04); }
+  100% { filter: drop-shadow(0 0 12px rgba(160, 224, 255, 0.10)); transform: scale(1); }
+}
+
+/* Failure: input shakes side to side. */
+.play-input-row {
+  display: flex;
+  gap: 8px;
+}
+.play-input-row input { flex: 1; }
+.play-input-row.error-shake {
+  animation: input-shake 380ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+@keyframes input-shake {
+  0%, 100% { transform: translateX(0); }
+  15%, 65% { transform: translateX(-7px); }
+  30%, 80% { transform: translateX(7px); }
+  45%      { transform: translateX(-4px); }
+}
+
+.play-feedback {
+  min-height: 24px;
+  font-size: 0.84rem;
+  padding: 8px 0;
+  transition: color 200ms ease-out;
+}
+.play-feedback.ok { color: var(--accent-2); }
+.play-feedback.bad { color: var(--danger); }
+.play-feedback.hint { color: var(--warn); }
+
+/* Long-running stats line ("Solved 12 · streak 3 (best 7)"). */
+.play-stats {
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: .08em;
+  text-align: center;
+  padding: 4px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Animated underline on inline body links — line draws in left → right.
+   Targets paragraphs and lists (not navigation, not buttons). */
+.page-wrap p a:not(.btn),
+.page-wrap li a:not(.btn) {
+  position: relative;
+  text-decoration: none;
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-size: 0% 1px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  transition: background-size 320ms cubic-bezier(0.4, 0, 0.2, 1), color 200ms;
+  padding-bottom: 2px;
+}
+.page-wrap p a:not(.btn):hover,
+.page-wrap li a:not(.btn):hover {
+  background-size: 100% 1px;
+}
+
+footer.page-footer {
+  margin-top: 80px;
+  padding-top: 32px;
+  position: relative;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: .04em;
+  line-height: 2;
+}
+/* Tiny λ-bar ornament above the footer text. */
+footer.page-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.6;
+}
+footer.page-footer a { color: var(--muted); }
+footer.page-footer a:hover { color: var(--accent); }
+
+/* ═══════════════════════════════════════
+   HOME PAGE — graphics, scroll-reveal, illustrations
+   ═══════════════════════════════════════ */
+
+/* Hero positioning context for the background λ filigree.
+   min-height ensures the lambda has room to be displayed centered without
+   being clipped by overflow: hidden. */
+.page-home .hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 80px 0 60px;
+}
+.page-home .hero > * { position: relative; z-index: 1; }
+
+/* Background λ — fills the hero box with flex-centering so the glyph is
+   always centered in the actual visible area, regardless of font-specific
+   glyph offset. font-size uses clamp() so the lambda scales with viewport
+   width and never overflows the hero on smaller screens. */
+.hero-bg-lambda {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 300;
+  font-size: clamp(7rem, 26vw, 13rem);
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.05;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  letter-spacing: 0;
+  animation: bg-lambda-float 16s ease-in-out infinite;
+}
+@keyframes bg-lambda-float {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.03); }
+}
+
+/* Hero illustration (real Tromp diagram of Y). */
+.hero-illustration {
+  margin: 28px auto 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.hero-illustration svg {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  max-height: 320px;
+  height: auto;
+  filter: drop-shadow(0 0 18px rgba(160, 224, 255, 0.18));
+}
+.hero-illust-caption {
+  font-size: 0.66rem;
+  letter-spacing: .22em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* Hero entrance: title, subtitle, illustration, CTAs rise in sequence. */
+.hero > h1,
+.hero > .subtitle,
+.hero > .hero-illustration,
+.hero > .cta {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: hero-rise 700ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.hero > h1                  { animation-delay: 80ms; }
+.hero > .subtitle           { animation-delay: 240ms; }
+.hero > .hero-illustration  { animation-delay: 380ms; }
+.hero > .cta                { animation-delay: 880ms; }
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Scroll-reveal: section starts faded + offset, slides in when visible. */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 700ms cubic-bezier(0.4, 0, 0.2, 1),
+              transform 700ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+}
+.scroll-reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* Tighten the empty space at the top of each Explore tile so the heading
+   sits closer to the upper edge — the default 22px all-around padding made
+   the tiles feel airy on top while the body text crowded the bottom. */
+.explore-section .tile { padding: 12px 22px 20px; }
+.explore-section .tile h3 { margin-bottom: 6px; }
+
+/* Three primitives row inside "What is the λ-calculus?" */
+.primitives-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  gap: 24px;
+  margin: 26px 0 22px;
+  padding: 24px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.primitive {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.primitive svg {
+  height: 78px;
+  width: auto;
+  max-width: 100%;
+  filter: drop-shadow(0 0 6px rgba(232, 232, 240, 0.08));
+}
+.primitive .primitive-label code {
+  font-size: 0.82rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.primitive small {
+  font-size: 0.64rem;
+  letter-spacing: .14em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* β-reduction demo inside "Tromp diagrams" */
+.reduction-demo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  margin: 28px 0 8px;
+  padding: 28px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.reduction-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.reduction-step svg {
+  display: block;
+  width: auto;
+  height: 130px;
+  max-width: 100%;
+  filter: drop-shadow(0 0 10px rgba(160, 224, 255, 0.12));
+}
+.reduction-label code {
+  font-size: 0.78rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.reduction-arrow {
+  font-size: 1.7rem;
+  color: var(--accent);
+  font-weight: 300;
+  align-self: center;
+  line-height: 1;
+  /* The arrow gently glides right then back, like a heartbeat for the
+     reduction's direction. Pure CSS, looped, very subtle. */
+  animation: reduction-arrow-slide 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes reduction-arrow-slide {
+  0%, 100% { transform: translateX(0);    opacity: 0.8; }
+  50%      { transform: translateX(8px);  opacity: 1;   }
+}
+
+/* Scroll-driven 3D viewer (scrollytelling pattern).
+   The outer section is 220vh tall — short enough that the user never feels
+   blocked, but tall enough that scrolling through it visibly slows the
+   perceived rate of page advancement (an intentional cue: "look at me,
+   then keep scrolling"). The inner .scroll-3d-pinned uses sticky to lock
+   to the viewport for that duration. JS reads the section's bounding
+   rect to derive 0→1 progress and rotates a single, randomly-chosen
+   model. */
+.scroll-3d-section {
+  position: relative;
+  /* Pin engages for ~1 viewport, releases over the next ~1.2. */
+  height: 220vh;
+  /* Full-bleed: break out of the page-wrap's 760px column so the pinned
+     block can use the entire viewport width. The negative left/right
+     margins keep the surrounding layout flow normal. */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  margin-top: 80px;
+  margin-bottom: 80px;
+}
+.scroll-3d-pinned {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: radial-gradient(ellipse at center,
+    rgba(160, 224, 255, 0.04) 0%, #0a0a12 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Big faint header + blurb behind the canvas. Provides context without
+   competing visually with the rotating model. */
+.scroll-3d-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 1;
+  pointer-events: none;
+  padding: 0 32px;
+}
+.scroll-3d-bg-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: clamp(5rem, 18vw, 14rem);
+  font-weight: 300;
+  letter-spacing: .12em;
+  color: var(--accent);
+  opacity: 0.06;
+  margin: 0;
+  line-height: 1;
+}
+.scroll-3d-bg-blurb {
+  max-width: 520px;
+  margin: 24px auto 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--text);
+  opacity: 0.18;
+}
+/* The 3D canvas sits in front of the bg text, behind the meta labels. */
+.scroll-3d-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+.scroll-3d-stage canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  background: transparent;
+}
+/* The current term's name + one-line description, fading on cycle. */
+.scroll-3d-meta {
+  position: absolute;
+  left: 50%;
+  bottom: 64px;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 3;
+  pointer-events: none;
+  transition: opacity 350ms ease-out;
+}
+.scroll-3d-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.4rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.scroll-3d-desc {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.74rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.scroll-3d-hint {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.62rem;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.6;
+  z-index: 3;
+  animation: scroll-hint-bob 2.4s ease-in-out infinite;
+}
+@keyframes scroll-hint-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.6; }
+  50%      { transform: translateX(-50%) translateY(4px); opacity: 0.3; }
+}
+/* When the user has begun scrolling past the section, hide the hint. */
+.scroll-3d-section.engaged .scroll-3d-hint { opacity: 0; transition: opacity 300ms; }
+
+/* Reduced-motion: collapse the section so it doesn't waste 4 viewports of
+   scroll, and skip rendering 3D from JS. */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-3d-section { height: auto; }
+  .scroll-3d-pinned { position: relative; height: 60vh; }
+}
+@media (max-width: 600px) {
+  .scroll-3d-bg-blurb { font-size: 0.82rem; }
+  .scroll-3d-meta { bottom: 50px; }
+  .scroll-3d-name { font-size: 1.1rem; }
+}
+
+/* Combinator gallery — grid of cards, each a real Tromp diagram of a
+   classic λ-term. Cards link to the visualizer with that expression. */
+.combinator-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin: 28px 0 12px;
+}
+.combinator-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 22px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 180ms ease-out, transform 180ms ease-out, box-shadow 180ms ease-out;
+  min-height: 180px;
+}
+.combinator-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(160, 224, 255, 0.08);
+  text-decoration: none;
+}
+.combinator-card .card-svg-wrap {
+  flex: 1;
+  width: 100%;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Size the SVG by its intrinsic aspect ratio (height fixed, width auto),
+   then center it horizontally in the flex wrap. Avoids the previous
+   `width: 100%` which forced the SVG box to 110px regardless of the
+   diagram's actual width — short narrow shapes (I, K, 0) ended up
+   visually offset because the diagram inside the over-wide SVG had
+   most of its painted pixels off-axis once stroke-width was layered in. */
+.combinator-card svg {
+  display: block;
+  height: 90px;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+  filter: drop-shadow(0 0 8px rgba(232, 232, 240, 0.06));
+}
+.combinator-card .combinator-name {
+  font-size: 0.92rem;
+  color: var(--accent);
+  font-weight: 500;
+  letter-spacing: .08em;
+}
+.combinator-card .combinator-label {
+  font-size: 0.62rem;
+  letter-spacing: .14em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* Tile hover gets a subtle accent gradient + glow ring. */
+.tile {
+  position: relative;
+  overflow: hidden;
+}
+.tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 55%, rgba(160, 224, 255, 0.06) 100%);
+  opacity: 0;
+  transition: opacity 280ms ease-out;
+  pointer-events: none;
+}
+.tile:hover::before { opacity: 1; }
+.tile:hover {
+  box-shadow: 0 0 0 1px var(--accent), 0 6px 24px rgba(160, 224, 255, 0.08);
+}
+
+/* Generic class for inline Tromp illustration SVGs (rendered by the same
+   layout/render code as the visualizer). No `vector-effect` here: we rely on
+   CSS scaling the SVG proportionally so stroke-width and stroke-dasharray
+   stay in sync (the draw-in animation needs that). */
+
+/* ── Mobile: stack the demo blocks ───────────────── */
+@media (max-width: 600px) {
+  .primitives-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  .primitive { flex: 0 0 auto; }
+  .reduction-demo { flex-direction: column; gap: 18px; }
+  .reduction-arrow { transform: rotate(90deg); }
+  .hero-bg-lambda { font-size: 9rem; }
+  .page-home .hero { min-height: 460px; padding: 50px 0 40px; }
+  .combinator-grid { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+}
+
+/* ── Reduced motion: still readable, just no movement ─ */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal,
+  .hero > h1,
+  .hero > .subtitle,
+  .hero > .hero-illustration,
+  .hero > .cta {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  /* The bg-lambda keeps its faint opacity — only its float animation stops. */
+  .hero-bg-lambda { animation: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TREE PAGE — multi-strategy reduction DAG
+   ═══════════════════════════════════════════════════════════════ */
+.tree-page .page-wrap.tree-wrap {
+  max-width: 1400px;
+}
+
+.tree-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin: 18px 0 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.tree-expr-input {
+  flex: 1;
+  min-width: 200px;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  outline: none;
+}
+.tree-expr-input:focus {
+  border-color: var(--accent-2);
+}
+.tree-toolbar .scr {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tree-toolbar .scr input[type="range"] {
+  width: 80px;
+}
+.tree-zoom {
+  display: flex;
+  gap: 4px;
+}
+.tree-stats {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.tree-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 0.7rem;
+  color: var(--muted);
+  padding: 0 4px 10px;
+}
+.tree-legend .lg-item { display: flex; align-items: center; gap: 6px; }
+.tree-legend .lg-dot {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+}
+.tree-legend .lg-sep { opacity: 0.4; }
+
+.tree-canvas-wrap {
+  position: relative;
+  width: 100%;
+  /* Sized so the entire frame fits in the viewport without scrolling.
+     The deduction (~340px) covers the page padding, h1, lede, toolbar,
+     legend and footer that sit above and below the canvas. */
+  height: calc(100vh - 340px);
+  min-height: 380px;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(160, 224, 255, 0.04), transparent 60%),
+    radial-gradient(circle at 80% 90%, rgba(128, 224, 160, 0.03), transparent 60%),
+    var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: grab;
+}
+.tree-canvas-wrap:active { cursor: grabbing; }
+/* CSS-driven fullscreen (matches the visualizer's pane fullscreen):
+   we don't use the browser's native Fullscreen API because that would
+   break our document-level keyboard shortcuts and conflict with the
+   topnav. Instead, .fullscreen pins the wrap to the viewport with
+   position:fixed and body.has-fullscreen-pane hides everything else
+   (topnav, drawer, toolbar, legend, footer). Esc and the in-canvas
+   ⛶ button both un-toggle. */
+.tree-canvas-wrap.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  min-height: 0;
+  border-radius: 0;
+  border: none;
+}
+body.has-fullscreen-pane { overflow: hidden; }
+body.has-fullscreen-pane .topnav,
+body.has-fullscreen-pane .nav-drawer,
+body.has-fullscreen-pane .nav-overlay,
+body.has-fullscreen-pane .tree-toolbar,
+body.has-fullscreen-pane .tree-legend,
+body.has-fullscreen-pane .page-footer,
+body.has-fullscreen-pane .tree-wrap > h1,
+body.has-fullscreen-pane .tree-wrap > p.lede {
+  display: none !important;
+}
+/* Exit-fullscreen button: lives inside the canvas-wrap so it travels
+   with the wrap when it goes fullscreen. Hidden by default. */
+.tree-fs-exit {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  display: none;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 26, 32, 0.9);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 1.1rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.tree-fs-exit:hover { color: var(--accent); border-color: var(--accent); }
+.tree-canvas-wrap.fullscreen .tree-fs-exit { display: inline-flex; }
+
+/* ── Keyboard shortcuts modal (mirrors visualizer.css so the dialog
+   actually styles itself on pages that don't load visualizer.css —
+   tree, halting, etc.) ───────────────────────────────────────── */
+.shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 18, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9500;
+  padding: 24px;
+}
+.shortcuts-overlay.open {
+  display: flex;
+  animation: shortcuts-fade 180ms ease-out;
+}
+@keyframes shortcuts-fade { from { opacity: 0; } to { opacity: 1; } }
+.shortcuts-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  max-width: 700px;
+  width: 100%;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+.shortcuts-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.shortcuts-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 28px; height: 28px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: inherit;
+  line-height: 1;
+}
+.shortcuts-close:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.shortcuts-body {
+  padding: 18px 22px 20px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px 26px;
+}
+.shortcuts-body section h4 {
+  font-size: 0.66rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 10px;
+  font-weight: 500;
+}
+.shortcuts-body dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 14px;
+  row-gap: 7px;
+  font-size: 0.78rem;
+  margin: 0;
+}
+.shortcuts-body dt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  color: var(--text);
+}
+.shortcuts-body dd {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.shortcuts-body kbd {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.74em;
+  color: var(--fg);
+  border-radius: 3px;
+}
+
+#treeSVG {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Nodes */
+.tn { cursor: pointer; }
+.tn-bg {
+  fill: rgba(20, 26, 32, 0.9);
+  stroke: var(--border);
+  stroke-width: 1;
+  transition: stroke 120ms, fill 120ms;
+}
+.tn:hover .tn-bg {
+  stroke: var(--accent-2);
+  fill: rgba(28, 36, 44, 0.95);
+}
+.tn.terminal .tn-bg {
+  stroke: var(--accent-2);
+  stroke-dasharray: 3 2;
+}
+.tn-depth {
+  fill: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px;
+  pointer-events: none;
+  user-select: none;
+}
+.tn-dot.terminal { stroke: #fff; stroke-width: 1; }
+
+/* Edges */
+.te {
+  pointer-events: visibleStroke;
+  cursor: help;
+  transition: stroke-width 120ms, stroke-opacity 120ms;
+}
+.te:hover {
+  stroke-opacity: 1 !important;
+  stroke-width: 4 !important;
+}
+
+.tree-edge-tip {
+  position: absolute;
+  display: none;
+  background: rgba(15, 18, 22, 0.96);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.66rem;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.tree-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 0.86rem;
+  pointer-events: none;
+  text-align: center;
+}
+.tree-empty code {
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  margin: 0 2px;
+}
+
+/* Fullscreen overlay */
+.tree-fs {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 14, 0.92);
+  backdrop-filter: blur(4px);
+  z-index: 9000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+}
+.tree-fs.open { display: flex; }
+.tree-fs-inner {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 22px 22px;
+  max-width: 95vw;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tree-fs-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.86rem;
+}
+.tree-fs-head > span:first-child {
+  font-weight: 500;
+  color: var(--accent-2);
+}
+.tree-fs-strats {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tree-fs-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--c, var(--border));
+  border-radius: 999px;
+  color: var(--c, var(--fg));
+  font-size: 0.65rem;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.tree-fs-close {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--fg);
+  width: 28px; height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.tree-fs-close:hover { background: var(--bg); border-color: var(--accent-2); }
+
+#treeFsSVG {
+  display: block;
+  max-width: 100%;
+  max-height: 60vh;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.tree-fs-code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 18vh;
+  overflow: auto;
+  color: var(--fg);
+}
+.tree-fs-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 700px) {
+  .tree-canvas-wrap { height: 60vh; min-height: 380px; }
+  .tree-toolbar { padding: 8px; gap: 6px; }
+  .tree-stats { width: 100%; margin-left: 0; }
+}
+
+/* ── Spawn-in animation ──────────────────────────────────────── */
+@keyframes tn-spawn-anim {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.tn-content {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.tn-content.spawning {
+  animation: tn-spawn-anim 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Strategy-path highlight (hover a legend chip) ───────────── */
+.lg-strat { cursor: pointer; transition: opacity 120ms; }
+.lg-strat:hover { color: var(--fg); }
+.tree-canvas-wrap.path-mode .tn,
+.tree-canvas-wrap.path-mode .te {
+  opacity: 0.18;
+  transition: opacity 120ms;
+}
+.tree-canvas-wrap.path-mode .tn.path-on,
+.tree-canvas-wrap.path-mode .te.path-on {
+  opacity: 1;
+}
+.tree-canvas-wrap.path-mode .tn.path-on .tn-bg {
+  stroke: var(--path-color, var(--accent-2));
+  stroke-width: 2.4;
+  fill: rgba(28, 36, 44, 1);
+}
+.tree-canvas-wrap.path-mode .te.path-on {
+  stroke: var(--path-color, var(--accent-2)) !important;
+  stroke-width: 4 !important;
+  stroke-opacity: 1 !important;
+}
+
+.tree-legend kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--fg);
+}
+
+/* ── Minimap ─────────────────────────────────────────────────── */
+.tree-minimap {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 180px;
+  height: 130px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  z-index: 5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.tree-minimap .tm-bg {
+  fill: rgba(15, 18, 22, 0.95);
+}
+.tree-minimap .tm-node {
+  fill: rgba(255, 255, 255, 0.85);
+}
+.tree-minimap .tm-edge {
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 0.8;
+  fill: none;
+}
+.tree-minimap .tm-vp {
+  fill: rgba(160, 224, 255, 0.08);
+  pointer-events: none;
+}
+#treeMinimapBtn.active {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HISTORY PAGE — vertical timeline scrollytelling
+   ═══════════════════════════════════════════════════════════════ */
+.hist-wrap {
+  max-width: 980px;
+}
+.hist-wrap > h1 { margin-top: 16px; }
+
+/* Floating year+progress pill (top-right). */
+.hist-pill {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 50;
+  background: rgba(15, 18, 22, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 10px 18px 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  min-width: 130px;
+  text-align: center;
+}
+.hist-pill-year {
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--accent-2);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.hist-pill-progress {
+  margin-top: 8px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.hist-pill-progress-fill {
+  height: 100%;
+  background: var(--accent-2);
+  transition: width 80ms linear;
+}
+@media (max-width: 700px) {
+  .hist-pill { top: 64px; right: 12px; padding: 6px 12px 8px; min-width: 100px; }
+  .hist-pill-year { font-size: 0.7rem; }
+}
+
+/* Each historical section. Two-column grid: marker dot + content. */
+.hist-section {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 24px;
+  padding: 60px 0;
+  border-left: 1px dashed transparent;
+  position: relative;
+}
+.hist-section::before {
+  /* The vertical timeline line lives on the page-wrap, but we draw a
+     subtle local segment within each section so there's continuity even
+     when sections grow tall. */
+  content: '';
+  position: absolute;
+  left: 31px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom,
+    transparent, rgba(160, 224, 255, 0.18) 12%, rgba(160, 224, 255, 0.18) 88%, transparent);
+}
+.hist-section + .hist-section { padding-top: 32px; }
+
+.hist-marker {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.hist-marker > span {
+  display: inline-block;
+  position: sticky;
+  top: 18vh;
+  background: var(--bg);
+  border: 1.5px solid var(--accent-2);
+  color: var(--accent-2);
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  line-height: 56px;
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  z-index: 2;
+  box-shadow: 0 0 0 6px var(--bg);
+}
+
+.hist-content {
+  min-width: 0;
+}
+.hist-content h2 {
+  margin: 0 0 16px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 400;
+  font-size: 1.6rem;
+  letter-spacing: 0.01em;
+  color: var(--fg);
+  text-transform: none;
+  padding-top: 4px;
+  line-height: 1.25;
+}
+.hist-content p {
+  font-size: 0.94rem;
+  line-height: 1.72;
+  color: var(--text);
+  margin: 0 0 14px;
+}
+.hist-content p b {
+  color: var(--accent-2);
+  font-weight: 500;
+}
+.hist-content p code,
+.hist-content pre code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.86em;
+  background: rgba(160, 224, 255, 0.06);
+  border: 1px solid rgba(160, 224, 255, 0.12);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--accent);
+}
+.hist-content pre {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  overflow-x: auto;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+.hist-content pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--fg);
+}
+.hist-aside {
+  margin: 16px 0 !important;
+  padding-left: 14px;
+  border-left: 2px solid var(--border);
+  font-style: italic;
+  color: var(--muted) !important;
+  font-size: 0.86rem !important;
+}
+.hist-content a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(160, 224, 255, 0.3);
+}
+
+/* Diagram row inside a section. */
+.hist-diagram-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 24px 0 18px;
+  justify-content: flex-start;
+}
+.hist-diagram-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px 12px;
+  max-width: 100%;
+}
+.hist-diagram-card svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.hist-diagram-cap {
+  margin-top: 10px;
+  font-size: 0.74rem;
+  text-align: center;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 280px;
+}
+.hist-diagram-cap code {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: var(--accent) !important;
+}
+.hist-diagram-err {
+  color: #ff8a8a;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 700px) {
+  .hist-section { grid-template-columns: 40px 1fr; gap: 14px; padding: 40px 0; }
+  .hist-section::before { left: 19px; }
+  .hist-marker > span {
+    width: 40px; height: 40px; line-height: 36px;
+    font-size: 0.6rem; top: 10vh;
+  }
+  .hist-content h2 { font-size: 1.25rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COMBINATOR ZOO
+   ═══════════════════════════════════════════════════════════════ */
+.zoo-wrap { max-width: 1200px; }
+.zoo-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 18px 0 26px;
+}
+.zoo-cat-btn {
+  font-size: 0.66rem;
+  padding: 5px 11px;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+.zoo-cat-btn.active {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+}
+
+.zoo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.zoo-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 120ms, transform 120ms;
+}
+.zoo-card:hover {
+  border-color: rgba(160, 224, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.zoo-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.zoo-sym {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.6rem;
+  font-weight: 400;
+  color: var(--accent-2);
+  letter-spacing: 0.02em;
+  min-width: 1.5em;
+}
+.zoo-meta { flex: 1; min-width: 0; }
+.zoo-bird {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--fg);
+  font-style: italic;
+}
+.zoo-cat-tag {
+  font-size: 0.6rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+.zoo-diag {
+  display: block;
+  margin: 6px auto 4px;
+  max-width: 100%;
+  height: auto;
+}
+
+.zoo-expr {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 6px 9px;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  overflow-x: auto;
+  color: var(--accent);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.zoo-expr code { font-family: inherit; color: inherit; }
+
+.zoo-desc {
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text);
+  margin: 0;
+}
+
+.zoo-example {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 2px solid var(--accent-2);
+  padding: 5px 9px;
+  margin: 0;
+}
+.zoo-example code { color: var(--fg); font-family: inherit; }
+
+.zoo-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 4px;
+}
+.zoo-actions .btn {
+  font-size: 0.66rem;
+  padding: 5px 10px;
+}
+.zoo-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--muted);
+  padding: 60px 20px;
+  font-style: italic;
+}
+.zoo-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 32px;
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ENCODING LAB
+   ═══════════════════════════════════════════════════════════════ */
+.enc-wrap { max-width: 1200px; }
+
+.enc-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 18px 0 0;
+  border-bottom: 1px solid var(--border);
+}
+.enc-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  padding: 9px 16px 7px;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  letter-spacing: 0.04em;
+  transition: color 120ms, background 120ms;
+}
+.enc-tab:hover { color: var(--fg); background: rgba(255, 255, 255, 0.02); }
+.enc-tab.active {
+  color: var(--accent-2);
+  border-color: var(--border);
+  background: var(--panel);
+  margin-bottom: -1px;
+  border-bottom: 1px solid var(--panel);
+}
+
+.enc-intro { margin: 22px 0 18px; }
+.enc-intro h2 {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 400;
+  font-size: 1.4rem;
+  margin: 0 0 10px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.enc-blurb {
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 0.88rem;
+  margin: 0;
+  max-width: 880px;
+}
+.enc-blurb code {
+  font-size: 0.86em;
+  background: rgba(160, 224, 255, 0.06);
+  border: 1px solid rgba(160, 224, 255, 0.12);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--accent);
+}
+
+.enc-encodings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin: 22px 0 26px;
+}
+.enc-encoding-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+.enc-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.86rem;
+  color: var(--accent-2);
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.enc-formula {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 7px 10px;
+  margin: 0 0 8px;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--accent);
+  overflow-x: auto;
+}
+.enc-tradeoff {
+  font-size: 0.74rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.enc-grid {
+  display: grid;
+  grid-template-columns: 90px repeat(calc(var(--cols, 4) - 1), minmax(180px, 1fr));
+  gap: 1px;
+  /* Lower-contrast separators — the previous border-coloured gap made the
+     table read as a bright grid against the dark page. Now the separators
+     are barely-there, matching the rest of the site's visual rhythm. */
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.enc-grid-h,
+.enc-grid-vl,
+.enc-grid-d {
+  background: var(--bg);
+  padding: 10px 12px;
+}
+.enc-grid-h {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: rgba(255, 255, 255, 0.02);
+}
+.enc-grid-vl {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--accent-2);
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+}
+.enc-grid-vl code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+.enc-grid-d {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+.enc-grid-d svg {
+  display: block;
+  max-width: 100%;
+  max-height: 220px;
+  height: auto;
+}
+.enc-open {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.enc-grid-d:hover .enc-open { opacity: 1; }
+.enc-open:hover { color: var(--accent-2); }
+.enc-elide {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+@media (max-width: 800px) {
+  .enc-grid {
+    grid-template-columns: 70px repeat(calc(var(--cols, 4) - 1), 1fr);
+  }
+  .enc-grid-d { min-height: 60px; padding: 6px; }
+  .enc-grid-h, .enc-grid-vl { padding: 6px 8px; font-size: 0.66rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HALTING PROBLEM — step-by-step reveal
+   ═══════════════════════════════════════════════════════════════ */
+.halt-wrap { max-width: 880px; }
+
+.halt-progress {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  margin: 18px 0 28px;
+  overflow: hidden;
+}
+.halt-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+  width: 0%;
+  transition: width 320ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.halt-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 40px;
+}
+/* Unrevealed steps are removed from layout entirely (display: none).
+   Revealed steps animate in via the keyframes below — no max-height
+   tricks, so verdict pills at the bottom can't get clipped. */
+.halt-step {
+  display: none;
+  grid-template-columns: 56px 1fr;
+  gap: 20px;
+}
+.halt-step.revealed {
+  display: grid;
+  animation: halt-step-in 360ms cubic-bezier(0.25, 0.9, 0.3, 1);
+}
+.halt-step.revealed + .halt-step.revealed { margin-top: 32px; }
+@keyframes halt-step-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* The numbered circle. Single rule: a flex container that centers its
+   text content both axes. The earlier two-rule version had a stale
+   `align-items: flex-start` from the prototype that pushed the digit
+   to the top of the circle. */
+.halt-step .halt-step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--accent-2);
+  border-radius: 50%;
+  background: var(--bg);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--accent-2);
+}
+.halt-step-body {
+  min-width: 0;
+}
+.halt-step-body h2 {
+  margin: 0 0 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 400;
+  font-size: 1.3rem;
+  color: var(--fg);
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.3;
+}
+.halt-step-body p {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+.halt-step-body p code {
+  font-size: 0.86em;
+  background: rgba(160, 224, 255, 0.06);
+  border: 1px solid rgba(160, 224, 255, 0.12);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--accent);
+}
+.halt-step-body pre {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent);
+  border-radius: 3px;
+  padding: 11px 16px;
+  margin: 14px 0;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+.halt-step-body pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--fg);
+}
+.halt-step-body a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(160, 224, 255, 0.3);
+}
+
+.halt-diag-row {
+  display: flex;
+  gap: 14px;
+  margin: 18px 0 8px;
+  flex-wrap: wrap;
+}
+.halt-diag-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.halt-diag-card svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.halt-diag-cap {
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.halt-verdict {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 6px 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  border-radius: 3px;
+}
+.halt-verdict-bad {
+  color: #ff8a8a;
+  background: rgba(255, 138, 138, 0.08);
+  border: 1px solid rgba(255, 138, 138, 0.3);
+}
+.halt-verdict-good {
+  color: var(--accent-2);
+  background: rgba(128, 224, 160, 0.08);
+  border: 1px solid rgba(128, 224, 160, 0.3);
+}
+
+.halt-controls {
+  position: sticky;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(15, 18, 22, 0.94);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  backdrop-filter: blur(8px);
+  margin-top: 32px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+.halt-controls .btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.halt-counter {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 700px) {
+  .halt-step { grid-template-columns: 36px 1fr; gap: 12px; }
+  .halt-step .halt-step-num {
+    width: 28px; height: 28px; line-height: 24px; font-size: 0.66rem;
+  }
+  .halt-step-body h2 { font-size: 1.1rem; }
+  .halt-controls { flex-wrap: wrap; }
+}
+
