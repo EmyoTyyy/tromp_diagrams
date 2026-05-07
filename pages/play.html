@@ -38,48 +38,128 @@
   <h1>Play</h1>
   <p class="lede">
     Look at the Tromp diagram and type the λ-expression it represents.
-    Difficulty escalates from <code>I</code> to <code>pred</code>.
   </p>
 
-  <div class="play-frame">
+  <!-- Mode bar at the top. Picking a mode is the first decision; it
+       puts the puzzle frame into pre-game with the diagram blurred and
+       a Start button overlaid. -->
+  <div class="play-mode-bar" role="tablist" aria-label="Game modes">
+    <button class="play-mode-btn active" data-mode="normal" onclick="setMode('normal')">Normal</button>
+    <button class="play-mode-btn play-mode-btn--icon" data-mode="daily" onclick="setMode('daily')" aria-label="Daily">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2.5" y="3.5" width="11" height="10" rx="1"/>
+        <line x1="2.5" y1="6.5" x2="13.5" y2="6.5"/>
+        <line x1="5.5" y1="2" x2="5.5" y2="5"/>
+        <line x1="10.5" y1="2" x2="10.5" y2="5"/>
+      </svg>
+      <span>Daily</span>
+    </button>
+    <button class="play-mode-btn play-mode-btn--icon" data-mode="calendar" onclick="setMode('calendar')" aria-label="Calendar">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3.5" width="12" height="10.5" rx="1"/>
+        <line x1="2" y1="6.5" x2="14" y2="6.5"/>
+        <line x1="5" y1="2" x2="5" y2="5"/>
+        <line x1="11" y1="2" x2="11" y2="5"/>
+        <rect x="4.5" y="8.5" width="2" height="2" rx="0.3" fill="currentColor" stroke="none"/>
+        <rect x="9.5" y="8.5" width="2" height="2" rx="0.3" fill="currentColor" stroke="none"/>
+      </svg>
+      <span>Calendar</span>
+    </button>
+    <button class="play-mode-btn" data-mode="speedrun" onclick="setMode('speedrun')">⏱ Speedrun</button>
+    <span class="play-mode-chip" id="playModeChip">Normal mode</span>
+  </div>
+
+  <div class="play-frame" id="playFrame">
 
     <div class="play-status">
-      <span class="level" id="puzzleNum">Puzzle 1 / —</span>
+      <span class="level" id="puzzleNum">Pick a mode to begin</span>
       <span class="diff-stars" id="puzzleDiff" aria-label="difficulty"></span>
       <span class="score" id="playScore">Score: 0</span>
-      <span style="color:var(--muted);" id="playBest">Best: 0</span>
+      <span style="color:var(--muted);" id="playBest">Best: —</span>
     </div>
 
     <div class="play-progress" aria-hidden="true">
       <div class="play-progress-fill" id="playProgressFill"></div>
     </div>
 
-    <div class="play-diagram" id="playDiagramWrap">
-      <svg id="playSVG" xmlns="http://www.w3.org/2000/svg" width="0" height="0">
-        <g id="playSegs"></g>
-        <g id="playZones"></g>
-      </svg>
+    <!-- Diagram zone wraps both the SVG and the pre-game overlay so the
+         overlay sits over the diagram without affecting page layout. -->
+    <div class="play-diagram-zone">
+      <div class="play-diagram" id="playDiagramWrap">
+        <svg id="playSVG" xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+          <g id="playSegs"></g>
+          <g id="playZones"></g>
+        </svg>
+      </div>
+
+      <!-- Calendar of past dailies. Replaces the diagram visually
+           when mode === 'calendar'. Click a past date → that date's
+           daily is loaded and the player is dropped into Daily mode
+           pre-game for it. Future dates are disabled. -->
+      <div class="play-calendar" id="playCalendar" hidden>
+        <div class="play-calendar-head">
+          <button class="play-cal-nav" onclick="calMoveMonth(-1)" aria-label="Previous month">‹</button>
+          <span class="play-cal-month" id="playCalMonth">—</span>
+          <button class="play-cal-nav" onclick="calMoveMonth(1)" aria-label="Next month">›</button>
+        </div>
+        <div class="play-cal-dow">
+          <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+        </div>
+        <div class="play-cal-grid" id="playCalGrid"></div>
+        <div class="play-cal-legend">
+          <span><i class="play-cal-dot ontime"></i>solved on the day</span>
+          <span><i class="play-cal-dot late"></i>solved later</span>
+          <span><i class="play-cal-dot today"></i>today</span>
+        </div>
+      </div>
+
+      <!-- Pre-game overlay. Visible while phase==='pregame'. The diagram
+           below is blurred via CSS; the difficulty picker + Start are the
+           only interactive elements. Daily skips the picker. -->
+      <div class="play-pregame" id="playPregame" hidden>
+        <div class="play-pregame-card">
+          <div class="play-pregame-title" id="playPregameTitle">Pick a difficulty</div>
+          <div class="play-pregame-diff" id="playPregameDiff">
+            <button class="play-diff-btn active"  data-diff="easy"     onclick="setGameDifficulty('easy')">Easy</button>
+            <button class="play-diff-btn"         data-diff="medium"   onclick="setGameDifficulty('medium')">Medium</button>
+            <button class="play-diff-btn"         data-diff="hard"     onclick="setGameDifficulty('hard')">Hard</button>
+            <button class="play-diff-btn play-diff-btn--extreme" data-diff="extreme"  onclick="setGameDifficulty('extreme')">Extreme</button>
+          </div>
+          <p class="play-pregame-blurb" id="playPregameBlurb">
+            Easy and Medium cap the level difficulty. Hard rarely throws an extreme level. Extreme is extreme-only.
+          </p>
+          <button class="btn play-pregame-start" onclick="startSelectedRun()">▶ Start</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Run counters (hints / skips remaining). Hidden in modes that
+         don't use them (speedrun, reverse) and during pre-game. -->
+    <div class="play-counters" id="playCounters" hidden>
+      <span id="playHintsLeft">Hints: 10/10</span>
+      <span id="playSkipsLeft">Skips: 3/3</span>
+      <span id="playColorState" hidden>Color hint active (×½ score)</span>
     </div>
 
     <div class="play-stats" id="playStatsLine"></div>
 
     <div class="play-input-row">
       <input type="text" id="playInput" placeholder="enter expression... (e.g. \x. x or I)" autocomplete="off" />
-      <button class="btn" onclick="checkAnswer()">Submit</button>
+      <button class="btn" id="playSubmitBtn" onclick="checkAnswer()">Submit</button>
     </div>
 
     <div class="play-feedback" id="playFeedback"></div>
 
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button class="btn btn-sec" onclick="showHint()">Hint</button>
-      <button class="btn btn-sec tt" data-tt="Color-code variables (free, no penalty)" data-tt-pos="below" id="playColorBtn" onclick="togglePlayColor()">🎨 Color</button>
-      <button class="btn btn-sec" onclick="skipPuzzle()">Skip</button>
-      <button class="btn btn-sec" onclick="giveUp()">Reveal answer</button>
-      <button class="btn btn-sec" onclick="startDaily()" style="margin-left:auto;">🗓 Daily</button>
-      <button class="btn btn-sec" onclick="startRandom()">🎲 Random</button>
-      <button class="btn btn-sec" onclick="startReverse()">↺ Reverse</button>
-      <button class="btn btn-sec" onclick="startSpeedrun()">⏱ Speedrun</button>
-      <button class="btn btn-sec" onclick="startGame()">↻ Restart</button>
+    <div class="play-action-bar">
+      <button class="btn btn-sec" id="playHintBtn" onclick="showHint()">Hint</button>
+      <button class="btn btn-sec tt" data-tt="Color-code variables — halves the round's score, doesn't count toward the hint cap" data-tt-pos="below" id="playColorBtn" onclick="togglePlayColor()">🎨 Color</button>
+      <button class="btn btn-sec" id="playSkipBtn" onclick="skipPuzzle()">Skip</button>
+      <button class="btn btn-sec" id="playRevealBtn" onclick="giveUp()">Reveal answer</button>
+      <button class="btn btn-sec" id="playAbandonBtn" onclick="abandonRun()" style="margin-left:auto;">⚐ Abandon</button>
+      <!-- Visible only after the player abandons and clicks "Back to
+           puzzle" — gives them a way to start a fresh run without
+           re-picking the mode from the bar. -->
+      <button class="btn" id="playRestartBtn" onclick="restartAfterAbandon()" hidden>↻ Restart</button>
     </div>
 
     <p class="play-mode-help" id="playModeHelp" style="font-size:0.78rem; color:var(--muted); margin-top:20px;">
@@ -87,6 +167,54 @@
       Numerals can be answered with their digit (e.g. <code>2</code>) or their full form.
     </p>
 
+  </div>
+
+  <!-- Abandon-confirm modal. The endgame popup it leads to (id
+       playEndgameModal) is shared with reveal-only / out-of-options
+       endings — it shows score, best, best streak, and offers Play
+       Again or Back-to-puzzle. -->
+  <div class="play-modal" id="abandonConfirmModal" hidden>
+    <div class="play-modal-backdrop" onclick="closeAbandonConfirm()"></div>
+    <div class="play-modal-card">
+      <p class="play-modal-body">Are you sure you want to abandon? This will end the game.</p>
+      <div class="play-modal-actions">
+        <button class="btn btn-sec" onclick="closeAbandonConfirm()">Cancel</button>
+        <button class="btn" onclick="confirmAbandon()">Yes</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="play-modal" id="playEndgameModal" hidden>
+    <div class="play-modal-backdrop"></div>
+    <div class="play-modal-card">
+      <div class="play-modal-title" id="endgameTitle">Run ended</div>
+      <p class="play-modal-body" id="endgameSubtitle"></p>
+      <div class="play-modal-scores" id="endgameScores"></div>
+      <div class="play-modal-actions">
+        <button class="btn btn-sec" onclick="backFromEndgame()">Back to puzzle</button>
+        <button class="btn" onclick="playAgainFromEndgame()">↻ Play again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Local data wipe. Reset every play stat: per-mode/per-difficulty
+       bests, speedrun times, daily streak + history, long-running
+       solved/streak counters. Other site-wide settings are not
+       touched. -->
+  <div class="play-clear-data">
+    <button class="btn btn-sec" onclick="openClearDataConfirm()">Clear all play data</button>
+    <span class="play-clear-data-note">resets every best score, streak, daily history, and speedrun time</span>
+  </div>
+
+  <div class="play-modal" id="clearDataConfirmModal" hidden>
+    <div class="play-modal-backdrop" onclick="closeClearDataConfirm()"></div>
+    <div class="play-modal-card">
+      <p class="play-modal-body">Erase every play-mode score, streak, speedrun time, and daily history? This can't be undone.</p>
+      <div class="play-modal-actions">
+        <button class="btn btn-sec" onclick="closeClearDataConfirm()">Cancel</button>
+        <button class="btn" onclick="confirmClearData()">Yes, erase it all</button>
+      </div>
+    </div>
   </div>
 
   <footer class="page-footer">

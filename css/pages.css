@@ -620,10 +620,18 @@ body.page[data-scroll]::before { width: var(--scroll-progress, 0%); }
 .play-status .timer { color: var(--warn); }
 
 /* Difficulty rendered as filled / hollow stars instead of "Difficulty: ★…" */
-.diff-stars { display: inline-flex; gap: 2px; letter-spacing: 0; }
-.diff-stars .star { font-size: 0.85rem; line-height: 1; }
-.diff-stars .star.filled { color: var(--warn); }
+/* 10-star difficulty strip. The bigger glyph (1.15rem) lets star count
+   read at a glance — the old 0.85rem version was readable but felt
+   weightless. `.extreme` styles the all-10-filled strip in a vivid
+   accent so a level the player should brace for stands out. */
+.diff-stars { display: inline-flex; gap: 3px; letter-spacing: 0; }
+.diff-stars .star { font-size: 1.15rem; line-height: 1; }
+.diff-stars .star.filled { color: var(--warn); text-shadow: 0 0 6px rgba(255, 208, 96, 0.45); }
 .diff-stars .star.hollow { color: var(--border); }
+.diff-stars.extreme .star.filled {
+  color: #ff6080;
+  text-shadow: 0 0 8px rgba(255, 96, 128, 0.55);
+}
 
 /* Progress through all puzzles. */
 .play-progress {
@@ -708,6 +716,389 @@ body.page[data-scroll]::before { width: var(--scroll-progress, 0%); }
 .play-feedback.ok { color: var(--accent-2); }
 .play-feedback.bad { color: var(--danger); }
 .play-feedback.hint { color: var(--warn); }
+
+/* ── Mode bar (top of the play page) ─────────────────
+   Lives above the puzzle so picking a mode is the
+   first decision. The active button gets a filled
+   accent background so the player can't lose track of
+   which mode they're in. */
+.play-mode-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin: 14px 0 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.play-mode-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.78rem;
+  letter-spacing: .06em;
+  padding: 7px 14px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.play-mode-btn:hover { color: var(--accent); border-color: var(--accent); }
+.play-mode-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+/* Mode buttons that lead with a vector icon (currently just Daily —
+   matches the visualiser's monochrome stroke icons). The icon picks up
+   currentColor so it inverts to bg on `.active`. */
+.play-mode-btn--icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  flex-shrink: 0;
+}
+.play-mode-chip {
+  margin-left: auto;
+  font-size: 0.7rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.play-mode-chip b {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* Action row at the bottom of the puzzle frame. */
+.play-action-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ── Abandon modal ───────────────────────────────────
+   Two-step: confirm popup, then score popup. Both
+   use the same card styling. */
+.play-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.play-modal[hidden] { display: none; }
+.play-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 18, 0.78);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.play-modal-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 22px 26px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+.play-modal-title {
+  font-size: 0.74rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.play-modal-body {
+  font-size: 0.84rem;
+  color: var(--text);
+  line-height: 1.55;
+  margin: 0 0 18px;
+}
+.play-modal-scores {
+  display: flex;
+  gap: 24px;
+  margin: 4px 0 22px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.play-modal-scores > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.play-modal-scores b {
+  font-size: 1.4rem;
+  color: var(--accent-2);
+  font-weight: 400;
+}
+.play-modal-label {
+  font-size: 0.62rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.play-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ── Pre-game overlay ─────────────────────────────────
+   Sits over the diagram while phase==='pregame'. The
+   diagram below stays in the DOM (so the play-frame
+   doesn't reflow when we transition to playing) but
+   gets blurred & dimmed; the overlay card on top
+   carries the difficulty picker + Start button. */
+.play-diagram-zone {
+  position: relative;
+}
+.play-diagram-zone.pregame .play-diagram > svg {
+  filter: blur(8px) brightness(0.55);
+  transition: filter 220ms ease-out;
+}
+.play-pregame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  padding: 24px;
+}
+.play-pregame[hidden] { display: none; }
+.play-pregame-card {
+  background: rgba(10, 10, 18, 0.78);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 22px 28px;
+  text-align: center;
+  max-width: 460px;
+  width: 100%;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+.play-pregame-title {
+  font-size: 0.74rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.play-pregame-diff {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.play-diff-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.72rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.play-diff-btn:hover { color: var(--accent); border-color: var(--accent); }
+.play-diff-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+.play-diff-btn--extreme {
+  color: #ff8aa0;
+  border-color: rgba(255, 138, 160, 0.4);
+}
+.play-diff-btn--extreme:hover { color: #ff6080; border-color: #ff6080; }
+.play-diff-btn--extreme.active {
+  background: #ff6080;
+  border-color: #ff6080;
+  color: var(--bg);
+}
+.play-pregame-blurb {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0 0 18px;
+}
+.play-pregame-start {
+  font-size: 0.86rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 10px 24px;
+}
+
+/* Run-counter row (hint / skip / colour-active chip). */
+.play-counters {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 0.72rem;
+  letter-spacing: .08em;
+  color: var(--muted);
+  padding: 4px 0;
+  font-variant-numeric: tabular-nums;
+}
+.play-counters[hidden] { display: none; }
+.play-counters #playColorState { color: var(--warn); }
+
+/* Reveal-locked state: only Abandon and Skip stay clickable. The
+   `.play-locked` class on the frame is added on Reveal and cleared
+   on next puzzle / Abandon. */
+.play-frame.play-locked #playInput,
+.play-frame.play-locked #playSubmitBtn,
+.play-frame.play-locked #playHintBtn,
+.play-frame.play-locked #playColorBtn,
+.play-frame.play-locked #playRevealBtn {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.play-frame.play-locked #playInput { background: var(--surface-2); }
+
+/* Clear-data section at the bottom of the page. Sits below the play
+   frame so it's never in the way of an active run. */
+.play-clear-data {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 32px 0 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.play-clear-data-note {
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+
+/* ── Calendar (past dailies) ─────────────────────────
+   Replaces the diagram visually while in calendar mode.
+   Each cell is colour-coded by its history entry:
+   green = on-time solve, yellow = late solve, blue =
+   today, dim = future / never solved. */
+.play-calendar {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 18px 16px;
+  gap: 10px;
+}
+.play-calendar[hidden] { display: none; }
+.play-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.play-cal-month {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.92rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  min-width: 180px;
+  text-align: center;
+}
+.play-cal-nav {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 28px; height: 28px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: inherit;
+  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.play-cal-nav:hover { color: var(--accent); border-color: var(--accent); }
+.play-cal-dow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  font-size: 0.62rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+}
+.play-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  flex: 1;
+}
+.play-cal-cell {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.play-cal-cell:hover { border-color: var(--accent); }
+.play-cal-cell.empty { background: transparent; border-color: transparent; cursor: default; }
+.play-cal-cell.future { color: var(--muted); cursor: not-allowed; opacity: 0.4; }
+.play-cal-cell.today {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+}
+.play-cal-cell.ontime {
+  background: rgba(128, 224, 160, 0.18);
+  border-color: rgba(128, 224, 160, 0.55);
+  color: #a0e8b8;
+}
+.play-cal-cell.late {
+  background: rgba(255, 208, 96, 0.16);
+  border-color: rgba(255, 208, 96, 0.5);
+  color: #ffd060;
+}
+.play-cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 0.68rem;
+  color: var(--muted);
+  align-items: center;
+  justify-content: center;
+}
+.play-cal-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  margin-right: 5px;
+  vertical-align: middle;
+  border: 1px solid currentColor;
+}
+.play-cal-dot.ontime { background: rgba(128, 224, 160, 0.4); color: #a0e8b8; }
+.play-cal-dot.late   { background: rgba(255, 208, 96, 0.4);  color: #ffd060; }
+.play-cal-dot.today  { background: transparent;              color: var(--accent-2); }
 
 /* Long-running stats line ("Solved 12 · streak 3 (best 7)"). */
 .play-stats {
