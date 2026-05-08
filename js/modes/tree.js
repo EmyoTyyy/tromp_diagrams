@@ -1073,7 +1073,8 @@ function treeFsOpenInVisualizer() {
   const n = treeNodes.get(treeFsNodeId);
   if (!n) return;
   const code = renderCodePlain(n.ast, false);
-  let url = 'visualizer.html';
+  // tree page lives at /tree/, visualizer at /visualizer/ — sibling.
+  let url = '../visualizer/';
   if (code.length < 120) {
     url += '?expr=' + encodeURIComponent(code);
   } else {

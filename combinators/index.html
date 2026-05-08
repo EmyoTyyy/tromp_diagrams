@@ -25,16 +25,16 @@
 <div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
 <nav class="nav-drawer" id="navDrawer">
   <a href="../index.html">Home</a>
-  <a href="visualizer.html">Visualizer</a>
-  <a href="learn.html">Learn</a>
-  <a href="play.html">Play</a>
-  <a href="tree.html">Tree</a>
-  <a href="combinators.html" class="active">Combinators</a>
-  <a href="encodings.html">Encodings</a>
-  <a href="halting.html">Halting</a>
-  <a href="history.html">History</a>
-  <a href="cheatsheet.html">Cheatsheet</a>
-  <a href="about.html">About</a>
+  <a href="../visualizer/">Visualizer</a>
+  <a href="../learn/">Learn</a>
+  <a href="../play/">Play</a>
+  <a href="../tree/">Tree</a>
+  <a href="../combinators/" class="active">Combinators</a>
+  <a href="../encodings/">Encodings</a>
+  <a href="../halting/">Halting</a>
+  <a href="../history/">History</a>
+  <a href="../cheatsheet/">Cheatsheet</a>
+  <a href="../about/">About</a>
 </nav>
 
 <div class="page-wrap zoo-wrap">
@@ -59,16 +59,16 @@
 
   <p class="zoo-note">
     All these combinators are loaded as built-ins in the
-    <a href="visualizer.html">visualizer</a> — type them by name (<code>S</code>,
+    <a href="../visualizer/">visualizer</a> — type them by name (<code>S</code>,
     <code>Y</code>, <code>theta</code>…) and they expand to the diagrams above.
-    The page <a href="learn.html">Learn</a> covers how SKI alone is enough
+    The page <a href="../learn/">Learn</a> covers how SKI alone is enough
     to encode anything else.
   </p>
 
   <footer class="page-footer">
-    <a href="tree.html">← Tree</a> ·
-    <a href="encodings.html">Encodings →</a> ·
-    <a href="visualizer.html">Visualizer</a>
+    <a href="../tree/">← Tree</a> ·
+    <a href="../encodings/">Encodings →</a> ·
+    <a href="../visualizer/">Visualizer</a>
   </footer>
 </div>
 
@@ -186,7 +186,7 @@ function zooRender(filter = 'all') {
     visible++;
     const card = document.createElement('div');
     card.className = 'zoo-card';
-    const url = 'visualizer.html?expr=' + encodeURIComponent(c.expr);
+    const url = '../visualizer/?expr=' + encodeURIComponent(c.expr);
     card.innerHTML = `
       <div class="zoo-head">
         <div class="zoo-sym">${escapeHtml(c.sym)}</div>

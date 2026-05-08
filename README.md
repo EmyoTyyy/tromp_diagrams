@@ -33,16 +33,16 @@ http://localhost:8000
 | Page | File | Purpose |
 |---|---|---|
 | Home | `index.html` | Landing page, introduction to lambda calculus and Tromp diagrams, example shapes, navigation to the main tools. |
-| Visualizer | `visualizer.html` | Main interactive tool. Type lambda expressions, draw diagrams, reduce expressions, compare panes, export media, and manage definitions. |
-| Learn | `learn.html` | Guided lambda-calculus lessons, from variables and abstraction to booleans, pairs, numerals, lists, and strategies. |
-| Play | `play.html` | Puzzle/game mode. The user sees a diagram and tries to guess the expression. Includes score, hints, daily puzzle logic, and local stats. |
-| Tree | `tree.html` | Reduction-tree visualizer. It advances multiple reduction strategies in parallel and shows where they branch or reconverge. |
-| Combinators | `combinators.html` | A combinator zoo with common combinators, categories, descriptions, and mini diagrams. |
-| Encodings | `encodings.html` | Encoding lab for naturals, booleans, pairs, Church lists, Scott lists, and related representations. |
-| Halting | `halting.html` | Step-by-step explanation of the halting problem in lambda calculus. |
-| History | `history.html` | Historical overview of lambda calculus, Church, Curry, computability, and related foundations. |
-| Cheatsheet | `cheatsheet.html` | Compact reference page for syntax, reduction rules, encodings, BLC, shortcuts, and common definitions. |
-| About | `about.html` | Project motivation, credits, stack, references, and author information. |
+| Visualizer | `visualizer/` | Main interactive tool. Type lambda expressions, draw diagrams, reduce expressions, compare panes, export media, and manage definitions. |
+| Learn | `learn/` | Guided lambda-calculus lessons, from variables and abstraction to booleans, pairs, numerals, lists, and strategies. |
+| Play | `play/` | Puzzle/game mode. The user sees a diagram and tries to guess the expression. Includes score, hints, daily puzzle logic, and local stats. |
+| Tree | `tree/` | Reduction-tree visualizer. It advances multiple reduction strategies in parallel and shows where they branch or reconverge. |
+| Combinators | `combinators/` | A combinator zoo with common combinators, categories, descriptions, and mini diagrams. |
+| Encodings | `encodings/` | Encoding lab for naturals, booleans, pairs, Church lists, Scott lists, and related representations. |
+| Halting | `halting/` | Step-by-step explanation of the halting problem in lambda calculus. |
+| History | `history/` | Historical overview of lambda calculus, Church, Curry, computability, and related foundations. |
+| Cheatsheet | `cheatsheet/` | Compact reference page for syntax, reduction rules, encodings, BLC, shortcuts, and common definitions. |
+| About | `about/` | Project motivation, credits, stack, references, and author information. |
 | Legacy / alternate page | `tromp.html` | Additional standalone Tromp page kept in the project. |
 
 ## Expression syntax
@@ -142,7 +142,7 @@ This means custom definitions are browser-local. They are not uploaded anywhere 
 
 ### Exporting custom definitions
 
-In `visualizer.html`, use the sidebar button:
+In `visualizer/`, use the sidebar button:
 
 ```txt
 Export
@@ -154,7 +154,7 @@ Use this before clearing browser storage or moving the project to another device
 
 ### Importing custom definitions
 
-In `visualizer.html`, use:
+In `visualizer/`, use:
 
 ```txt
 Import
@@ -220,7 +220,7 @@ Substitution is capture-avoiding: bound variables are renamed when needed to avo
 
 ## Tree mode
 
-`tree.html` visualizes how reduction strategies evolve from the same starting expression.
+`tree/` visualizes how reduction strategies evolve from the same starting expression.
 
 The page runs the available strategies in parallel. When strategies produce different expressions, the tree branches. When two states are alpha-equivalent, branches can merge back together.
 
@@ -247,7 +247,7 @@ The current physics model uses positions, velocities, spring-like edges, damping
 
 ## Play mode
 
-`play.html` is a puzzle mode.
+`play/` is a puzzle mode.
 
 The page renders a Tromp diagram and asks the user to guess the lambda expression. Puzzles are ordered by approximate difficulty and include fundamentals, booleans, arithmetic, lists, self-application, and fixed-point combinators.
 
@@ -383,17 +383,20 @@ Play mode shortcuts use `Alt` so they do not interfere with typing:
 ```txt
 Site tromp/
 ├── index.html
-├── visualizer.html
-├── learn.html
-├── play.html
-├── tree.html
-├── combinators.html
-├── encodings.html
-├── halting.html
-├── history.html
-├── cheatsheet.html
-├── about.html
-├── tromp.html
+├── 404.html
+├── tromp.html              # legacy monolith, not linked
+├── visualizer/index.html   # each page is /<name>/index.html so URLs
+├── learn/index.html        # are clean (e.g. /play/ instead of /play.html)
+├── play/index.html
+├── tree/index.html
+├── combinators/index.html
+├── encodings/index.html
+├── halting/index.html
+├── history/index.html
+├── cheatsheet/index.html
+├── about/index.html
+├── sitemap.xml
+├── robots.txt
 ├── TODO.txt
 ├── README.md
 ├── css/
@@ -520,4 +523,4 @@ Main references and inspirations include:
 - fixed-point combinators;
 - classic computability theory and the halting problem.
 
-See `about.html` for the user-facing credits page.
+See `about/` for the user-facing credits page.

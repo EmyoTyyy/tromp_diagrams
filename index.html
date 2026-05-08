@@ -21,9 +21,9 @@
 <noscript>
   <div class="noscript-banner">
     Tromp Diagrams uses JavaScript for the visualizer, play, and tree pages.
-    Please enable it. The <a href="pages/cheatsheet.html">cheatsheet</a>,
-    <a href="pages/combinators.html">combinators</a>, and
-    <a href="pages/history.html">history</a> pages still work without JS.
+    Please enable it. The <a href="cheatsheet/">cheatsheet</a>,
+    <a href="combinators/">combinators</a>, and
+    <a href="history/">history</a> pages still work without JS.
   </div>
 </noscript>
 
@@ -33,16 +33,16 @@
 <div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
 <nav class="nav-drawer" id="navDrawer">
   <a href="index.html" class="active">Home</a>
-  <a href="pages/visualizer.html">Visualizer</a>
-  <a href="pages/learn.html">Learn</a>
-  <a href="pages/play.html">Play</a>
-  <a href="pages/tree.html">Tree</a>
-  <a href="pages/combinators.html">Combinators</a>
-  <a href="pages/encodings.html">Encodings</a>
-  <a href="pages/halting.html">Halting</a>
-  <a href="pages/history.html">History</a>
-  <a href="pages/cheatsheet.html">Cheatsheet</a>
-  <a href="pages/about.html">About</a>
+  <a href="visualizer/">Visualizer</a>
+  <a href="learn/">Learn</a>
+  <a href="play/">Play</a>
+  <a href="tree/">Tree</a>
+  <a href="combinators/">Combinators</a>
+  <a href="encodings/">Encodings</a>
+  <a href="halting/">Halting</a>
+  <a href="history/">History</a>
+  <a href="cheatsheet/">Cheatsheet</a>
+  <a href="about/">About</a>
 </nav>
 
 
@@ -60,8 +60,8 @@
       <div class="hero-illust-caption">the Y combinator</div>
     </div>
     <div class="cta">
-      <a href="pages/visualizer.html" class="primary">Open visualizer</a>
-      <a href="pages/learn.html">Learn the basics</a>
+      <a href="visualizer/" class="primary">Open visualizer</a>
+      <a href="learn/">Learn the basics</a>
     </div>
                                                                                   </section>
 
@@ -180,22 +180,22 @@
   <section class="scroll-reveal explore-section">
     <h2>Explore</h2>
     <div class="tile-grid">
-      <a class="tile" href="pages/visualizer.html">
+      <a class="tile" href="visualizer/">
         <h3>▶ Visualizer</h3>
         <p>Type any λ-expression and watch it reduce. Multiple strategies, animations,
            BLC encoding, presentation mode, and more.</p>
       </a>
-      <a class="tile" href="pages/learn.html">
+      <a class="tile" href="learn/">
         <h3>📖 Learn</h3>
         <p>A guided tour through the λ-calculus, from variables to Church numerals,
            booleans, and the Y combinator.</p>
       </a>
-      <a class="tile" href="pages/play.html">
+      <a class="tile" href="play/">
         <h3>🎮 Play</h3>
         <p>Look at a Tromp diagram and try to guess the λ-expression. Difficulty
            escalates from <code>I</code> to <code>pred</code>.</p>
       </a>
-      <a class="tile" href="pages/about.html">
+      <a class="tile" href="about/">
         <h3>ℹ About</h3>
         <p>Who built this and why. Credits, references, and useful links.</p>
       </a>
@@ -210,7 +210,7 @@
       <li><code>Y</code> — the fixed-point combinator, with its iconic self-replicating shape</li>
       <li><code>omega</code> — <code>(λx. x x) (λx. x x)</code>, an infinite loop</li>
       <li><code>fst (pair a b)</code> — pairs and projections</li>
-      <li>Switch reduction <a href="pages/learn.html?lesson=9"><i>strategies</i></a> to see how β-reduction order changes things</li>
+      <li>Switch reduction <a href="learn/?lesson=9"><i>strategies</i></a> to see how β-reduction order changes things</li>
     </ul>
   </section>
 
@@ -315,7 +315,7 @@ function toggleNav() {
     COMBS.forEach((c, i) => {
       const card = document.createElement('a');
       card.className = 'combinator-card';
-      card.href = 'pages/visualizer.html?expr=' + encodeURIComponent(c.expr);
+      card.href = 'visualizer/?expr=' + encodeURIComponent(c.expr);
       card.title = c.expr.replace(/\\/g, 'λ') + '  ·  open in visualizer';
       const svgId   = 'comb_' + i;
       const segsId  = svgId + '_segs';

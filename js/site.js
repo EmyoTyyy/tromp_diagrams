@@ -41,13 +41,13 @@
   });
 
   function triggerKonami() {
-    // Path-aware: from /index.html or /404.html, visualizer is in pages/.
-    // From a /pages/ page, it's a sibling.
-    const path = window.location.pathname;
-    const inPages = /\/pages\//.test(path);
-    const base = inPages ? '' : 'pages/';
+    // Path-aware: each subpage now lives at /<name>/ (or /<name>/index.html).
+    // Root pages are /, /index.html, /404.html.
+    const SUBPAGE_RE = /\/(visualizer|play|learn|tree|combinators|encodings|halting|history|cheatsheet|about)\/(index\.html)?$/i;
+    const inSubpage = SUBPAGE_RE.test(window.location.pathname);
+    const prefix = inSubpage ? '../' : '';
     // Ω = (\x. x x)(\x. x x)  — the canonical non-terminating term.
-    const url = base + 'visualizer.html?expr=' + encodeURIComponent('(\\x. x x)(\\x. x x)') + '&konami=1';
+    const url = prefix + 'visualizer/?expr=' + encodeURIComponent('(\\x. x x)(\\x. x x)') + '&konami=1';
     siteToast('you broke math', 'λ');
     setTimeout(() => { window.location.href = url; }, 700);
   }

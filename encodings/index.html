@@ -25,16 +25,16 @@
 <div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
 <nav class="nav-drawer" id="navDrawer">
   <a href="../index.html">Home</a>
-  <a href="visualizer.html">Visualizer</a>
-  <a href="learn.html">Learn</a>
-  <a href="play.html">Play</a>
-  <a href="tree.html">Tree</a>
-  <a href="combinators.html">Combinators</a>
-  <a href="encodings.html" class="active">Encodings</a>
-  <a href="halting.html">Halting</a>
-  <a href="history.html">History</a>
-  <a href="cheatsheet.html">Cheatsheet</a>
-  <a href="about.html">About</a>
+  <a href="../visualizer/">Visualizer</a>
+  <a href="../learn/">Learn</a>
+  <a href="../play/">Play</a>
+  <a href="../tree/">Tree</a>
+  <a href="../combinators/">Combinators</a>
+  <a href="../encodings/" class="active">Encodings</a>
+  <a href="../halting/">Halting</a>
+  <a href="../history/">History</a>
+  <a href="../cheatsheet/">Cheatsheet</a>
+  <a href="../about/">About</a>
 </nav>
 
 <div class="page-wrap enc-wrap">
@@ -56,9 +56,9 @@
   <div class="enc-panel" id="encPanel"></div>
 
   <footer class="page-footer">
-    <a href="combinators.html">← Combinators</a> ·
-    <a href="halting.html">Halting →</a> ·
-    <a href="visualizer.html">Visualizer →</a>
+    <a href="../combinators/">← Combinators</a> ·
+    <a href="../halting/">Halting →</a> ·
+    <a href="../visualizer/">Visualizer →</a>
   </footer>
 </div>
 
@@ -279,7 +279,7 @@ function makeDiagramCell(code, valLabel, encName) {
     div.innerHTML = '<span class="enc-elide">(too large to render)</span>';
     return div;
   }
-  const url = 'visualizer.html?expr=' + encodeURIComponent(code);
+  const url = '../visualizer/?expr=' + encodeURIComponent(code);
   const id = 'enc-svg-' + Math.random().toString(36).slice(2, 8);
   div.innerHTML = `
     <svg id="${id}" xmlns="http://www.w3.org/2000/svg"></svg>
