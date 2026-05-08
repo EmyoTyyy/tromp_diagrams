@@ -863,7 +863,8 @@ body.page[data-scroll]::before { width: var(--scroll-progress, 0%); }
 .play-diagram-zone {
   position: relative;
 }
-.play-diagram-zone.pregame .play-diagram > svg {
+.play-diagram-zone.pregame .play-diagram > svg,
+.play-diagram-zone.daily-solved .play-diagram > svg {
   filter: blur(8px) brightness(0.55);
   transition: filter 220ms ease-out;
 }
@@ -877,6 +878,45 @@ body.page[data-scroll]::before { width: var(--scroll-progress, 0%); }
   padding: 24px;
 }
 .play-pregame[hidden] { display: none; }
+
+/* Daily-solved overlay reuses the pre-game card's positioning + card
+   styling. The headline + stats are bespoke. */
+.play-daily-solved {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  padding: 24px;
+}
+.play-daily-solved[hidden] { display: none; }
+.play-daily-solved-headline {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.6rem;
+  letter-spacing: .12em;
+  color: var(--accent-2);
+  margin: 4px 0 16px;
+  text-align: center;
+}
+.play-daily-solved-stats {
+  display: flex;
+  gap: 28px;
+  justify-content: center;
+  margin: 4px 0 20px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.play-daily-solved-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.play-daily-solved-stats b {
+  font-size: 1.4rem;
+  color: var(--accent);
+  font-weight: 400;
+}
 .play-pregame-card {
   background: rgba(10, 10, 18, 0.78);
   border: 1px solid var(--border);
@@ -1100,15 +1140,53 @@ body.page[data-scroll]::before { width: var(--scroll-progress, 0%); }
 .play-cal-dot.late   { background: rgba(255, 208, 96, 0.4);  color: #ffd060; }
 .play-cal-dot.today  { background: transparent;              color: var(--accent-2); }
 
-/* Long-running stats line ("Solved 12 · streak 3 (best 7)"). */
-.play-stats {
-  font-size: 0.7rem;
+/* ── Daily-solved overlay extras ───────────────────────────── */
+.play-daily-streak-emoji {
+  display: block;
+  font-size: 1.6rem;
+  margin: 6px 0 -2px;
+  letter-spacing: .12em;
+}
+.play-daily-countdown {
+  margin-top: 14px;
+  font-size: 0.74rem;
   color: var(--muted);
   letter-spacing: .08em;
-  text-align: center;
-  padding: 4px 0;
-  font-variant-numeric: tabular-nums;
 }
+.play-daily-countdown b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* ── Confetti (10-streak daily) ────────────────────────────── */
+.confetti-host {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 9999;
+}
+.confetti-piece {
+  position: absolute;
+  top: -20px;
+  width: 10px; height: 14px;
+  opacity: 0.95;
+  animation: confetti-fall linear forwards;
+  will-change: transform;
+}
+@keyframes confetti-fall {
+  to {
+    transform: translateY(110vh) rotate(720deg);
+    opacity: 0.4;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti-host { display: none; }
+}
+
+/* ── Difficulty stars get a tooltip via .tt ────────────────── */
+.diff-stars.tt { cursor: help; }
 
 /* Animated underline on inline body links — line draws in left → right.
    Targets paragraphs and lists (not navigation, not buttons). */

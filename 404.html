@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Lost in λ — this page doesn't exist.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='28' font-family='serif' fill='%237aa2f7'%3E%CE%BB%3C/text%3E%3C/svg%3E">
+<title>404 · Tromp Diagrams</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/pages.css">
+<style>
+  .nf-wrap {
+    min-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .nf-lambda {
+    font-family: Georgia, serif;
+    font-size: 12rem;
+    line-height: 1;
+    color: var(--accent);
+    background: linear-gradient(135deg, var(--accent), var(--accent-2, #bb9af7));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0 0 8px;
+    animation: nf-spin 14s linear infinite;
+    transform-origin: center;
+    display: inline-block;
+  }
+  @keyframes nf-spin {
+    to { transform: rotate(360deg); }
+  }
+  .nf-code {
+    font-family: ui-monospace, monospace;
+    color: var(--muted);
+    letter-spacing: 0.4em;
+    font-size: 0.9rem;
+    margin: 0 0 18px;
+  }
+  .nf-title {
+    font-size: 2rem;
+    margin: 0 0 14px;
+  }
+  .nf-sub {
+    color: var(--muted);
+    max-width: 540px;
+    margin: 0 0 28px;
+    line-height: 1.55;
+  }
+  .nf-sub code {
+    background: rgba(255,255,255,0.06);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .nf-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  @media (prefers-reduced-motion: reduce) {
+    .nf-lambda { animation: none; }
+  }
+</style>
+</head>
+<body class="page">
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="index.html">Home</a>
+  <a href="pages/visualizer.html">Visualizer</a>
+  <a href="pages/learn.html">Learn</a>
+  <a href="pages/play.html">Play</a>
+  <a href="pages/tree.html">Tree</a>
+  <a href="pages/combinators.html">Combinators</a>
+  <a href="pages/encodings.html">Encodings</a>
+  <a href="pages/halting.html">Halting</a>
+  <a href="pages/history.html">History</a>
+  <a href="pages/cheatsheet.html">Cheatsheet</a>
+  <a href="pages/about.html">About</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="nf-wrap">
+    <div class="nf-lambda">λ</div>
+    <p class="nf-code">404 — UNDEFINED</p>
+    <h1 class="nf-title">This expression doesn't reduce.</h1>
+    <p class="nf-sub">
+      You followed a link to a page that isn't defined in scope.
+      Maybe a free variable, maybe a typo. Either way —
+      <code>(\page. nothing) here</code> still equals <code>nothing</code>.
+    </p>
+    <div class="nf-actions">
+      <a class="btn" href="index.html">↩ Home</a>
+      <a class="btn btn-sec" href="pages/visualizer.html">Open visualizer</a>
+      <a class="btn btn-sec" href="pages/play.html">Play</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+</script>
+<script src="js/site.js"></script>
+</body>
+</html>

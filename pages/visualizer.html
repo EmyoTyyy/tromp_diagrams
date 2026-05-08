@@ -3,11 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Visualize lambda terms as Tromp diagrams. Reduce step-by-step, color variables, and share.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='28' font-family='serif' fill='%237aa2f7'%3E%CE%BB%3C/text%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Visualizer — Tromp Diagrams">
+<meta property="og:description" content="Visualize lambda terms as Tromp diagrams. Reduce step-by-step, color variables, and share.">
+<meta property="og:image" content="https://emyotyyy.github.io/tromp_diagrams/assets/og-image.svg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Visualizer — Tromp Diagrams">
+<meta name="twitter:description" content="Visualize lambda terms as Tromp diagrams. Reduce step-by-step, color variables, and share.">
+<meta name="twitter:image" content="https://emyotyyy.github.io/tromp_diagrams/assets/og-image.svg">
 <title>Tromp Diagrams · Visualizer</title>
 <link rel="stylesheet" href="../css/theme.css">
 <link rel="stylesheet" href="../css/visualizer.css">
 </head>
 <body>
+<noscript>
+  <div class="noscript-banner">
+    The visualizer needs JavaScript enabled to draw diagrams and reduce expressions.
+    Please enable it. <a href="cheatsheet.html">Cheatsheet</a> is readable without JS.
+  </div>
+</noscript>
 
 <div class="topnav">
   <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
@@ -226,5 +242,6 @@ document.addEventListener('keydown', (e) => {
   }
 });
 </script>
+<script src="../js/site.js"></script>
 </body>
 </html>

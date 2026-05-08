@@ -1,0 +1,4 @@
+# Netlify / Cloudflare Pages 404 fallback.
+# Catches every path that doesn't match a real file and serves
+# /404.html with an HTTP 404 status.
+/*    /404.html    404

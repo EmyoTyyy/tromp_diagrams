@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Base URL is the GitHub Pages address for this repo. If the site
+  ever moves to a custom domain, replace the host on every <loc>.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <url>
+    <loc>https://emyotyyy.github.io/tromp_diagrams/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url><loc>https://emyotyyy.github.io/tromp_diagrams/pages/visualizer.html</loc> <priority>0.9</priority></url>
+  <url><loc>https://emyotyyy.github.io/tromp_diagrams/pages/play.html</loc>       <priority>0.9</priority></url>
+  <url><loc>https://emyotyyy.github.io/tromp_diagrams/pages/learn.html</loc>      <priority>0.8</priority></url>
+  <url><loc>https://emyotyyy.github.io/tromp_diagrams/pages/tree.html</loc>       <priority>0.7</priority></url>
+  <url><loc>https://emyotyyy.github.io/tromp_diagrams/pages/combinators.html</loc><priority>0.7</priority></url>
+  <url><loc>https://emyotyyy.github.io/tromp_diagrams/pages/encodings.html</loc>  <priority>0.7</priority></url>
+  <url><loc>https://emyotyyy.github.io/tromp_diagrams/pages/halting.html</loc>    <priority>0.6</priority></url>
+  <url><loc>https://emyotyyy.github.io/tromp_diagrams/pages/history.html</loc>    <priority>0.6</priority></url>
+  <url><loc>https://emyotyyy.github.io/tromp_diagrams/pages/cheatsheet.html</loc> <priority>0.6</priority></url>
+  <url><loc>https://emyotyyy.github.io/tromp_diagrams/pages/about.html</loc>      <priority>0.4</priority></url>
+
+</urlset>

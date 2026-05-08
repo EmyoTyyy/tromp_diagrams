@@ -1,0 +1,5 @@
+{
+  "//": "VS Code Live Server config — points 404s at our custom page.",
+  "liveServer.settings.file": "index.html",
+  "liveServer.settings.file404": "/404.html"
+}

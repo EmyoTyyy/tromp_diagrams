@@ -382,7 +382,8 @@ function puzzleFunctionNames(p) {
 // ── Mode selection / pre-game ──────────────────────────────────
 const DEFAULT_PLACEHOLDER = 'enter expression... (e.g. \\x. x or I)';
 
-function setMode(name) {
+function setMode(name, opts) {
+  opts = opts || {};
   // Reset placeholder and feedback before any mode handler runs.
   const input = document.getElementById('playInput');
   if (input) {
@@ -391,6 +392,10 @@ function setMode(name) {
   }
   hideAbandonModals();
   hideEndgameModal();
+  closeDailySolved();
+  // Daily strips assistance: no hint, no skip, no reveal, no abandon.
+  // The whole point is the date-stamped streak, so escape hatches are off.
+  refreshActionBarForMode(name);
   // Restart button is part of the abandon-back flow only — hide it
   // on any fresh mode entry.
   const restartBtn = document.getElementById('playRestartBtn');
@@ -422,9 +427,10 @@ function setMode(name) {
     });
     renderStars(0, false);
     setProgress(0);
-    // Always land on the project epoch (Jan 2026) on entry, regardless
-    // of where the player navigated to last visit.
-    calMonth = new Date(CAL_EPOCH);
+    // Default landing month is today's, not the project epoch. The
+    // epoch acts only as a lower bound on prev-arrow navigation.
+    const now = new Date();
+    calMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     showCalendar(true);
     renderCalendar();
     return;
@@ -432,12 +438,14 @@ function setMode(name) {
   showCalendar(false);
   // Daily skips the pregame overlay entirely — picking the mode IS
   // the start signal. No difficulty picker (the date determines it),
-  // no Start button. Drop straight onto today's puzzle.
+  // no Start button. Drop straight onto the puzzle. The date defaults
+  // to today, but the calendar caller can pass a past date via
+  // `opts.dateKey`.
   if (name === 'daily') {
     playState.mode = 'daily';
-    playState.dailyDateKey = todayKey();
+    playState.dailyDateKey = opts.dateKey || todayKey();
     setStatus({
-      label: 'Daily — ' + todayKey(),
+      label: 'Daily — ' + playState.dailyDateKey,
       score: 0,
       bestText: bestSummaryFor('daily'),
     });
@@ -539,10 +547,11 @@ function startSelectedRun() {
     const ds = loadDailyState();
     const isToday = dateKey === todayKey();
     const already = (ds.history && ds.history[dateKey]);
-    feedback('Daily ' + dateKey + (isToday ? ' — today' : ' — past') +
-      (already ? ' · already solved (' + already + ')' :
-                 (isToday ? ' · solve to keep your streak going' : ' · play a past day')) +
-      '  ·  current streak: ' + ds.streak + (ds.bestStreak ? ' (best ' + ds.bestStreak + ')' : ''),
+    // The status label already carries the date, so the feedback only
+    // needs to convey *progress* (already solved / today / past).
+    feedback(
+      already ? 'Already solved (' + already + ').' :
+                (isToday ? 'Solve to keep your streak going.' : 'Past daily — replay for fun.'),
       'hint');
     return;
   }
@@ -605,6 +614,14 @@ function showCounters(visible) {
   const c = document.getElementById('playCounters');
   if (c) c.hidden = !visible;
 }
+
+function refreshActionBarForMode(mode) {
+  const isDaily = mode === 'daily';
+  ['playHintBtn', 'playSkipBtn', 'playRevealBtn', 'playAbandonBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = isDaily;
+  });
+}
 function refreshCounters() {
   const hl = document.getElementById('playHintsLeft');
   const sl = document.getElementById('playSkipsLeft');
@@ -620,14 +637,31 @@ function setStatus({ label, score, bestText }) {
   const el = document.getElementById('puzzleNum');
   if (el && label != null) el.textContent = label;
   const sc = document.getElementById('playScore');
-  if (sc && score != null) sc.textContent = 'Score: ' + score;
   const be = document.getElementById('playBest');
-  if (be && bestText != null) be.textContent = bestText;
+  // Daily intentionally has no score / best display — the inline
+  // solved-overlay owns streak info instead.
+  const inDaily = playState.mode === 'daily';
+  if (sc) {
+    sc.hidden = inDaily;
+    if (!inDaily && score != null) sc.textContent = 'Score: ' + score;
+  }
+  if (be) {
+    be.hidden = inDaily;
+    if (!inDaily && bestText != null) be.textContent = bestText;
+  }
 }
 function setChip(text) {
   const el = document.getElementById('playModeChip');
   if (el) el.textContent = text;
 }
+// Friendly label for a difficulty score 0–10. Used as a tooltip on the
+// star strip so players don't have to count the pips.
+const DIFF_STAR_LABELS = [
+  'no rating',
+  'trivial', 'very easy', 'easy', 'easy+',
+  'medium', 'medium+', 'hard', 'hard+',
+  'very hard', 'extreme',
+];
 function renderStars(diff, extreme) {
   const el = document.getElementById('puzzleDiff');
   if (!el) return;
@@ -638,6 +672,15 @@ function renderStars(diff, extreme) {
     s.className = i < diff ? 'star filled' : 'star hollow';
     s.textContent = i < diff ? '★' : '☆';
     el.appendChild(s);
+  }
+  // Tooltip — uses the existing .tt[data-tt] system in theme.css.
+  if (diff <= 0) {
+    el.classList.remove('tt');
+    el.removeAttribute('data-tt');
+  } else {
+    const label = DIFF_STAR_LABELS[Math.min(10, Math.max(0, diff))];
+    el.classList.add('tt');
+    el.setAttribute('data-tt', diff + '/10 — ' + (extreme ? 'extreme' : label));
   }
 }
 function setProgress(pct) {
@@ -723,7 +766,7 @@ function applyCurrentPuzzle() {
   // Status header label depends on mode.
   let label;
   const mode = playState.mode;
-  if (mode === 'daily') label = 'Daily — ' + p.name;
+  if (mode === 'daily') label = 'Daily — ' + (playState.dailyDateKey || todayKey());
   else if (mode === 'speedrun') {
     const total = (SPEEDRUN_LEVELS[playState.gameDifficulty] || []).length;
     label = 'Speedrun ' + (playState.level + 1) + ' / ' + total +
@@ -767,8 +810,6 @@ function applyCurrentPuzzle() {
   if (input) { input.value = ''; input.focus(); }
   document.getElementById('playFeedback').textContent = '';
   document.getElementById('playFeedback').className = 'play-feedback';
-  const stats = document.getElementById('playStatsLine');
-  if (stats) stats.textContent = '';
 }
 
 // ── Scoring ────────────────────────────────────────────────────
@@ -870,13 +911,11 @@ function checkAnswer() {
 function advanceAfterSolve() {
   const mode = playState.mode;
   if (mode === 'daily') {
-    // Daily is one-and-done: open the endgame popup with the daily
-    // streak summary so the player has closure on the puzzle.
-    setTimeout(() => endRunPopup({
-      title: 'Daily solved',
-      subtitle: 'Streak ' + loadDailyState().streak + ' (best ' + loadDailyState().bestStreak + ').',
-      lines: [['Score', playState.score], ['Streak', loadDailyState().streak]],
-    }), 1200);
+    // Daily is one-and-done. Instead of the global endgame popup,
+    // show an inline overlay on the diagram (which gets blurred behind
+    // it, same look as the pre-game card). Carries date + Solved! +
+    // streak / best streak.
+    setTimeout(() => showDailySolvedOverlay(), 800);
     return;
   }
   if (mode === 'speedrun') {
@@ -1164,6 +1203,110 @@ function hideEndgameModal() {
   if (m) m.hidden = true;
 }
 
+// ── Daily solved (inline overlay on the diagram) ───────────────
+// Returns the emoji ladder for a given streak. Pure cosmetics.
+//   3-6  = 🔥
+//   7-13 = 🔥🔥
+//   14-29 = 🔥🔥🔥
+//   30+  = "λ master"
+function streakEmoji(n) {
+  if (n >= 30) return 'λ master';
+  if (n >= 14) return '🔥🔥🔥';
+  if (n >= 7)  return '🔥🔥';
+  if (n >= 3)  return '🔥';
+  return '';
+}
+
+// Live countdown to the next daily (00:00 local). Updated every second
+// while the overlay is visible.
+let dailyCountdownTimer = null;
+function tickDailyCountdown() {
+  const el = document.getElementById('playDailyCountdownVal');
+  if (!el) return;
+  const now = new Date();
+  const tmrw = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  let s = Math.max(0, Math.floor((tmrw - now) / 1000));
+  const h = Math.floor(s / 3600); s -= h * 3600;
+  const m = Math.floor(s / 60);   s -= m * 60;
+  el.textContent =
+    String(h).padStart(2, '0') + 'h ' +
+    String(m).padStart(2, '0') + 'm ' +
+    String(s).padStart(2, '0') + 's';
+}
+
+function showDailySolvedOverlay() {
+  const ds = loadDailyState();
+  const dateKey = playState.dailyDateKey || todayKey();
+  const dEl = document.getElementById('playDailySolvedDate');
+  const sEl = document.getElementById('playDailyStreak');
+  const bEl = document.getElementById('playDailyBest');
+  const eEl = document.getElementById('playDailyStreakEmoji');
+  if (dEl) dEl.textContent = 'Daily — ' + dateKey;
+  if (sEl) sEl.textContent = ds.streak || 0;
+  if (bEl) bEl.textContent = ds.bestStreak || 0;
+  if (eEl) {
+    const tag = streakEmoji(ds.streak || 0);
+    eEl.textContent = tag;
+    eEl.style.display = tag ? '' : 'none';
+  }
+  const o = document.getElementById('playDailySolved');
+  const zone = document.querySelector('.play-diagram-zone');
+  if (zone) zone.classList.add('daily-solved');
+  if (o) o.hidden = false;
+  // Live next-puzzle countdown — only meaningful for today's daily, but
+  // harmless to show on past replays too. Tick once now, then every 1s.
+  tickDailyCountdown();
+  if (dailyCountdownTimer) clearInterval(dailyCountdownTimer);
+  dailyCountdownTimer = setInterval(tickDailyCountdown, 1000);
+  // Confetti when a streak hits a multiple of 10 — only fire when the
+  // solve was today's daily (you don't get confetti for backfills).
+  if (dateKey === todayKey() && ds.streak && ds.streak % 10 === 0) {
+    fireConfetti();
+  }
+  // Move into ended phase so the action-bar buttons are no-ops while
+  // the overlay is visible (Hint / Skip / Reveal / Submit do nothing
+  // when phase !== 'playing').
+  playState.phase = 'ended';
+}
+function closeDailySolved() {
+  const o = document.getElementById('playDailySolved');
+  const zone = document.querySelector('.play-diagram-zone');
+  if (zone) zone.classList.remove('daily-solved');
+  if (o) o.hidden = true;
+  if (dailyCountdownTimer) {
+    clearInterval(dailyCountdownTimer);
+    dailyCountdownTimer = null;
+  }
+}
+
+// ── Confetti (10-streak) ───────────────────────────────────────
+function fireConfetti() {
+  // Honour reduced-motion — CSS hides .confetti-host but we shouldn't
+  // even spawn the elements in that case.
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let host = document.getElementById('confettiHost');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'confettiHost';
+    host.className = 'confetti-host';
+    document.body.appendChild(host);
+  }
+  const colors = ['#7aa2f7', '#bb9af7', '#9ece6a', '#f7768e', '#e0af68', '#7dcfff'];
+  const N = 80;
+  for (let i = 0; i < N; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = (Math.random() * 100) + 'vw';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    const dur = 2.4 + Math.random() * 2.0;
+    piece.style.animationDuration = dur + 's';
+    piece.style.animationDelay = (Math.random() * 0.5) + 's';
+    piece.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg)';
+    host.appendChild(piece);
+    setTimeout(() => piece.remove(), (dur + 0.6) * 1000);
+  }
+}
+
 // ── Clear-data flow ────────────────────────────────────────────
 // Wipes every key this page wrote to localStorage. Tracked here so
 // adding a new key in future means updating this list — there's no
@@ -1196,6 +1339,70 @@ function confirmClearData() {
   // Drop the player back to the Normal pre-game so the freshly-zero'd
   // bests are visible on the status chip.
   setMode('normal');
+}
+
+// ── Export / import ────────────────────────────────────────────
+// Progress lives in localStorage so it's per-browser. Export builds a
+// portable JSON blob the user can save and re-import on a different
+// machine; the format is versioned so we can migrate later.
+const PLAY_EXPORT_VERSION = 1;
+function exportPlayData() {
+  const data = {};
+  for (const k of PLAY_STORAGE_KEYS) {
+    try {
+      const v = localStorage.getItem(k);
+      if (v != null) data[k] = v;
+    } catch {}
+  }
+  const blob = new Blob([JSON.stringify({
+    site: 'tromp-diagrams',
+    kind: 'play-progress',
+    version: PLAY_EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    data,
+  }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tromp-play-progress-' + todayKey() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  feedback('Progress exported.', 'ok');
+}
+
+function importPlayData(ev) {
+  const file = ev && ev.target && ev.target.files && ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      if (!parsed || parsed.site !== 'tromp-diagrams' || parsed.kind !== 'play-progress' || !parsed.data) {
+        feedback('Import failed: not a Tromp progress file.', 'bad');
+        return;
+      }
+      // Restrict writes to keys we actually own. Anything else is silently
+      // dropped so a hand-edited file can't dump junk into the namespace.
+      const allowed = new Set(PLAY_STORAGE_KEYS);
+      let n = 0;
+      for (const [k, v] of Object.entries(parsed.data)) {
+        if (!allowed.has(k)) continue;
+        try { localStorage.setItem(k, v); n++; } catch {}
+      }
+      // Refresh in-memory mirrors so the UI reflects the new state.
+      try { playStats = JSON.parse(localStorage.getItem(STATS_KEY) || '{}'); } catch {}
+      playStats = Object.assign({ solved: 0, streak: 0, bestStreak: 0 }, playStats || {});
+      feedback('Imported ' + n + ' key' + (n === 1 ? '' : 's') + '. Reloading…', 'ok');
+      setTimeout(() => window.location.reload(), 700);
+    } catch (e) {
+      feedback('Import failed: ' + e.message, 'bad');
+    }
+  };
+  reader.readAsText(file);
+  // Reset the input so re-picking the same file fires onchange again.
+  ev.target.value = '';
 }
 
 // ── Feedback / flash / shake ───────────────────────────────────
@@ -1237,12 +1444,18 @@ function showCalendar(visible) {
   const c = document.getElementById('playCalendar');
   if (c) c.hidden = !visible;
 }
-// Calendar always opens at January 1st 2026 (the project's daily-mode
-// epoch). Subsequent prev/next arrows move from there.
+// January 2026 is the project's daily-mode epoch — there are no
+// dailies before it, so the prev arrow is disabled when we're
+// already showing that month.
 const CAL_EPOCH = new Date(2026, 0, 1);
 function calMoveMonth(delta) {
-  if (!calMonth) calMonth = new Date(CAL_EPOCH);
-  calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + delta, 1);
+  if (!calMonth) {
+    const now = new Date();
+    calMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+  const candidate = new Date(calMonth.getFullYear(), calMonth.getMonth() + delta, 1);
+  if (candidate < CAL_EPOCH) return; // clamped at the epoch
+  calMonth = candidate;
   renderCalendar();
 }
 function dateKeyFor(d) {
@@ -1251,12 +1464,25 @@ function dateKeyFor(d) {
     String(d.getDate()).padStart(2, '0');
 }
 function renderCalendar() {
-  if (!calMonth) calMonth = new Date(CAL_EPOCH);
+  if (!calMonth) {
+    const now = new Date();
+    calMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
   const monthEl = document.getElementById('playCalMonth');
   const grid = document.getElementById('playCalGrid');
   if (!monthEl || !grid) return;
   const monthFmt = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   monthEl.textContent = monthFmt[calMonth.getMonth()] + ' ' + calMonth.getFullYear();
+  // Disable the prev arrow when we're on the epoch month — there's
+  // no daily history before then, so navigating further has no point.
+  const prevBtn = document.querySelector('.play-cal-nav');
+  if (prevBtn) {
+    const atEpoch = (calMonth.getFullYear() === CAL_EPOCH.getFullYear() &&
+                     calMonth.getMonth() === CAL_EPOCH.getMonth());
+    prevBtn.disabled = atEpoch;
+    prevBtn.style.opacity = atEpoch ? '0.3' : '';
+    prevBtn.style.cursor = atEpoch ? 'not-allowed' : '';
+  }
   grid.innerHTML = '';
   // Monday-first: getDay() returns 0=Sun..6=Sat; we want Mo=0..Su=6.
   const firstDow = (calMonth.getDay() + 6) % 7;
@@ -1290,11 +1516,9 @@ function renderCalendar() {
   }
 }
 function playDailyForDate(dateKey) {
-  // Park the chosen date and route through the Daily flow. setMode
-  // will reset + set up daily pregame; startSelectedRun reads
-  // playState.dailyDateKey when generating the puzzle.
-  playState.dailyDateKey = dateKey;
-  setMode('daily');
+  // Pass the chosen date explicitly through setMode — bare `setMode('daily')`
+  // would override dailyDateKey to today.
+  setMode('daily', { dateKey });
 }
 
 // ═══════════════════════════════════════════════════════════════

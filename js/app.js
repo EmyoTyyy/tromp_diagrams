@@ -275,6 +275,16 @@ function initVisualizer() {
     first.editor.setValue(urlExpr);
     first.draw();
   }
+  // ?konami=1 — site.js redirected here from the cheat code. Greet the
+  // user with the same toast so they know the term they're staring at
+  // (Ω = (\x. x x)(\x. x x)) is intentional, not a bug.
+  if (new URLSearchParams(location.search).get('konami') === '1') {
+    setTimeout(() => {
+      if (typeof window.siteToast === 'function') {
+        window.siteToast('you broke math — this term loops forever', 'Ω');
+      }
+    }, 600);
+  }
 
   // Add-pane button
   document.getElementById('addPaneBtn').addEventListener('click', () => addPane());

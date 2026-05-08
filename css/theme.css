@@ -110,8 +110,34 @@ input[type=text].invalid { border-color: var(--danger); }
   cursor: pointer;
   font-size: 1.1rem;
   display: flex; align-items: center; justify-content: center;
+  position: relative;
+  transition: color .18s ease;
 }
-.nav-toggle:hover { color: var(--accent); }
+.nav-toggle:hover { color: transparent; }
+/* The λ overlay lives on ::before so it doesn't collide with the
+   .tt[data-tt]:hover::after tooltip — the button is also a tooltip
+   trigger and that rule has higher specificity, which would otherwise
+   replace the λ glyph with the tooltip text on hover. */
+.nav-toggle::before {
+  content: 'λ';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  opacity: 0;
+  transition: opacity .22s ease, transform .42s var(--ease);
+  pointer-events: none;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.35rem;
+  color: var(--accent);
+}
+.nav-toggle:hover::before {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(360deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-toggle::before { transition: opacity .15s; }
+  .nav-toggle:hover::before { transform: translate(-50%, -50%); }
+}
 .nav-drawer {
   position: fixed;
   top: 0; right: -300px;
@@ -198,6 +224,68 @@ input[type=text].invalid { border-color: var(--danger); }
 .toast.warn { border-color: var(--warn); color: var(--warn); }
 .toast.danger { border-color: var(--danger); color: var(--danger); }
 .toast.ok { border-color: var(--accent-2); color: var(--accent-2); }
+
+/* ── Cross-page toast (site.js) ───────────────────────── */
+.site-toast-host {
+  position: fixed;
+  top: 22px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none;
+}
+.site-toast {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 10px 18px;
+  font-size: 0.78rem;
+  letter-spacing: .04em;
+  display: inline-flex; align-items: center; gap: 10px;
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: opacity .22s, transform .22s;
+  box-shadow: 0 6px 24px rgba(0,0,0,.4);
+}
+.site-toast.show { opacity: 1; transform: translateY(0); }
+.site-toast-glyph {
+  font-family: Georgia, serif;
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+/* ── Fun fact strip (site.js) ─────────────────────────── */
+.fun-fact {
+  max-width: 720px;
+  margin: 28px auto 16px;
+  padding: 12px 18px;
+  border: 1px dashed var(--border);
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.55;
+  font-weight: 300;
+}
+.fun-fact code { background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 3px; }
+.fun-fact-label {
+  color: var(--accent);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  margin-right: 6px;
+}
+
+/* ── No-JS banner ──────────────────────────────────────── */
+.noscript-banner {
+  display: block;
+  background: var(--warn);
+  color: #1a1206;
+  padding: 12px 20px;
+  text-align: center;
+  font-size: 0.85rem;
+  letter-spacing: .03em;
+}
+.noscript-banner a { color: #1a1206; text-decoration: underline; font-weight: 500; }
 
 /* Scrollbar styling */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
