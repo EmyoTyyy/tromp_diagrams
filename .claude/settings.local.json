@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python3 -c ' *)",
-      "Bash(sed -n '225,245p' js/app.js)",
-      "Bash(cd '/home/emyot/Téléchargements/Site tromp' && *)"
-    ]
-  }
-}
