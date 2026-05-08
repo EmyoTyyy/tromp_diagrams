@@ -250,6 +250,11 @@ function renderDiagram(currentAST, duration, originMap, opts = {}) {
       const zh = (r.y2 - r.y1) * SCALE + 4;
       const rect = document.createElementNS(SVG_NS, 'rect');
       rect.setAttribute('class', 'redex-zone');
+      // The fill is also set in CSS (.dw svg .redex-zone { fill: transparent }),
+      // but PNG export serialises the SVG and rasterises it standalone — page
+      // CSS doesn't apply, and the SVG default rect fill is BLACK.  Setting
+      // the attribute here makes the rect transparent both live and on export.
+      rect.setAttribute('fill', 'transparent');
       rect.setAttribute('x', zx1);
       rect.setAttribute('y', zy1);
       rect.setAttribute('width', zw);

@@ -183,7 +183,10 @@ class Pane {
     this.blcEl = root.querySelector('.blc-out');
     this.statusEl = root.querySelector('.status');
     this.dwEl = root.querySelector('.dw');
-    this.svgEl = root.querySelector('svg');
+    // Must select by id — the icon buttons (find / copy / share / png /
+    // rec) are <svg> elements too and come before the diagram in the DOM,
+    // so a bare querySelector('svg') would return the first icon.
+    this.svgEl = root.querySelector('#' + this.svgId);
     this.viewportEl = root.querySelector('#' + this.viewportId);
     this.zoomLevelEl = root.querySelector('.zoom-level');
     this.findBar = root.querySelector('.find-bar');

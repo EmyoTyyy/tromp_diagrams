@@ -1,3 +1,30 @@
+# Local Claude state — IDE/agent metadata, not project-relevant.
 .claude/
+
+# Personal scratchpad — your own notes, not for the public repo.
 TODO.txt
 
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor backups / swap files
+*.swp
+*.swo
+*~
+.#*
+
+# Logs and temp output
+*.log
+*.tmp
+
+# Secrets — never commit these
+.env
+.env.local
+.env.*.local
+
+# Future-proofing for tooling that doesn't exist yet
+node_modules/
+dist/
+build/
