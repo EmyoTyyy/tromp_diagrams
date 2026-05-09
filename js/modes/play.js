@@ -186,6 +186,7 @@ let playState = {
   // current level descriptor
   levelDifficulty: 1,
   levelExtreme: false,
+  runToken: 0,           // increments whenever a run/mode is reset; invalidates delayed callbacks
 };
 
 let PLAY_COLOR_ON = false;
@@ -382,14 +383,44 @@ function puzzleFunctionNames(p) {
 // ── Mode selection / pre-game ──────────────────────────────────
 const DEFAULT_PLACEHOLDER = 'enter expression... (e.g. \\x. x or I)';
 
+function clearPlayFeedback() {
+  const fb = document.getElementById('playFeedback');
+  if (!fb) return;
+  fb.textContent = '';
+  fb.className = 'play-feedback';
+}
+
+function resetModePuzzleState() {
+  // These holders are mutually exclusive. Leaving one behind is exactly
+  // what made later modes keep using the wrong level/puzzle.
+  playState.randomPuzzle = null;
+  playState.dailyPuzzle = null;
+  playState.dailyDateKey = null;
+  playState.usedTargets = null;
+  playState.usedFns = null;
+  playState.levelDifficulty = 1;
+  playState.levelExtreme = false;
+}
+
+function stopSpeedrunTimer() {
+  if (speedrunInterval) {
+    clearInterval(speedrunInterval);
+    speedrunInterval = null;
+  }
+}
+
 function setMode(name, opts) {
   opts = opts || {};
+  // Invalidate any delayed advance/transition from the previous mode.
+  playState.runToken++;
   // Reset placeholder and feedback before any mode handler runs.
   const input = document.getElementById('playInput');
   if (input) {
     input.setAttribute('placeholder', DEFAULT_PLACEHOLDER);
     input.value = '';
   }
+  clearPlayFeedback();
+  resetModePuzzleState();
   hideAbandonModals();
   hideEndgameModal();
   closeDailySolved();
@@ -407,10 +438,8 @@ function setMode(name, opts) {
   const chipLabels = { normal: 'Normal mode', daily: 'Daily mode',
                        calendar: 'Calendar — past dailies', speedrun: 'Speedrun mode' };
   setChip(chipLabels[name] || (name + ' mode'));
-  // Speedrun keeps an interval; clear it whenever we leave that mode.
-  if (name !== 'speedrun' && speedrunInterval) {
-    clearInterval(speedrunInterval); speedrunInterval = null;
-  }
+  // Speedrun keeps an interval; always stop it before changing modes.
+  stopSpeedrunTimer();
   // Calendar replaces the previous Reverse mode. The calendar grid
   // takes over the diagram zone; clicking a date sets up the daily
   // for that date and switches us into Daily mode.
@@ -517,7 +546,11 @@ function setGameDifficulty(diff) {
 function startSelectedRun() {
   const mode = playState.mode;
   if (!mode) return;
+  const selectedDailyDateKey = playState.dailyDateKey;
+  playState.runToken++;
   showPregame(false);
+  resetModePuzzleState();
+  if (mode === 'daily') playState.dailyDateKey = selectedDailyDateKey || todayKey();
   // Reset run-scoped state.
   playState.phase = 'playing';
   playState.level = 0;
@@ -557,8 +590,10 @@ function startSelectedRun() {
   }
 
   if (mode === 'speedrun') {
+    playState.randomPuzzle = null;
+    playState.dailyPuzzle = null;
     speedrunStart = performance.now();
-    if (speedrunInterval) clearInterval(speedrunInterval);
+    stopSpeedrunTimer();
     speedrunInterval = setInterval(updateSpeedrunDisplay, 200);
     showCounters(false); // speedrun has neither hints nor skips
     applyCurrentPuzzle();
@@ -638,16 +673,19 @@ function setStatus({ label, score, bestText }) {
   if (el && label != null) el.textContent = label;
   const sc = document.getElementById('playScore');
   const be = document.getElementById('playBest');
-  // Daily intentionally has no score / best display — the inline
-  // solved-overlay owns streak info instead.
-  const inDaily = playState.mode === 'daily';
+  // Score "Score: N" only applies to normal mode.
+  //   • daily   — hidden entirely; streak goes in the solved overlay
+  //   • speedrun — element is hijacked by the wall-clock timer
+  //     (updateSpeedrunDisplay), so writing "Score: N" here would
+  //     flicker over the timer between ticks. Don't touch it.
+  const mode = playState.mode;
   if (sc) {
-    sc.hidden = inDaily;
-    if (!inDaily && score != null) sc.textContent = 'Score: ' + score;
+    sc.hidden = (mode === 'daily');
+    if (mode === 'normal' && score != null) sc.textContent = 'Score: ' + score;
   }
   if (be) {
-    be.hidden = inDaily;
-    if (!inDaily && bestText != null) be.textContent = bestText;
+    be.hidden = (mode === 'daily');
+    if (mode !== 'daily' && bestText != null) be.textContent = bestText;
   }
 }
 function setChip(text) {
@@ -704,8 +742,8 @@ function bestSummaryFor(mode, diff) {
 
 // ── Current puzzle accessor ────────────────────────────────────
 function currentPuzzle() {
-  if (playState.dailyPuzzle)  return playState.dailyPuzzle;
-  if (playState.randomPuzzle) return playState.randomPuzzle;
+  if (playState.mode === 'daily') return playState.dailyPuzzle || null;
+  if (playState.mode === 'normal') return playState.randomPuzzle || null;
   if (playState.mode === 'speedrun') {
     const lvls = SPEEDRUN_LEVELS[playState.gameDifficulty] || [];
     return lvls[playState.level] || null;
@@ -718,14 +756,24 @@ function currentPuzzle() {
 // snapping. `instant` skips the fade (used on the very first puzzle
 // of a run, where there's nothing to fade out from).
 function transitionToNextPuzzle(instant) {
+  const token = playState.runToken;
   const dia = document.getElementById('playDiagramWrap');
-  if (instant || !dia) { applyCurrentPuzzle(); return; }
+  if (instant || !dia) {
+    if (token === playState.runToken) applyCurrentPuzzle();
+    return;
+  }
   dia.classList.add('puzzle-out');
   setTimeout(() => {
+    if (token !== playState.runToken) {
+      dia.classList.remove('puzzle-out');
+      return;
+    }
     dia.classList.remove('puzzle-out');
     applyCurrentPuzzle();
     dia.classList.add('puzzle-in');
-    setTimeout(() => dia.classList.remove('puzzle-in'), 350);
+    setTimeout(() => {
+      if (token === playState.runToken) dia.classList.remove('puzzle-in');
+    }, 350);
   }, 280);
 }
 
@@ -808,8 +856,7 @@ function applyCurrentPuzzle() {
   // Reset input + feedback.
   const input = document.getElementById('playInput');
   if (input) { input.value = ''; input.focus(); }
-  document.getElementById('playFeedback').textContent = '';
-  document.getElementById('playFeedback').className = 'play-feedback';
+  clearPlayFeedback();
 }
 
 // ── Scoring ────────────────────────────────────────────────────
@@ -859,22 +906,27 @@ function checkAnswer() {
 
   // Correct.
   const elapsed = (performance.now() - playState.levelStartTime) / 1000;
-  const earned = computeScore(
-    playState.mode === 'normal' ? playState.levelDifficulty : (p.difficulty || 5),
-    elapsed,
-    playState.attempts,
-    playState.colorThisRound
-  );
-  playState.score += earned;
+  // Score only exists for normal mode. Daily uses the streak; speedrun
+  // uses the wall-clock time. Computing/awarding points for the other
+  // two would just add a misleading number to the feedback line.
+  const earned = (playState.mode === 'normal')
+    ? computeScore(playState.levelDifficulty, elapsed, playState.attempts, playState.colorThisRound)
+    : 0;
+  if (playState.mode === 'normal') playState.score += earned;
   playState.level += 1;
   playStats.solved++;
   playStats.streak++;
   if (playStats.streak > playStats.bestStreak) playStats.bestStreak = playStats.streak;
   saveStats();
 
-  let msg = '✓ Correct! +' + earned + ' pts (' + elapsed.toFixed(1) + 's, ' +
-            playState.attempts + ' attempt' + (playState.attempts === 1 ? '' : 's') + ')';
-  if (playState.colorThisRound) msg += ' · colour-halved';
+  const attemptsTxt = playState.attempts + ' attempt' + (playState.attempts === 1 ? '' : 's');
+  let msg;
+  if (playState.mode === 'normal') {
+    msg = '✓ Correct! +' + earned + ' pts (' + elapsed.toFixed(1) + 's, ' + attemptsTxt + ')';
+    if (playState.colorThisRound) msg += ' · colour-halved';
+  } else {
+    msg = '✓ Correct! (' + elapsed.toFixed(1) + 's, ' + attemptsTxt + ')';
+  }
   // Daily: record the per-date solve in history (on-time vs late) and
   // — only when it's actually today's puzzle — bump the streak the
   // first time the player completes it.
@@ -902,7 +954,11 @@ function checkAnswer() {
   feedback(msg, 'ok');
   flashSuccess();
 
-  bumpRunBest(playState.mode, playState.gameDifficulty, playState.score, playState.level);
+  // Per-difficulty bests are only meaningful for normal mode (speedrun
+  // tracks completion time via setSpeedrunBest, daily tracks streak).
+  if (playState.mode === 'normal') {
+    bumpRunBest(playState.mode, playState.gameDifficulty, playState.score, playState.level);
+  }
 
   advanceAfterSolve();
 }
@@ -910,20 +966,24 @@ function checkAnswer() {
 // ── Advance after solve ────────────────────────────────────────
 function advanceAfterSolve() {
   const mode = playState.mode;
+  const token = playState.runToken;
   if (mode === 'daily') {
     // Daily is one-and-done. Instead of the global endgame popup,
     // show an inline overlay on the diagram (which gets blurred behind
     // it, same look as the pre-game card). Carries date + Solved! +
     // streak / best streak.
-    setTimeout(() => showDailySolvedOverlay(), 800);
+    setTimeout(() => {
+      if (token === playState.runToken && playState.mode === mode) showDailySolvedOverlay();
+    }, 800);
     return;
   }
   if (mode === 'speedrun') {
     setTimeout(() => {
+      if (token !== playState.runToken || playState.mode !== mode) return;
       const total = (SPEEDRUN_LEVELS[playState.gameDifficulty] || []).length;
       if (playState.level >= total) {
         const seconds = (performance.now() - speedrunStart) / 1000;
-        if (speedrunInterval) { clearInterval(speedrunInterval); speedrunInterval = null; }
+        stopSpeedrunTimer();
         setSpeedrunBest(playState.gameDifficulty, seconds);
         endRunPopup({
           title: 'Speedrun complete',
@@ -941,6 +1001,7 @@ function advanceAfterSolve() {
   }
   if (mode === 'normal') {
     setTimeout(() => {
+      if (token !== playState.runToken || playState.mode !== mode) return;
       const next = nextNormalPuzzle();
       if (!next) {
         endRunPopup({
@@ -1121,7 +1182,7 @@ function confirmAbandon() {
   // Compute summary based on mode.
   if (playState.mode === 'speedrun') {
     const seconds = (performance.now() - speedrunStart) / 1000;
-    if (speedrunInterval) { clearInterval(speedrunInterval); speedrunInterval = null; }
+    stopSpeedrunTimer();
     const best = getSpeedrunBest(playState.gameDifficulty);
     const total = (SPEEDRUN_LEVELS[playState.gameDifficulty] || []).length;
     endRunPopup({
@@ -1150,6 +1211,7 @@ function confirmAbandon() {
 }
 
 function endRunPopup({ title, subtitle, lines }) {
+  playState.runToken++;
   playState.phase = 'ended';
   setLockedState(false);
   const t = document.getElementById('endgameTitle');
@@ -1528,7 +1590,7 @@ let speedrunStart = 0;
 let speedrunInterval = null;
 function updateSpeedrunDisplay() {
   if (!playState.mode || playState.mode !== 'speedrun' || playState.phase !== 'playing') {
-    if (speedrunInterval) { clearInterval(speedrunInterval); speedrunInterval = null; }
+    stopSpeedrunTimer();
     return;
   }
   const elapsed = (performance.now() - speedrunStart) / 1000;
