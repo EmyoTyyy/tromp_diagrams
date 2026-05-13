@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lambda Diagram Renderer Playground</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5;
+      color: #111;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      min-height: 100vh;
+    }
+
+    .panel {
+      padding: 20px;
+      background: #ffffff;
+      border-right: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    p {
+      margin: 0;
+      line-height: 1.45;
+      color: #444;
+      font-size: 14px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 280px;
+      resize: vertical;
+      font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.4;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: #111;
+      color: #fff;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.88;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .secondary {
+      background: #eee;
+      color: #111;
+    }
+
+    .error {
+      white-space: pre-wrap;
+      color: #a40000;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+    }
+
+    .output {
+      white-space: pre-wrap;
+      color: #333;
+      background: #f2f2f2;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      max-height: 220px;
+      overflow: auto;
+    }
+
+    .canvas-wrap {
+      overflow: auto;
+      padding: 24px;
+    }
+
+    canvas {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    code {
+      background: #eee;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <h1>Lambda Diagram Renderer</h1>
+      <p>
+        Paste a normal lambda expression using <code>\x. body</code>. Application is written by spacing:
+        <code>x y</code>. Parentheses are supported.
+      </p>
+
+      <textarea id="termInput" spellcheck="false"></textarea>
+      <div class="row">
+        <button id="renderBtn">Render diagram</button>
+        <button id="exampleBtn" class="secondary">Load example</button>
+      </div>
+      <div id="error" class="error"></div>
+      <div id="output" class="output"></div>
+    </aside>
+
+    <main class="canvas-wrap">
+      <canvas id="canvas" width="1200" height="800"></canvas>
+    </main>
+  </div>
+
+  <script>
+    // ============================================================
+    // Input syntax
+    // ============================================================
+    // Lambda:
+    //   \x. x
+    //   λx. x
+    //   \x y z. x z
+    //
+    // Application:
+    //   f x
+    //   f x y       means ((f x) y)
+    //
+    // Parentheses:
+    //   (\x. x) (\y. y)
+    //
+    // The parser converts named variables to de Bruijn indices before rendering.
+
+    const EXAMPLE_SOURCE = String.raw`\x. x (\a. \b. \c. \d. \e. \f. b)`;
+
+    document.getElementById("termInput").value = EXAMPLE_SOURCE;
+
+    // ============================================================
+    // Lexer
+    // ============================================================
+
+    function tokenize(input) {
+      const tokens = [];
+      let i = 0;
+
+      while (i < input.length) {
+        const ch = input[i];
+
+        if (/\s/.test(ch)) {
+          i++;
+          continue;
+        }
+
+        if (ch === "\\" || ch === "λ") {
+          tokens.push({ type: "lambda", value: ch });
+          i++;
+          continue;
+        }
+
+        if (ch === ".") {
+          tokens.push({ type: "dot", value: ch });
+          i++;
+          continue;
+        }
+
+        if (ch === "(") {
+          tokens.push({ type: "lparen", value: ch });
+          i++;
+          continue;
+        }
+
+        if (ch === ")") {
+          tokens.push({ type: "rparen", value: ch });
+          i++;
+          continue;
+        }
+
+        if (/[A-Za-z_]/.test(ch)) {
+          let start = i;
+          i++;
+          while (i < input.length && /[A-Za-z0-9_']/.test(input[i])) {
+            i++;
+          }
+          tokens.push({ type: "ident", value: input.slice(start, i) });
+          continue;
+        }
+
+        throw new Error(`Unexpected character '${ch}' at position ${i}.`);
+      }
+
+      tokens.push({ type: "eof", value: "" });
+      return tokens;
+    }
+
+    // ============================================================
+    // Parser for named lambda terms
+    // ============================================================
+    // Named AST:
+    // { type: "lam", param: "x", body: term }
+    // { type: "var", name: "x" }
+    // { type: "app", left: term, right: term }
+
+    function parseLambdaSource(input) {
+      const tokens = tokenize(input);
+      let pos = 0;
+
+      function peek() {
+        return tokens[pos];
+      }
+
+      function consume(type) {
+        const token = peek();
+        if (token.type !== type) {
+          throw new Error(`Expected ${type}, got ${token.type} '${token.value}'.`);
+        }
+        pos++;
+        return token;
+      }
+
+      function startsAtom(token) {
+        return token.type === "ident" || token.type === "lambda" || token.type === "lparen";
+      }
+
+      function parseExpression() {
+        return parseApplication();
+      }
+
+      function parseApplication() {
+        let term = parseAtom();
+
+        while (startsAtom(peek())) {
+          const right = parseAtom();
+          term = { type: "app", left: term, right };
+        }
+
+        return term;
+      }
+
+      function parseAtom() {
+        const token = peek();
+
+        if (token.type === "ident") {
+          return { type: "var", name: consume("ident").value };
+        }
+
+        if (token.type === "lambda") {
+          return parseLambda();
+        }
+
+        if (token.type === "lparen") {
+          consume("lparen");
+          const term = parseExpression();
+          consume("rparen");
+          return term;
+        }
+
+        throw new Error(`Expected variable, lambda, or parenthesized term, got ${token.type} '${token.value}'.`);
+      }
+
+      function parseLambda() {
+        consume("lambda");
+
+        const params = [];
+        while (peek().type === "ident") {
+          params.push(consume("ident").value);
+        }
+
+        if (params.length === 0) {
+          throw new Error("Lambda needs at least one parameter.");
+        }
+
+        consume("dot");
+        let body = parseExpression();
+
+        for (let i = params.length - 1; i >= 0; i--) {
+          body = { type: "lam", param: params[i], body };
+        }
+
+        return body;
+      }
+
+      const term = parseExpression();
+      if (peek().type !== "eof") {
+        throw new Error(`Unexpected token '${peek().value}' after complete expression.`);
+      }
+      return term;
+    }
+
+    // ============================================================
+    // Named variables -> de Bruijn indices
+    // ============================================================
+    // Renderer format:
+    // { type: "lam", body: term }
+    // { type: "var", index: 0 }
+    // { type: "app", left: term, right: term }
+    //
+    // index 0 = nearest binder
+    // index 1 = second-nearest binder
+    // etc.
+
+    function toDeBruijn(term, env = []) {
+      if (term.type === "var") {
+        const index = env.lastIndexOf(term.name);
+        if (index === -1) {
+          throw new Error(`Free variable '${term.name}' is not supported by this renderer. Bind it with a lambda first.`);
+        }
+
+        return {
+          type: "var",
+          index: env.length - 1 - index
+        };
+      }
+
+      if (term.type === "lam") {
+        return {
+          type: "lam",
+          body: toDeBruijn(term.body, [...env, term.param])
+        };
+      }
+
+      if (term.type === "app") {
+        return {
+          type: "app",
+          left: toDeBruijn(term.left, env),
+          right: toDeBruijn(term.right, env)
+        };
+      }
+
+      throw new Error("Unknown named AST term type: " + term.type);
+    }
+
+    // ============================================================
+    // Renderer configuration
+    // ============================================================
+
+    const CONFIG = {
+      unitWidth: 70,
+      levelHeight: 45,
+      lineWidth: 3,
+      margin: 80,
+      binderTrim: 18,
+      binderOffsetX: -26
+    };
+
+    // ============================================================
+    // Layout primitives
+    // ============================================================
+    // Instead of drawing immediately, each recursive call returns a list
+    // of line segments in local coordinates, plus a logical height/width.
+
+    function line(x1, y1, x2, y2) {
+      return { x1, y1, x2, y2 };
+    }
+
+    function translateDiagram(diagram, dx, dy) {
+      return {
+        ...diagram,
+        lines: diagram.lines.map(l => line(l.x1 + dx, l.y1 + dy, l.x2 + dx, l.y2 + dy))
+      };
+    }
+
+    function overlay(...diagrams) {
+      return {
+        lines: diagrams.flatMap(d => d.lines),
+        height: Math.max(...diagrams.map(d => d.height ?? 0), 0),
+        width: Math.max(...diagrams.map(d => d.width ?? 0), 0)
+      };
+    }
+
+    function beside(left, right) {
+      const dx = left.width * CONFIG.unitWidth;
+      const shiftedRight = translateDiagram(right, dx, 0);
+
+      return {
+        lines: [...left.lines, ...shiftedRight.lines],
+        height: Math.max(left.height, right.height),
+        width: left.width + right.width
+      };
+    }
+
+    // ============================================================
+    // Main lambda-diagram renderer
+    // ============================================================
+
+    function drawTerm(term) {
+      validateTerm(term);
+
+      if (term.type === "lam") {
+        const child = drawTerm(term.body);
+
+        const binderLength = CONFIG.unitWidth * child.width - CONFIG.binderTrim;
+        const binder = {
+          lines: [
+            line(CONFIG.binderOffsetX, 0, CONFIG.binderOffsetX + binderLength, 0)
+          ],
+          height: 0,
+          width: child.width
+        };
+
+        const body = translateDiagram(child, 0, CONFIG.levelHeight);
+
+        return {
+          lines: [...binder.lines, ...body.lines],
+          height: child.height + 1,
+          width: child.width
+        };
+      }
+
+      if (term.type === "var") {
+        const wireHeight = (term.index + 1) * CONFIG.levelHeight;
+
+        return {
+          lines: [
+            line(0, 0, 0, -wireHeight)
+          ],
+          height: 0,
+          width: 1
+        };
+      }
+
+      if (term.type === "app") {
+        const left = drawTerm(term.left);
+        const right = drawTerm(term.right);
+
+        const deltaLeft = Math.max(0, right.height - left.height);
+        const deltaRight = Math.max(0, left.height - right.height);
+
+        const leftTail = {
+          lines: [
+            line(0, left.height * CONFIG.levelHeight, 0, (left.height + deltaLeft + 1) * CONFIG.levelHeight)
+          ],
+          height: left.height + deltaLeft + 1,
+          width: left.width
+        };
+
+        const rightTail = {
+          lines: deltaRight === 0 ? [] : [
+            line(0, right.height * CONFIG.levelHeight, 0, (right.height + deltaRight) * CONFIG.levelHeight)
+          ],
+          height: right.height + deltaRight,
+          width: right.width
+        };
+
+        const leftWithTail = overlay(left, leftTail);
+        const rightWithTail = overlay(right, rightTail);
+        const combined = beside(leftWithTail, rightWithTail);
+
+        const barY = (left.height + deltaLeft) * CONFIG.levelHeight;
+        const bar = {
+          lines: [
+            line(0, barY, left.width * CONFIG.unitWidth, barY)
+          ],
+          height: left.height + deltaLeft + 1,
+          width: left.width + right.width
+        };
+
+        return {
+          lines: [...combined.lines, ...bar.lines],
+          height: left.height + deltaLeft + 1,
+          width: left.width + right.width
+        };
+      }
+
+      throw new Error("Unknown term type: " + term.type);
+    }
+
+    function validateTerm(term) {
+      if (!term || typeof term !== "object") {
+        throw new Error("Term must be an object.");
+      }
+
+      if (!["lam", "var", "app"].includes(term.type)) {
+        throw new Error("Invalid term type: " + term.type);
+      }
+
+      if (term.type === "var") {
+        if (!Number.isInteger(term.index) || term.index < 0) {
+          throw new Error("Variable index must be a non-negative integer.");
+        }
+      }
+
+      if (term.type === "lam" && !term.body) {
+        throw new Error("Lambda term needs a body.");
+      }
+
+      if (term.type === "app" && (!term.left || !term.right)) {
+        throw new Error("Application term needs left and right terms.");
+      }
+    }
+
+    // ============================================================
+    // Canvas drawing
+    // ============================================================
+
+    function renderToCanvas(term) {
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      const diagram = drawTerm(term);
+      const bounds = getBounds(diagram.lines);
+
+      const neededWidth = Math.max(800, bounds.width + CONFIG.margin * 2);
+      const neededHeight = Math.max(500, bounds.height + CONFIG.margin * 2);
+
+      canvas.width = neededWidth;
+      canvas.height = neededHeight;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.lineWidth = CONFIG.lineWidth;
+      ctx.lineCap = "square";
+      ctx.strokeStyle = "#111";
+
+      const offsetX = CONFIG.margin - bounds.minX;
+      const offsetY = CONFIG.margin - bounds.minY;
+
+      ctx.beginPath();
+      for (const l of diagram.lines) {
+        ctx.moveTo(l.x1 + offsetX, l.y1 + offsetY);
+        ctx.lineTo(l.x2 + offsetX, l.y2 + offsetY);
+      }
+      ctx.stroke();
+    }
+
+    function getBounds(lines) {
+      if (lines.length === 0) {
+        return { minX: 0, maxX: 0, minY: 0, maxY: 0, width: 0, height: 0 };
+      }
+
+      const xs = lines.flatMap(l => [l.x1, l.x2]);
+      const ys = lines.flatMap(l => [l.y1, l.y2]);
+
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+
+      return {
+        minX,
+        maxX,
+        minY,
+        maxY,
+        width: maxX - minX,
+        height: maxY - minY
+      };
+    }
+
+    // ============================================================
+    // UI
+    // ============================================================
+
+    function parseInput() {
+      const text = document.getElementById("termInput").value;
+      const namedTerm = parseLambdaSource(text);
+      const deBruijnTerm = toDeBruijn(namedTerm);
+      return { namedTerm, deBruijnTerm };
+    }
+
+    function renderFromInput() {
+      const error = document.getElementById("error");
+      const output = document.getElementById("output");
+      error.textContent = "";
+      output.textContent = "";
+
+      try {
+        const { namedTerm, deBruijnTerm } = parseInput();
+        renderToCanvas(deBruijnTerm);
+        output.textContent =
+          "Named AST:\n" + JSON.stringify(namedTerm, null, 2) +
+          "\n\nDe Bruijn AST used by renderer:\n" + JSON.stringify(deBruijnTerm, null, 2);
+      } catch (err) {
+        error.textContent = err.stack || err.message;
+      }
+    }
+
+    function loadExample() {
+      document.getElementById("termInput").value = EXAMPLE_SOURCE;
+      renderFromInput();
+    }
+
+    document.getElementById("renderBtn").addEventListener("click", renderFromInput);
+    document.getElementById("exampleBtn").addEventListener("click", loadExample);
+    renderFromInput();
+  </script>
+</body>
+</html>

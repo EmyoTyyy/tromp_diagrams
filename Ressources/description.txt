@@ -1,0 +1,9 @@
+The original Haskell renderer recursively draws lambda terms.
+
+A lambda abstraction draws a horizontal binder line above its body.
+
+A variable draws a vertical line. The line height is index + 1, where index is the de Bruijn index.
+
+An application draws the left and right terms side by side, extends vertical tails so their bottoms align, then draws a horizontal application bar underneath the left term.
+
+The renderer does not draw variable names. It assumes lambda terms have already been converted to de Bruijn indices.

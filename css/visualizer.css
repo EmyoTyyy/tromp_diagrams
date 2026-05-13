@@ -373,6 +373,22 @@ input[type=range] { accent-color: var(--accent); width: 90px; }
   white-space: nowrap;
   position: relative;
 }
+/* When the code-display contains a .code-inner wrapper, the outer becomes
+   a non-scrolling frame and the inner handles horizontal scrolling. That
+   keeps the absolute .copy-btn anchored to the visible top-right corner
+   instead of drifting with the scrolled content. */
+.code-display:has(.code-inner) {
+  overflow: hidden;
+  padding: 0;
+}
+.code-display .code-inner {
+  padding: 10px 14px;
+  overflow-x: auto;
+  white-space: nowrap;
+  /* Reserve room on the right so very long expressions don't run under
+     the copy button when scrolled to the start. */
+  padding-right: 56px;
+}
 .code-display .copy-btn {
   position: absolute;
   top: 4px; right: 4px;

@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lambda Daily Generator</title>
+  <style>
+    :root {
+      --bg:#07070a;
+      --panel:#111116;
+      --panel2:#171721;
+      --panel3:#20202b;
+      --text:#f4f4f5;
+      --muted:#a1a1aa;
+      --muted2:#71717a;
+      --border:#27272a;
+      --accent:#8b5cf6;
+      --accent2:#7c3aed;
+      --mono:"JetBrains Mono","Fira Code","Consolas",monospace;
+      --sans:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+
+    * { box-sizing:border-box; }
+
+    html, body {
+      margin:0;
+      min-height:100%;
+      color:var(--text);
+      font-family:var(--sans);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(139,92,246,.22), transparent 34rem),
+        radial-gradient(circle at 88% 18%, rgba(59,130,246,.12), transparent 28rem),
+        radial-gradient(circle at 50% 100%, rgba(20,184,166,.08), transparent 26rem),
+        var(--bg);
+    }
+
+    body { min-height:100vh; padding:34px; }
+    button,input,select { font:inherit; }
+
+    .app { width:min(1180px,100%); margin:0 auto; }
+
+    .hero {
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:24px;
+      align-items:end;
+      margin-bottom:26px;
+    }
+
+    .badge {
+      width:fit-content;
+      margin-bottom:14px;
+      padding:7px 11px;
+      border:1px solid rgba(139,92,246,.38);
+      border-radius:999px;
+      background:rgba(139,92,246,.14);
+      color:#ddd6fe;
+      font-size:.82rem;
+      font-weight:800;
+    }
+
+    h1 {
+      margin:0;
+      font-size:clamp(2.2rem,6vw,4.7rem);
+      line-height:.92;
+      letter-spacing:-.075em;
+    }
+
+    .subtitle {
+      max-width:780px;
+      margin:17px 0 0;
+      color:var(--muted);
+      font-size:1rem;
+      line-height:1.65;
+    }
+
+    .hero-stats {
+      display:grid;
+      gap:10px;
+      min-width:220px;
+    }
+
+    .stat {
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:18px;
+      background:rgba(255,255,255,.035);
+      padding:13px 15px;
+    }
+
+    .stat-label {
+      color:var(--muted2);
+      font-size:.76rem;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+
+    .stat-value {
+      margin-top:6px;
+      font-family:var(--mono);
+      font-size:.92rem;
+      word-break:break-all;
+    }
+
+    .grid {
+      display:grid;
+      grid-template-columns:370px 1fr;
+      gap:20px;
+      align-items:start;
+    }
+
+    .card {
+      border:1px solid var(--border);
+      border-radius:26px;
+      overflow:hidden;
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018)),
+        rgba(17,17,22,.92);
+      box-shadow:0 24px 90px rgba(0,0,0,.42);
+      backdrop-filter:blur(14px);
+    }
+
+    .card-header {
+      padding:19px 21px;
+      border-bottom:1px solid var(--border);
+      background:rgba(255,255,255,.025);
+    }
+
+    .card-title {
+      margin:0;
+      font-size:.98rem;
+      font-weight:850;
+      letter-spacing:-.02em;
+    }
+
+    .card-description {
+      margin:7px 0 0;
+      color:var(--muted);
+      font-size:.88rem;
+      line-height:1.5;
+    }
+
+    .card-body { padding:21px; }
+
+    .field {
+      display:grid;
+      gap:8px;
+      margin-bottom:18px;
+    }
+
+    label {
+      color:var(--muted);
+      font-size:.83rem;
+      font-weight:800;
+    }
+
+    input,select {
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:15px;
+      background:rgba(9,9,14,.8);
+      color:var(--text);
+      padding:12px 14px;
+      outline:none;
+    }
+
+    input:focus,select:focus {
+      border-color:rgba(139,92,246,.9);
+      box-shadow:0 0 0 4px rgba(139,92,246,.16);
+      background:#13131a;
+    }
+
+    select {
+      appearance:none;
+      background-image:
+        linear-gradient(45deg,transparent 50%,var(--muted) 50%),
+        linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+      background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;
+      background-size:5px 5px,5px 5px;
+      background-repeat:no-repeat;
+    }
+
+    .range-row {
+      display:grid;
+      grid-template-columns:1fr 78px;
+      gap:10px;
+      align-items:center;
+    }
+
+    input[type="range"] { padding:0; accent-color:var(--accent); }
+
+    .depth-number {
+      text-align:center;
+      font-family:var(--mono);
+      font-weight:800;
+    }
+
+    .hint {
+      margin:-8px 0 18px;
+      color:var(--muted2);
+      font-size:.79rem;
+      line-height:1.45;
+    }
+
+    .actions {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:6px;
+    }
+
+    button {
+      border:0;
+      border-radius:15px;
+      padding:12px 14px;
+      color:white;
+      font-weight:850;
+      cursor:pointer;
+      user-select:none;
+    }
+
+    button:active { transform:translateY(1px); }
+
+    .primary { background:var(--accent); }
+    .primary:hover { background:var(--accent2); }
+
+    .secondary {
+      border:1px solid var(--border);
+      background:var(--panel2);
+    }
+
+    .secondary:hover { background:var(--panel3); }
+
+    .message {
+      display:none;
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:15px;
+      font-size:.84rem;
+      line-height:1.45;
+    }
+
+    .message.visible { display:block; }
+
+    .message.warning {
+      border:1px solid rgba(239,68,68,.35);
+      background:rgba(239,68,68,.12);
+      color:#fecaca;
+    }
+
+    .message.success {
+      border:1px solid rgba(34,197,94,.35);
+      background:rgba(34,197,94,.12);
+      color:#bbf7d0;
+    }
+
+    .details {
+      margin-top:18px;
+      padding-top:18px;
+      border-top:1px solid var(--border);
+      display:grid;
+      gap:11px;
+    }
+
+    .detail-row {
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      color:var(--muted);
+      font-size:.82rem;
+    }
+
+    .detail-row strong {
+      color:var(--text);
+      font-family:var(--mono);
+      font-weight:750;
+      text-align:right;
+      word-break:break-all;
+    }
+
+    .pill-group {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+
+    .pill {
+      padding:6px 10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:rgba(255,255,255,.035);
+      color:var(--muted);
+      font-size:.78rem;
+      font-family:var(--mono);
+      white-space:nowrap;
+    }
+
+    pre {
+      min-height:500px;
+      max-height:720px;
+      margin:0;
+      padding:21px;
+      border:1px solid var(--border);
+      border-radius:20px;
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.035),transparent),
+        #0c0c12;
+      overflow:auto;
+      color:#f8fafc;
+      font-family:var(--mono);
+      font-size:.94rem;
+      line-height:1.72;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .explain {
+      margin-top:20px;
+      border:1px solid var(--border);
+      border-radius:22px;
+      background:rgba(255,255,255,.025);
+      overflow:hidden;
+    }
+
+    .explain summary {
+      cursor:pointer;
+      padding:16px 18px;
+      font-weight:850;
+      user-select:none;
+    }
+
+    .explain-content {
+      padding:0 18px 18px;
+      color:var(--muted);
+      line-height:1.65;
+      font-size:.93rem;
+    }
+
+    .explain-content code {
+      padding:2px 5px;
+      border-radius:6px;
+      background:rgba(255,255,255,.07);
+      color:#e9d5ff;
+      font-family:var(--mono);
+    }
+
+    @media (max-width:930px) {
+      body { padding:22px; }
+      .hero { grid-template-columns:1fr; }
+      .hero-stats { grid-template-columns:repeat(2,1fr); }
+      .grid { grid-template-columns:1fr; }
+      pre { min-height:380px; }
+    }
+
+    @media (max-width:560px) {
+      body { padding:16px; }
+      .hero-stats,.actions,.range-row { grid-template-columns:1fr; }
+      .depth-number { text-align:left; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div>
+        <div class="badge">λ-calculus daily challenge</div>
+        <h1>Daily Lambda Expression</h1>
+        <p class="subtitle">
+          Génère une expression lambda fermée, déterministe, parenthésée et assez grosse pour tester ton visualiseur.
+          Même date + même difficulté + même forme = même expression.
+        </p>
+      </div>
+
+      <aside class="hero-stats">
+        <div class="stat">
+          <div class="stat-label">Mode</div>
+          <div class="stat-value">closed terms</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Binders</div>
+          <div class="stat-value">unique names</div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="grid">
+      <aside class="card">
+        <div class="card-header">
+          <h2 class="card-title">Paramètres</h2>
+          <p class="card-description">
+            La date sert de seed. La difficulté contrôle la profondeur et vise une taille cible stable.
+          </p>
+        </div>
+
+        <div class="card-body">
+          <div class="field">
+            <label for="dateInput">Date utilisée comme seed</label>
+            <input id="dateInput" type="date" />
+          </div>
+
+          <div class="field">
+            <label for="depthRange">Difficulté / profondeur maximale</label>
+            <div class="range-row">
+              <input id="depthRange" type="range" min="1" max="30" value="18" />
+              <input id="depthInput" class="depth-number" type="number" min="1" max="30" value="18" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="shapeInput">Forme du diagramme</label>
+            <select id="shapeInput">
+              <option value="deep" selected>Deep / long</option>
+              <option value="mixed">Mixed</option>
+              <option value="balanced">Balanced / large</option>
+            </select>
+          </div>
+
+          <p class="hint">
+            Recommandé : profondeur 15–18 en mode deep. Le mode deep génère des diagrammes plus longs et moins larges.
+          </p>
+
+          <div class="actions">
+            <button class="primary" id="generateBtn">Generate</button>
+            <button class="secondary" id="copyBtn">Copy</button>
+          </div>
+
+          <div id="message" class="message"></div>
+
+          <div class="details">
+            <div class="detail-row"><span>Seed</span><strong id="seedDetail">—</strong></div>
+            <div class="detail-row"><span>Forme</span><strong id="shapeDetail">—</strong></div>
+            <div class="detail-row"><span>Caractères</span><strong id="charDetail">—</strong></div>
+            <div class="detail-row"><span>Taille cible</span><strong id="targetDetail">—</strong></div>
+            <div class="detail-row"><span>Nœuds générés</span><strong id="nodeDetail">—</strong></div>
+            <div class="detail-row"><span>Binders créés</span><strong id="binderDetail">—</strong></div>
+            <div class="detail-row"><span>Tentative</span><strong id="attemptDetail">—</strong></div>
+          </div>
+
+          <details class="explain">
+            <summary>Comment ça génère ?</summary>
+            <div class="explain-content">
+              <p>
+                Le générateur transforme la date, la difficulté et la forme en seed, puis utilise un pseudo-hasard déterministe.
+              </p>
+              <p>
+                Le <code>context</code> contient les variables actuellement disponibles. Une variable générée est choisie uniquement dans ce contexte, donc l’expression reste fermée.
+              </p>
+              <p>
+                Les noms de binders sont uniques globalement. Les variables mortes sont autorisées volontairement pour rendre le diagramme plus dur.
+              </p>
+              <p>
+                La taille est stabilisée par une cible : le générateur essaie plusieurs variantes déterministes et garde celle qui est la plus proche de la taille prévue.
+              </p>
+            </div>
+          </details>
+        </div>
+      </aside>
+
+      <section class="card">
+        <div class="card-header">
+          <h2 class="card-title">Expression parenthésée</h2>
+          <p class="card-description">
+            Les parenthèses sont explicites pour éviter les ambiguïtés entre <code>(x y) z</code> et <code>x (y z)</code>.
+          </p>
+        </div>
+
+        <div class="card-body">
+          <div class="pill-group">
+            <span id="seedLabel" class="pill">seed: —</span>
+            <span id="depthLabel" class="pill">depth: —</span>
+            <span id="shapeLabel" class="pill">shape: —</span>
+            <span id="sizeLabel" class="pill">chars: —</span>
+          </div>
+
+          <pre id="output"></pre>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    function hashString(str) {
+      let hash = 2166136261;
+
+      for (let i = 0; i < str.length; i++) {
+        hash ^= str.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+
+      return hash >>> 0;
+    }
+
+    function createSeededRandom(seedString) {
+      let seed = hashString(seedString);
+
+      return function rand() {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        return seed / 2 ** 32;
+      };
+    }
+
+    function lambdaAbs(v, body) {
+      return "(\\" + v + ". " + body + ")";
+    }
+
+    function generateClosedLambdaExpression(seedString, maxDepth = 18, shape = "deep") {
+      const baseVars = ["x","y","z","a","b","c","f","g","h","m","n","p","q","r","s","u","v","w"];
+
+      const targetFactor = {
+        balanced: 4.9,
+        mixed: 4.5,
+        deep: 3.7
+      };
+
+      const targetChars = Math.floor(maxDepth * maxDepth * (targetFactor[shape] || 4.2));
+      const minChars = Math.floor(targetChars * 0.84);
+      const maxChars = Math.ceil(targetChars * 1.20);
+      const maxAttempts = 80;
+
+      let best = null;
+
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const saltedSeed = attempt === 0 ? seedString : seedString + ":attempt=" + attempt;
+        const rand = createSeededRandom(saltedSeed);
+
+        let nextVarIndex = 0;
+        let nodeCount = 0;
+
+        function pick(arr) {
+          return arr[Math.floor(rand() * arr.length)];
+        }
+
+        function freshVar() {
+          if (nextVarIndex < baseVars.length) {
+            const v = baseVars[nextVarIndex];
+            nextVarIndex++;
+            return v;
+          }
+
+          const v = "v" + nextVarIndex;
+          nextVarIndex++;
+          return v;
+        }
+
+        function chances(depth) {
+          const progress = 1 - depth / maxDepth;
+          const stillTooHigh = depth > maxDepth * 0.45;
+
+          if (shape === "balanced") {
+            if (stillTooHigh) {
+              return { variable: 0, abstraction: 0.28, nestedApplication: 0.00 };
+            }
+
+            return {
+              variable: 0.06 + progress * 0.46,
+              abstraction: 0.30,
+              nestedApplication: 0.00
+            };
+          }
+
+          if (shape === "mixed") {
+            if (stillTooHigh) {
+              return { variable: 0, abstraction: 0.39, nestedApplication: 0.20 };
+            }
+
+            return {
+              variable: 0.05 + progress * 0.43,
+              abstraction: 0.36,
+              nestedApplication: Math.max(0.07, 0.20 - progress * 0.09)
+            };
+          }
+
+          if (stillTooHigh) {
+            return { variable: 0, abstraction: 0.58, nestedApplication: 0.30 };
+          }
+
+          return {
+            variable: 0.05 + progress * 0.35,
+            abstraction: 0.46,
+            nestedApplication: Math.max(0.12, 0.34 - progress * 0.13)
+          };
+        }
+
+        function gen(depth, context) {
+          nodeCount++;
+
+          if (depth <= 0) {
+            return pick(context);
+          }
+
+          if (context.length === 0) {
+            const v = freshVar();
+            return lambdaAbs(v, gen(depth - 1, context.concat([v])));
+          }
+
+          const p = chances(depth);
+          const choice = rand();
+
+          if (choice < p.variable) {
+            return pick(context);
+          }
+
+          if (choice < p.variable + p.abstraction) {
+            const v = freshVar();
+            return lambdaAbs(v, gen(depth - 1, context.concat([v])));
+          }
+
+          if (choice < p.variable + p.abstraction + p.nestedApplication) {
+            return genNestedApplication(depth, context);
+          }
+
+          return genBalancedApplication(depth, context);
+        }
+
+        function genBalancedApplication(depth, context) {
+          if (shape === "deep" && rand() < 0.58) {
+            return genNestedApplication(depth, context);
+          }
+
+          const left = gen(depth - 1, context);
+          const right = gen(depth - 1, context);
+
+          return "(" + left + " " + right + ")";
+        }
+
+        function genNestedApplication(depth, context) {
+          const chainLength = shape === "deep"
+            ? 2 + Math.floor(rand() * 4)
+            : 2 + Math.floor(rand() * 3);
+
+          let expr = gen(depth - 1, context);
+
+          for (let i = 0; i < chainLength; i++) {
+            const argDepth = Math.max(0, depth - 2 - i);
+            const extendRight = shape === "deep" ? rand() < 0.78 : rand() < 0.62;
+
+            if (extendRight) {
+              expr = "(" + expr + " " + gen(argDepth, context) + ")";
+            } else {
+              expr = "(" + gen(argDepth, context) + " " + expr + ")";
+            }
+          }
+
+          return expr;
+        }
+
+        const expression = gen(maxDepth, []);
+        const length = expression.length;
+
+        const insideBand = length >= minChars && length <= maxChars;
+        const distance = Math.abs(length - targetChars);
+
+        let score = distance;
+
+        if (insideBand) {
+          score -= Math.floor(targetChars * 0.12);
+        }
+
+        if (length > maxChars) {
+          score += Math.floor((length - maxChars) * 0.75);
+        }
+
+        if (length < minChars) {
+          score += Math.floor((minChars - length) * 0.35);
+        }
+
+        const candidate = {
+          expression,
+          bindersCreated: nextVarIndex,
+          nodeCount,
+          attempt,
+          minChars,
+          maxChars,
+          targetChars,
+          score,
+          shape
+        };
+
+        if (best === null || candidate.score < best.score) {
+          best = candidate;
+        }
+
+        if (insideBand && distance <= targetChars * 0.06) {
+          return candidate;
+        }
+      }
+
+      return best;
+    }
+
+    function todayAsLocalISODate() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      return year + "-" + month + "-" + day;
+    }
+
+    function clampDepth(value) {
+      const n = Number(value);
+
+      if (!Number.isFinite(n)) {
+        return 18;
+      }
+
+      return Math.max(1, Math.min(30, Math.floor(n)));
+    }
+
+    function setMessage(message, type = "warning") {
+      const el = document.getElementById("message");
+      el.className = "message";
+
+      if (!message) {
+        el.textContent = "";
+        return;
+      }
+
+      el.textContent = message;
+      el.classList.add("visible", type);
+    }
+
+    function syncDepthInputs(value) {
+      const depth = clampDepth(value);
+      document.getElementById("depthRange").value = String(depth);
+      document.getElementById("depthInput").value = String(depth);
+      return depth;
+    }
+
+    function generate() {
+      const date = document.getElementById("dateInput").value || todayAsLocalISODate();
+      const depth = syncDepthInputs(document.getElementById("depthInput").value);
+      const shape = document.getElementById("shapeInput").value;
+
+      if (depth >= 22) {
+        setMessage("Profondeur très élevée : ça peut devenir énorme et ralentir ton navigateur ou ton visualiseur.", "warning");
+      } else if (depth <= 8) {
+        setMessage("Profondeur faible : utile pour tester vite, mais trop simple pour un vrai daily challenge.", "warning");
+      } else {
+        setMessage("");
+      }
+
+      const seedString = date + ":depth=" + depth + ":shape=" + shape;
+      const result = generateClosedLambdaExpression(seedString, depth, shape);
+      const expression = result.expression;
+
+      document.getElementById("output").textContent = expression;
+
+      document.getElementById("seedLabel").textContent = "seed: " + seedString;
+      document.getElementById("depthLabel").textContent = "depth: " + depth;
+      document.getElementById("shapeLabel").textContent = "shape: " + shape;
+      document.getElementById("sizeLabel").textContent = "chars: " + expression.length;
+
+      document.getElementById("seedDetail").textContent = seedString;
+      document.getElementById("shapeDetail").textContent = shape;
+      document.getElementById("charDetail").textContent = String(expression.length);
+      document.getElementById("targetDetail").textContent =
+        result.targetChars + " (" + result.minChars + "-" + result.maxChars + ")";
+      document.getElementById("nodeDetail").textContent = String(result.nodeCount);
+      document.getElementById("binderDetail").textContent = String(result.bindersCreated);
+      document.getElementById("attemptDetail").textContent = String(result.attempt + 1);
+    }
+
+    async function copyExpression() {
+      const text = document.getElementById("output").textContent;
+
+      try {
+        await navigator.clipboard.writeText(text);
+        setMessage("Expression copiée.", "success");
+      } catch {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        try {
+          document.execCommand("copy");
+          setMessage("Expression copiée.", "success");
+        } catch {
+          setMessage("Impossible de copier automatiquement.", "warning");
+        }
+
+        textarea.remove();
+      }
+    }
+
+    document.getElementById("dateInput").value = todayAsLocalISODate();
+
+    document.getElementById("depthRange").addEventListener("input", function(event) {
+      syncDepthInputs(event.target.value);
+      generate();
+    });
+
+    document.getElementById("depthInput").addEventListener("input", function(event) {
+      syncDepthInputs(event.target.value);
+      generate();
+    });
+
+    document.getElementById("dateInput").addEventListener("change", generate);
+    document.getElementById("shapeInput").addEventListener("change", generate);
+    document.getElementById("generateBtn").addEventListener("click", generate);
+    document.getElementById("copyBtn").addEventListener("click", copyExpression);
+
+    generate();
+  </script>
+</body>
+</html>

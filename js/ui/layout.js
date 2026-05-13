@@ -57,7 +57,12 @@ function leftmostCol(n) {
 function computeY(n, ly, scope) {
   if (n.t === 'lam') {
     n.barY = ly;
-    return computeY(n.b, ly + 2, { ...scope, [n.v]: ly });
+    const bodyDeepest = computeY(n.b, ly + 2, { ...scope, [n.v]: ly });
+    // Each lam occupies 2 y-units (its bar + its body slot). Returning
+    // just the body's reported depth crushes a chain of lams under the
+    // parent's app bar when the body is a variable bound near the top
+    // of the chain — the parent doesn't see how tall the chain is.
+    return Math.max(bodyDeepest, ly + 2);
   }
   if (n.t === 'var') {
     n.endpointY = scope[n.v] !== undefined ? scope[n.v] : 0;

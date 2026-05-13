@@ -33,8 +33,9 @@ function tokenize(s) {
       let w = '';
       while (i < s.length && /[a-zA-Z0-9_']/.test(s[i])) w += s[i++];
       // keywords
-      if (w === 'let') { T.push('LET'); continue; }
-      if (w === 'in')  { T.push('IN');  continue; }
+      if (w === 'let')    { T.push('LET');    continue; }
+      if (w === 'letrec') { T.push('LETREC'); continue; }
+      if (w === 'in')     { T.push('IN');     continue; }
       T.push({ v: w });
       continue;
     }
@@ -50,8 +51,9 @@ class Parser {
   expect(x) { const t = this.eat(); if (t !== x) throw new Error(`Expected ${x}`); }
 
   term() {
-    if (this.peek() === 'L')   return this.lam();
-    if (this.peek() === 'LET') return this.letExpr();
+    if (this.peek() === 'L')      return this.lam();
+    if (this.peek() === 'LET')    return this.letExpr(false);
+    if (this.peek() === 'LETREC') return this.letExpr(true);
     return this.app();
   }
 
@@ -66,9 +68,12 @@ class Parser {
     return b;
   }
 
-  // let x = e1 [; y = e2 ; ...] in body  →  (\x. (\y. ... body) e2) e1
-  letExpr() {
-    this.eat(); // consume LET
+  // let     x = e1 [; y = e2 ; ...] in body  →  (\x. (\y. ... body) e2) e1
+  // letrec  x = e1 [; ...]            in body  →  (\x. (...) body) (Y (\x. e1))
+  //   — wraps each rhs with `Y (\name. rhs)` so the binding can reference
+  //   itself. Multiple bindings get sequential (non-mutual) recursion.
+  letExpr(recursive) {
+    this.eat(); // consume LET / LETREC
     const bindings = [];
     while (true) {
       const nameTok = this.eat();
@@ -84,7 +89,10 @@ class Parser {
     let body = this.term();
     // Build right-to-left so the outer-most is the first binding
     for (let j = bindings.length - 1; j >= 0; j--) {
-      body = mkApp(mkLam(bindings[j].name, body), bindings[j].value);
+      const v = recursive
+        ? mkApp(mkVar('Y'), mkLam(bindings[j].name, bindings[j].value))
+        : bindings[j].value;
+      body = mkApp(mkLam(bindings[j].name, body), v);
     }
     return body;
   }
@@ -94,7 +102,7 @@ class Parser {
     while (true) {
       const p = this.peek();
       if (!p || p === ')' || p === 'D' || p === 'IN' || p === 'SC' || p === 'EQ') break;
-      if (p === 'L' || p === '(' || p === 'LET' || typeof p === 'object') {
+      if (p === 'L' || p === '(' || p === 'LET' || p === 'LETREC' || typeof p === 'object') {
         L = mkApp(L, this.atom());
       } else break;
     }
@@ -105,9 +113,10 @@ class Parser {
     const p = this.peek();
     if (!p) throw new Error('Unexpected end');
     if (typeof p === 'object') { this.eat(); return mkVar(p.v); }
-    if (p === '(')   { this.eat(); const e = this.term(); this.expect(')'); return e; }
-    if (p === 'L')   return this.lam();
-    if (p === 'LET') return this.letExpr();
+    if (p === '(')      { this.eat(); const e = this.term(); this.expect(')'); return e; }
+    if (p === 'L')      return this.lam();
+    if (p === 'LET')    return this.letExpr(false);
+    if (p === 'LETREC') return this.letExpr(true);
     throw new Error(`Unexpected: ${p}`);
   }
 }

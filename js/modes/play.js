@@ -251,6 +251,107 @@ function dailyRng(dateKey) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+
+// ── Closed-term generator (ported from Ressources/daily_generator.html) ─
+// Builds a closed λ-expression by walking down to maxDepth, pulling free
+// variables only from the running `context` of in-scope binders. Variable
+// names are unique within the term so the resulting diagram is unambiguous
+// and dense.
+//
+// `rngFn` is the seeded RNG to consume — when called from daily we pass
+// `dailyRng(dateKey)`, when called from procedural difficulty-7+ we pass
+// Math.random.
+function generateClosedLambdaExpression(rngFn, maxDepth, shape) {
+  const baseVars = ['x','y','z','a','b','c','f','g','h','m','n','p','q','r','s','u','v','w'];
+  const targetFactor = { balanced: 4.9, mixed: 4.5, deep: 3.7 };
+  const targetChars = Math.floor(maxDepth * maxDepth * (targetFactor[shape] || 4.2));
+  const minChars = Math.floor(targetChars * 0.84);
+  const maxChars = Math.ceil(targetChars * 1.20);
+  const maxAttempts = 40;
+  let best = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    let nextVarIndex = 0;
+    function pick(arr) { return arr[Math.floor(rngFn() * arr.length)]; }
+    function freshVar() {
+      if (nextVarIndex < baseVars.length) return baseVars[nextVarIndex++];
+      return 'v' + (nextVarIndex++);
+    }
+    function chances(depth) {
+      const progress = 1 - depth / maxDepth;
+      const stillTooHigh = depth > maxDepth * 0.45;
+      if (shape === 'balanced') {
+        if (stillTooHigh) return { variable: 0, abstraction: 0.28, nestedApplication: 0 };
+        return { variable: 0.06 + progress * 0.46, abstraction: 0.30, nestedApplication: 0 };
+      }
+      if (shape === 'mixed') {
+        if (stillTooHigh) return { variable: 0, abstraction: 0.39, nestedApplication: 0.20 };
+        return { variable: 0.05 + progress * 0.43, abstraction: 0.36,
+                 nestedApplication: Math.max(0.07, 0.20 - progress * 0.09) };
+      }
+      if (stillTooHigh) return { variable: 0, abstraction: 0.58, nestedApplication: 0.30 };
+      return { variable: 0.05 + progress * 0.35, abstraction: 0.46,
+               nestedApplication: Math.max(0.12, 0.34 - progress * 0.13) };
+    }
+    function gen(depth, context) {
+      if (depth <= 0) return pick(context);
+      if (context.length === 0) {
+        const v = freshVar();
+        return '(\\' + v + '. ' + gen(depth - 1, context.concat([v])) + ')';
+      }
+      const p = chances(depth);
+      const choice = rngFn();
+      if (choice < p.variable) return pick(context);
+      if (choice < p.variable + p.abstraction) {
+        const v = freshVar();
+        return '(\\' + v + '. ' + gen(depth - 1, context.concat([v])) + ')';
+      }
+      if (choice < p.variable + p.abstraction + p.nestedApplication) return genNested(depth, context);
+      return genBalanced(depth, context);
+    }
+    function genBalanced(depth, context) {
+      if (shape === 'deep' && rngFn() < 0.58) return genNested(depth, context);
+      return '(' + gen(depth - 1, context) + ' ' + gen(depth - 1, context) + ')';
+    }
+    function genNested(depth, context) {
+      const chainLength = shape === 'deep' ? 2 + Math.floor(rngFn() * 4)
+                                           : 2 + Math.floor(rngFn() * 3);
+      let expr = gen(depth - 1, context);
+      for (let i = 0; i < chainLength; i++) {
+        const argDepth = Math.max(0, depth - 2 - i);
+        const extendRight = shape === 'deep' ? rngFn() < 0.78 : rngFn() < 0.62;
+        if (extendRight) expr = '(' + expr + ' ' + gen(argDepth, context) + ')';
+        else             expr = '(' + gen(argDepth, context) + ' ' + expr + ')';
+      }
+      return expr;
+    }
+    const expression = gen(maxDepth, []);
+    const length = expression.length;
+    const insideBand = length >= minChars && length <= maxChars;
+    const distance = Math.abs(length - targetChars);
+    let score = distance;
+    if (insideBand) score -= Math.floor(targetChars * 0.12);
+    if (length > maxChars) score += Math.floor((length - maxChars) * 0.75);
+    if (length < minChars) score += Math.floor((minChars - length) * 0.35);
+    const candidate = { expression, score };
+    if (best === null || candidate.score < best.score) best = candidate;
+    if (insideBand && distance <= targetChars * 0.06) return candidate.expression;
+  }
+  return best.expression;
+}
+
+// Closed terms generated above never reference predefined names, so a
+// match against the answer must be a direct α-equivalence on the literal
+// expression. `accepts` carries just that string.
+function buildGeneratedPuzzle(expression, difficulty) {
+  return {
+    name: 'random λ-expression',
+    expr: expression,
+    difficulty: Math.min(10, difficulty),
+    accepts: [expression],
+    generated: true,
+  };
+}
 function loadDailyState() {
   try {
     const raw = localStorage.getItem(DAILY_KEY);
@@ -275,42 +376,36 @@ function recordDailySolve(dateKey) {
 }
 
 // ── Generators ─────────────────────────────────────────────────
-// Daily picks ONE puzzle from a date-seeded RNG, biased to the
-// hard pool (≥7 difficulty static picks, 3-deep compositions).
+// Daily uses the date as the RNG seed and runs the closed-term generator
+// at depth 10 in "deep" shape. The result is a wholly random closed
+// λ-expression — no recycling from PUZZLES — so two different dates can
+// never produce the same daily.
+const DAILY_DEPTH = 10;
 function generateDailyPuzzle(dateKey) {
   const rng = dailyRng(dateKey);
-  const pool = PUZZLES.filter(p => p.difficulty >= 7);
-  if (pool.length > 0 && rng() < 0.5) {
-    return pool[Math.floor(rng() * pool.length)];
-  }
-  // Otherwise generate a 3-or-4-deep composition.
-  const fns = ['succ', 'pred', 'not'];
-  const len = rng() < 0.5 ? 3 : 4;
-  let body = 'x';
-  const used = [];
-  for (let i = 0; i < len; i++) {
-    const f = fns[Math.floor(rng() * fns.length)];
-    used.push(f);
-    body = f + ' (' + body + ')';
-  }
-  const expr = '\\x. ' + body;
-  return {
-    name: used.reverse().join(' ∘ '),
-    expr,
-    difficulty: Math.min(10, 6 + len),
-    accepts: [expr],
-  };
+  const expr = generateClosedLambdaExpression(rng, DAILY_DEPTH, 'deep');
+  return buildGeneratedPuzzle(expr, 10);
 }
 
-// Generate a normal-mode puzzle whose difficulty matches `target`.
-// Filters PUZZLES first (preferred — hand-curated), falls back to
-// procedural composition when the difficulty bucket is empty.
+// Generate a normal-mode puzzle whose difficulty matches `target`. At
+// 1–6 stars we draw from the hand-curated PUZZLES pool (named
+// combinators read better). At ≥7 stars we generate a random closed
+// term scaled to the difficulty so the player can't memorise a small
+// finite catalogue of answers.
 function generateForDifficulty(targetDiff) {
+  if (targetDiff >= 7) {
+    // depth scales with difficulty: 7→6, 8→7, 9→8, 10→9. Difficulty 10
+    // is handled by generateExtremePuzzle (depth 10).
+    const depth = Math.max(6, Math.min(9, targetDiff - 1));
+    const shape = targetDiff >= 9 ? 'deep' : 'mixed';
+    const expr = generateClosedLambdaExpression(Math.random, depth, shape);
+    return buildGeneratedPuzzle(expr, targetDiff);
+  }
   const candidates = PUZZLES.filter(p => Math.abs(p.difficulty - targetDiff) <= 1);
   if (candidates.length > 0) {
     return candidates[Math.floor(Math.random() * candidates.length)];
   }
-  // Procedural fallback — composition of length proportional to diff.
+  // Final fallback — short composition of named combinators.
   const len = Math.max(2, Math.min(4, Math.round(targetDiff / 2.5)));
   const fns = targetDiff <= 4 ? ['succ', 'pred'] : ['succ', 'pred', 'not'];
   let body = 'x';
@@ -330,7 +425,15 @@ function generateForDifficulty(targetDiff) {
 }
 
 function generateExtremePuzzle() {
-  return Object.assign({ difficulty: 10 }, EXTREME_POOL[Math.floor(Math.random() * EXTREME_POOL.length)]);
+  // 50/50 between a hand-curated EXTREME_POOL pick and a depth-10
+  // random closed term. Pure-random keeps memorisation off the table;
+  // the named picks still show up because they're the canonical
+  // "look at this monstrosity" examples (Z, pred, eq, …).
+  if (Math.random() < 0.5) {
+    return Object.assign({ difficulty: 10 }, EXTREME_POOL[Math.floor(Math.random() * EXTREME_POOL.length)]);
+  }
+  const expr = generateClosedLambdaExpression(Math.random, DAILY_DEPTH, 'deep');
+  return buildGeneratedPuzzle(expr, 10);
 }
 
 // ── Difficulty progression ─────────────────────────────────────
@@ -400,6 +503,20 @@ function resetModePuzzleState() {
   playState.usedFns = null;
   playState.levelDifficulty = 1;
   playState.levelExtreme = false;
+  // Per-run progress carried over between modes was causing stale
+  // best-streaks / score numbers to flash on the new mode's status
+  // line before the first puzzle drew. Wipe it on every mode change;
+  // startSelectedRun() rewrites the same fields when a run begins.
+  playState.level = 0;
+  playState.score = 0;
+  playState.hintsUsed = 0;
+  playState.skipsUsed = 0;
+  playState.attempts = 0;
+  playState.hintLevel = 0;
+  playState.givenUp = false;
+  playState.colorThisRound = false;
+  PLAY_COLOR_ON = false;
+  syncColorButton();
 }
 
 function stopSpeedrunTimer() {
@@ -651,11 +768,21 @@ function showCounters(visible) {
 }
 
 function refreshActionBarForMode(mode) {
+  // Daily strips every escape hatch (the point is the date-stamped
+  // streak). Speedrun strips Hint / Skip / Reveal because they're all
+  // dead-ends — Reveal in particular locked the player out with no way
+  // forward except Abandon, which read as a bug. Abandon stays visible
+  // in speedrun so the player can still bail out. The colour toggle is
+  // purely cosmetic, kept available everywhere except speedrun (where
+  // it just feedback("No colour hint in speedrun.")).
   const isDaily = mode === 'daily';
-  ['playHintBtn', 'playSkipBtn', 'playRevealBtn', 'playAbandonBtn'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.hidden = isDaily;
-  });
+  const isSpeedrun = mode === 'speedrun';
+  const hide = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !!on; };
+  hide('playHintBtn',    isDaily || isSpeedrun);
+  hide('playSkipBtn',    isDaily || isSpeedrun);
+  hide('playColorBtn',   isSpeedrun);
+  hide('playRevealBtn',  isDaily || isSpeedrun);
+  hide('playAbandonBtn', isDaily);
 }
 function refreshCounters() {
   const hl = document.getElementById('playHintsLeft');

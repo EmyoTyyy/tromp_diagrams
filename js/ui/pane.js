@@ -533,7 +533,12 @@ class Pane {
     if (!this.currentAST) return;
     // Code
     assignColors(this.currentAST, {});
-    this.codeEl.innerHTML = renderCode(this.currentAST, false, COLOR_MODE);
+    // Render the expression into a scrollable inner element so the copy
+    // button (appended to the non-scrolling outer .code-display) stays
+    // anchored to the top-right when the user scrolls horizontally
+    // through a long expression.
+    this.codeEl.innerHTML =
+      '<div class="code-inner">' + renderCode(this.currentAST, false, COLOR_MODE) + '</div>';
     if (!this.codeEl.querySelector('.copy-btn')) {
       const cb = document.createElement('button');
       cb.className = 'copy-btn';
@@ -745,9 +750,14 @@ class Pane {
     dw.addEventListener('wheel', (e) => {
       if (e.target.closest('.zoom-controls') || e.target.closest('.fs-btn')) return;
       e.preventDefault();
-      const rect = dw.getBoundingClientRect();
-      const cx = e.clientX - rect.left;
-      const cy = e.clientY - rect.top;
+      // Convert the cursor position into the SVG's own coordinate system,
+      // which is what the viewport <g> transform is applied in. Using the
+      // .dw rect would put the focus point in the wrong place when .dw
+      // centres the SVG via flex (non-fullscreen layout) — the user would
+      // see the diagram drift instead of zooming under the cursor.
+      const svgRect = this.svgEl.getBoundingClientRect();
+      const cx = e.clientX - svgRect.left;
+      const cy = e.clientY - svgRect.top;
       const factor = e.deltaY < 0 ? 1.1 : 1/1.1;
       this.zoomBy(factor, cx, cy);
     }, { passive: false });
@@ -777,10 +787,16 @@ class Pane {
     this.zoomLevelEl.textContent = Math.round(this.viewZoom * 100) + '%';
   }
   zoomBy(factor, cx, cy) {
-    const dw = this.dwEl;
-    const rect = dw.getBoundingClientRect();
-    if (cx === undefined) cx = rect.width / 2;
-    if (cy === undefined) cy = rect.height / 2;
+    // cx/cy are expected to be in the SVG's own coordinate space — the
+    // viewport <g> transform lives in that space, so anchoring the zoom
+    // there keeps the point under the cursor pinned across the zoom.
+    // When called without coordinates (zoom buttons), fall back to the
+    // SVG centre.
+    const svg = this.svgEl;
+    const w = parseFloat(svg.getAttribute('width')) || svg.clientWidth || 0;
+    const h = parseFloat(svg.getAttribute('height')) || svg.clientHeight || 0;
+    if (cx === undefined) cx = w / 2;
+    if (cy === undefined) cy = h / 2;
     const newZ = Math.min(20, Math.max(0.05, this.viewZoom * factor));
     const k = newZ / this.viewZoom;
     this.viewOffsetX = cx - (cx - this.viewOffsetX) * k;
