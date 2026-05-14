@@ -782,6 +782,11 @@ body.page[data-scroll]::before { width: var(--scroll-progress, 0%); }
   flex-wrap: wrap;
   align-items: center;
 }
+/* Push the abandon button to the right edge on wide screens so it sits
+   apart from the per-puzzle controls (Hint/Color/Skip/Reveal). The
+   mobile breakpoint below resets this so all action buttons share the
+   same wrap row. */
+.play-action-bar .play-abandon-spacer { margin-left: auto; }
 
 /* ── Abandon modal ───────────────────────────────────
    Two-step: confirm popup, then score popup. Both
@@ -1555,6 +1560,16 @@ footer.page-footer a:hover { color: var(--accent); }
   .scroll-3d-bg-blurb { font-size: 0.82rem; }
   .scroll-3d-meta { bottom: 50px; }
   .scroll-3d-name { font-size: 1.1rem; }
+  /* Full-bleed via `100vw + calc(50% - 50vw)` can be a hair wider than
+     the actual scroll-viewport width when a scrollbar is present, which
+     gives the page horizontal scroll on phones. Pin the section flush
+     to the body's edge instead, undoing the body's side padding. */
+  .scroll-3d-section {
+    width: auto;
+    margin-left: -14px;
+    margin-right: -14px;
+  }
+  .scroll-3d-desc { white-space: normal; padding: 0 16px; }
 }
 
 /* Combinator gallery — grid of cards, each a real Tromp diagram of a
@@ -2878,3 +2893,118 @@ body.has-fullscreen-pane .tree-wrap > p.lede {
   .halt-controls { flex-wrap: wrap; }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE BREAKPOINTS — shared across home, learn, play and content pages.
+   Sized so the layout works down to ~360px (iPhone SE / small Androids).
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  body.page {
+    /* The 80px top room was reserved for the fixed burger nav; on a phone
+       the burger is smaller (48px) so 60px is enough — and the 24px side
+       padding ate too much horizontal room when paragraphs had to wrap
+       inside `code` spans. */
+    padding: 60px 14px 32px;
+    line-height: 1.65;
+  }
+  .page-wrap h1 { font-size: 1.3rem; letter-spacing: .08em; }
+  .page-wrap h2 { font-size: 1.05rem; margin-top: 28px; }
+  .page-wrap h3 { font-size: 0.9rem; }
+  .page-wrap pre {
+    padding: 12px 14px;
+    font-size: 0.78rem;
+    /* Long expressions inside the playground / cheat-sheet would otherwise
+       force the whole page to scroll sideways. Keep the horizontal scroll
+       contained to the <pre>. */
+    max-width: 100%;
+  }
+  .page-wrap hr { margin: 32px 0; }
+
+  /* Home: hero + tiles + CTAs all tighten and the scroll-3D section
+     gets a shorter pin so the burger doesn't permanently shadow it. */
+  .hero { padding: 24px 0 24px; }
+  .hero .cta { gap: 8px; }
+  .hero .cta a { padding: 11px 18px; font-size: 0.72rem; letter-spacing: .12em; }
+  .tile-grid { grid-template-columns: 1fr; gap: 12px; margin: 22px 0; }
+  .tile { padding: 18px; }
+
+  /* Learn page: lesson nav becomes scrollable horizontally instead of
+     wrapping into 4-5 rows that push the lesson body offscreen. */
+  .lesson-nav-wrap { padding: 10px 14px 0; margin: 0 -14px 20px; }
+  .lesson-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 10px;
+  }
+  .lesson-nav button { flex: 0 0 auto; padding: 6px 10px; font-size: 0.68rem; }
+
+  /* ── Play page ─────────────────────────────────────────────────── */
+  .play-frame { gap: 14px; }
+  .play-mode-bar {
+    gap: 6px;
+    padding: 8px 10px;
+    margin: 10px 0 14px;
+    /* All four mode buttons (Normal / Daily / Calendar / Speedrun) plus
+       the active-mode chip don't fit in one line at 360px; keep them in
+       a scrollable horizontal track so the player can swipe between
+       them instead of wrapping into a tall stack that pushes the
+       diagram below the fold. */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .play-mode-btn { flex: 0 0 auto; padding: 7px 11px; font-size: 0.74rem; }
+  .play-mode-chip {
+    /* On a wrap-nowrap container the chip would scroll off-screen with
+       the buttons. Push it to its own row underneath. */
+    margin-left: 0;
+    flex-basis: 100%;
+    text-align: left;
+    padding-top: 4px;
+  }
+  .play-status {
+    padding: 10px 12px;
+    font-size: 0.74rem;
+    gap: 8px;
+  }
+  .diff-stars .star { font-size: 0.95rem; }
+  .play-diagram {
+    padding: 24px 12px;
+    min-height: 240px;
+  }
+  .play-diagram svg { max-height: 220px; }
+  .play-input-row { flex-direction: column; }
+  .play-input-row input { width: 100%; }
+  .play-action-bar { gap: 6px; }
+  .play-action-bar .btn { font-size: 0.7rem; padding: 9px 12px; }
+  .play-action-bar .play-abandon-spacer { margin-left: 0; }
+  .play-pregame, .play-daily-solved { padding: 14px; }
+  .play-pregame-card { padding: 18px 16px; }
+  .play-pregame-diff { gap: 5px; }
+  .play-diff-btn { padding: 7px 10px; font-size: 0.68rem; }
+  .play-pregame-title { font-size: 0.7rem; }
+  .play-pregame-blurb { font-size: 0.74rem; }
+  .play-daily-solved-headline { font-size: 1.25rem; margin: 4px 0 12px; }
+  .play-daily-solved-stats { gap: 20px; }
+  .play-counters { gap: 10px; font-size: 0.68rem; }
+  .play-modal { padding: 14px; }
+  .play-modal-card { padding: 18px 18px; }
+  .play-modal-scores { gap: 16px; }
+  .play-modal-scores b { font-size: 1.15rem; }
+  .play-clear-data { gap: 10px; margin-top: 22px; }
+  .play-clear-data .btn { font-size: 0.7rem; padding: 9px 12px; }
+
+  /* Calendar: shrink to fit 7 narrow columns at ~50px each. Numbers
+     stay readable; the dot-row underneath wraps if needed. */
+  .play-calendar { padding: 10px 10px 12px; }
+}
+
+@media (max-width: 420px) {
+  /* iPhone SE / small Android — the calendar legend would otherwise
+     wrap into 3 rows and shove the day grid out of view. Hide the
+     status legend on the smallest screens; the cell colours still
+     communicate state. */
+  .play-cal-legend { display: none; }
+  .play-mode-btn span { font-size: 0.72rem; }
+  .hero h1 { font-size: clamp(1.6rem, 8vw, 2.2rem); }
+}

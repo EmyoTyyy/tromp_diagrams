@@ -141,13 +141,27 @@ input[type=text].invalid { border-color: var(--danger); }
 .nav-drawer {
   position: fixed;
   top: 0; right: -300px;
-  width: 280px; height: 100vh;
+  width: 280px;
+  /* `100vh` doesn't shrink for the mobile URL bar, so the bottom links
+     could end up cut off on phones; svh/dvh tracks the real visible
+     viewport, with vh as a fallback for older browsers. */
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  max-width: 90vw;
   background: var(--surface);
   border-left: 1px solid var(--border);
   padding: 60px 0 20px 0;
   transition: right .28s var(--ease);
   z-index: 4900;
   display: flex; flex-direction: column;
+  /* Make the link list scrollable when there are more links than fit on a
+     small screen — previously, bottom entries (Cheatsheet, About) were
+     unreachable on short viewports. `overscroll-behavior: contain` keeps
+     scroll inside the drawer rather than rubber-banding the page beneath. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .nav-drawer.open { right: 0; }
 .nav-drawer a {
@@ -159,6 +173,10 @@ input[type=text].invalid { border-color: var(--danger); }
   text-transform: uppercase;
   border-bottom: 1px solid var(--border);
   transition: background .15s, color .15s;
+  /* Lock each link's height so flex layout doesn't squash entries when
+     the drawer is shorter than the link list — the user needs to be able
+     to scroll to whatever didn't fit. */
+  flex: 0 0 auto;
 }
 .nav-drawer a:hover { background: var(--surface-2); color: var(--accent); }
 .nav-drawer a.active { color: var(--accent); }
@@ -170,6 +188,27 @@ input[type=text].invalid { border-color: var(--danger); }
   z-index: 4800;
 }
 .nav-overlay.open { opacity: 1; pointer-events: auto; }
+
+/* ── Mobile baseline ───────────────────────────────────────────────────
+   These rules apply to every page that pulls in theme.css. Page-specific
+   layouts (visualizer, play) layer their own breakpoints on top. */
+@media (max-width: 700px) {
+  /* Inputs run wider so the on-screen keyboard's autocomplete bar
+     doesn't obscure tiny target areas. */
+  input[type=text], input[type=number], textarea, select {
+    font-size: 16px;     /* prevents iOS Safari from auto-zooming on focus */
+    padding: 10px 12px;
+  }
+  .btn { font-size: 0.78rem; padding: 11px 16px; }
+  /* Slightly bigger tap targets on the burger so it's reachable with a
+     thumb without zooming in. */
+  .nav-toggle { width: 48px; height: 48px; font-size: 1.2rem; }
+  .nav-drawer { width: 260px; }
+  /* Tooltips hide on touch — they trigger on tap and stick around blocking
+     the next tap, which is worse than no tooltip at all. */
+  .tt[data-tt]:hover::after,
+  .tt[data-tt]:hover::before { display: none; }
+}
 
 /* ── Tooltip ─────────────────────────────────────── */
 .tt {
