@@ -6,10 +6,65 @@
 //   \x y z. body        sugar for λx.λy.λz. body
 //   M N P               left-associative application
 //   (M)                 grouping
-//   let x = e1 in e2    desugars to (\x. e2) e1
-//   let x = e1; y = e2 in e3   chained lets
+//   let x = e1 in e2    parse-time macro: e1 is substituted for x in e2.
+//                       The let leaves no trace in the AST — the diagram
+//                       shows only the substituted lambda code.
+//   let x = e1; y = e2 in e3   chained lets, applied left-to-right
+//                              (later bindings can use earlier ones).
+//   letrec x = e1 in e2 same as let, but the rhs is wrapped in Y so
+//                       it can reference itself.
 //   \x. \y. body  is also valid (no syntactic difference)
 // ═══════════════════════════════════════
+
+// Capture-avoiding substitution on the named AST.  Used by the let macro
+// at parse time, so it doesn't need IDs from the rest of the pipeline —
+// fresh nodes will get their ids from the mk* helpers in ast.js.
+function _letFreeVars(n, acc) {
+  acc = acc || new Set();
+  if (n.t === 'var') { acc.add(n.v); return acc; }
+  if (n.t === 'lam') {
+    const inner = new Set();
+    _letFreeVars(n.b, inner);
+    inner.delete(n.v);
+    for (const v of inner) acc.add(v);
+    return acc;
+  }
+  _letFreeVars(n.f, acc);
+  _letFreeVars(n.a, acc);
+  return acc;
+}
+function _letFreshName(base, avoid) {
+  const root = base.replace(/'+$/, '');
+  let cand = root + "'";
+  while (avoid.has(cand)) cand += "'";
+  return cand;
+}
+function _letCloneNamed(n) {
+  if (n.t === 'var') return mkVar(n.v);
+  if (n.t === 'lam') return mkLam(n.v, _letCloneNamed(n.b));
+  return mkApp(_letCloneNamed(n.f), _letCloneNamed(n.a));
+}
+function _letSubst(body, name, value) {
+  if (body.t === 'var') {
+    return body.v === name ? _letCloneNamed(value) : mkVar(body.v);
+  }
+  if (body.t === 'lam') {
+    // Inner λ shadows the outer name → stop substituting in this branch.
+    if (body.v === name) return mkLam(body.v, _letCloneNamed(body.b));
+    let v = body.v, b = body.b;
+    // If the binder's name would capture a free var of `value`, α-rename
+    // the binder first so the substituted occurrences stay free.
+    const fvV = _letFreeVars(value);
+    if (fvV.has(v)) {
+      const avoid = new Set([...fvV, ...(_letFreeVars(b)), name]);
+      const newV = _letFreshName(v, avoid);
+      b = _letSubst(b, v, mkVar(newV));
+      v = newV;
+    }
+    return mkLam(v, _letSubst(b, name, value));
+  }
+  return mkApp(_letSubst(body.f, name, value), _letSubst(body.a, name, value));
+}
 
 function tokenize(s) {
   s = s.replace(/λ/g, '\\');
@@ -68,10 +123,14 @@ class Parser {
     return b;
   }
 
-  // let     x = e1 [; y = e2 ; ...] in body  →  (\x. (\y. ... body) e2) e1
-  // letrec  x = e1 [; ...]            in body  →  (\x. (...) body) (Y (\x. e1))
-  //   — wraps each rhs with `Y (\name. rhs)` so the binding can reference
-  //   itself. Multiple bindings get sequential (non-mutual) recursion.
+  // `let` is a parse-time macro: the value is substituted directly into
+  // the body. After parsing, there's no `(\x. body) value` redex in the
+  // AST — just the substituted lambda code. So `let recu = Y in 3`
+  // produces just `3` (recu isn't used in 3, so Y disappears entirely),
+  // while `let f = \x. x in f y` produces `(\x. x) y`.
+  //
+  // For `letrec`, the value is first wrapped in `Y (\name. value)` so
+  // it can reference itself recursively, then substituted in the same way.
   letExpr(recursive) {
     this.eat(); // consume LET / LETREC
     const bindings = [];
@@ -87,12 +146,13 @@ class Parser {
     if (this.peek() !== 'IN') throw new Error("let: expected 'in'");
     this.eat(); // consume IN
     let body = this.term();
-    // Build right-to-left so the outer-most is the first binding
+    // Apply substitutions right-to-left so a later binding sees the
+    // earlier ones as already-substituted values (lexical scoping).
     for (let j = bindings.length - 1; j >= 0; j--) {
       const v = recursive
         ? mkApp(mkVar('Y'), mkLam(bindings[j].name, bindings[j].value))
         : bindings[j].value;
-      body = mkApp(mkLam(bindings[j].name, body), v);
+      body = _letSubst(body, bindings[j].name, v);
     }
     return body;
   }

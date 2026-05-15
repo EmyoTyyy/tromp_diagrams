@@ -48,10 +48,10 @@ function escapeHTML(s) {
 // `EXPLICIT_PARENS` → wrap everything that could be ambiguous.
 // We add data attributes (data-vid, data-binder) so we can highlight occurrences.
 //
-// The parser desugars `let x = v in body` to `(\x. body) v`. Both forms
-// produce identical ASTs, so we detect the pattern here and print it back
-// as `let x = v in body` — far easier to read and matches the surface
-// syntax most users actually typed.
+// Note: `let x = v in body` is a parse-time macro — the parser substitutes
+// `v` into `body` directly, so by the time the pretty-printer runs there's
+// no `(\x. body) v` redex to recognise. What you see here is the plain
+// lambda code that results from the substitution.
 function renderCode(node, needParens, colorOn, ctx = {}) {
   const wrap = (col, txt, attrs = '') => {
     if (colorOn) return `<span style="color:${col}"${attrs}>${txt}</span>`;
@@ -63,17 +63,6 @@ function renderCode(node, needParens, colorOn, ctx = {}) {
       ? ` class="var-occ" data-binder="${binderId}" data-name="${escapeHTML(node.v)}"`
       : ` class="var-occ var-free" data-name="${escapeHTML(node.v)}"`;
     return wrap(node.color, escapeHTML(node.v), attrs);
-  }
-  // Let-form recognition: `(\x. body) value` → `let x = value in body`.
-  if (node.t === 'app' && node.f.t === 'lam') {
-    const lam = node.f;
-    const value = renderCode(node.a, false, colorOn, ctx);
-    const newScope = { ...(ctx.scope || {}), [lam.v]: lam.id };
-    const body = renderCode(lam.b, false, colorOn, { ...ctx, scope: newScope });
-    const kw = (txt) => colorOn ? `<span style="color:#888">${txt}</span>` : txt;
-    const name = `<span class="binder" data-binder-id="${lam.id}" data-name="${escapeHTML(lam.v)}"${colorOn ? ` style="color:${lam.color}"` : ''}>${escapeHTML(lam.v)}</span>`;
-    const s = kw('let') + ' ' + name + ' = ' + value + ' ' + kw('in') + ' ' + body;
-    return needParens ? '(' + s + ')' : s;
   }
   if (node.t === 'lam') {
     const newScope = { ...(ctx.scope || {}), [node.v]: node.id };
@@ -99,12 +88,6 @@ function renderCode(node, needParens, colorOn, ctx = {}) {
 
 function renderCodePlain(node, needParens) {
   if (node.t === 'var') return node.v;
-  // Let-form recognition: keep the surface syntax round-trippable.
-  if (node.t === 'app' && node.f.t === 'lam') {
-    const s = 'let ' + node.f.v + ' = ' + renderCodePlain(node.a, false) +
-              ' in ' + renderCodePlain(node.f.b, false);
-    return needParens ? '(' + s + ')' : s;
-  }
   if (node.t === 'lam') {
     const s = 'λ' + node.v + '. ' + renderCodePlain(node.b, false);
     return needParens ? '(' + s + ')' : s;
