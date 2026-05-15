@@ -749,13 +749,23 @@ class Pane {
     const dw = this.dwEl;
     dw.addEventListener('wheel', (e) => {
       if (e.target.closest('.zoom-controls') || e.target.closest('.fs-btn')) return;
+      // The .dw container has padding around the SVG (and the SVG is
+      // flex-centred inside it), so a slice of the diagram window is
+      // empty surface-2 space rather than diagram. Wheel events over
+      // that empty band should fall through to page scroll — hijacking
+      // them just to zoom an off-cursor point would trap the user any
+      // time their pointer drifted to the edge of the visualizer.
+      const svgRect = this.svgEl.getBoundingClientRect();
+      const insideSvg =
+        e.clientX >= svgRect.left && e.clientX <= svgRect.right &&
+        e.clientY >= svgRect.top  && e.clientY <= svgRect.bottom;
+      if (!insideSvg) return;
       e.preventDefault();
       // Convert the cursor position into the SVG's own coordinate system,
       // which is what the viewport <g> transform is applied in. Using the
       // .dw rect would put the focus point in the wrong place when .dw
       // centres the SVG via flex (non-fullscreen layout) — the user would
       // see the diagram drift instead of zooming under the cursor.
-      const svgRect = this.svgEl.getBoundingClientRect();
       const cx = e.clientX - svgRect.left;
       const cy = e.clientY - svgRect.top;
       const factor = e.deltaY < 0 ? 1.1 : 1/1.1;
