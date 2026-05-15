@@ -900,16 +900,26 @@ body.presentation.hud-hidden .pane .code-display { display: none !important; }
   box-shadow: 0 0 0 1px var(--accent);
 }
 
-/* ── History dropdown ─────────────────────────────────── */
+/* ── History dropdown ───────────────────────────────────
+   Pinned to fill the input row's full width — earlier versions used
+   `right: 0` + `min-width: 280px`, which let long λ-expressions push
+   the popup's *left* edge off the viewport. Now the popup never
+   exceeds its parent's width, and each entry truncates with an
+   ellipsis instead. */
 .history-pop {
   position: absolute;
   top: 100%;
+  left: 0;
   right: 0;
   background: var(--surface);
   border: 1px solid var(--border);
-  min-width: 280px;
   max-height: 320px;
   overflow-y: auto;
+  /* Belt-and-braces: the parent (.ir) is the positioning context, so
+     left:0 + right:0 already pins the width to it, but capping max-width
+     keeps a stray min-content child from blowing the popup open. */
+  max-width: 100%;
+  box-sizing: border-box;
   z-index: 200;
   display: none;
   margin-top: 4px;
@@ -921,15 +931,32 @@ body.presentation.hud-hidden .pane .code-display { display: none !important; }
   cursor: pointer;
   border-bottom: 1px solid var(--border);
   color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: flex;
   align-items: center;
   gap: 8px;
+  /* `min-width: 0` lets the inner expression span shrink below its
+     content size, which is what makes its `text-overflow: ellipsis`
+     actually kick in inside a flex row. Without this the long
+     expression forces the row wider than the popup. */
+  min-width: 0;
 }
 .history-item:hover { background: var(--surface-2); }
-.history-item .del-h { color: var(--muted); font-size: 0.7rem; margin-left: auto; }
+.history-item .history-expr {
+  /* Inner span: takes whatever space remains after the ✕ button,
+     truncates the rest with an ellipsis. */
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.history-item .del-h {
+  color: var(--muted);
+  font-size: 0.7rem;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
 .history-item .del-h:hover { color: var(--danger); }
 .history-item.empty { color: var(--muted); font-style: italic; cursor: default; }
 .history-item.empty:hover { background: transparent; }

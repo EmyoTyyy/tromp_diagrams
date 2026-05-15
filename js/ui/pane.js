@@ -871,8 +871,15 @@ class Pane {
       const it = document.createElement('div');
       it.className = 'history-item';
       const tx = document.createElement('span');
-      tx.style.flex = '1'; tx.style.overflow = 'hidden'; tx.style.textOverflow = 'ellipsis';
+      // Use a class instead of inline style so the CSS-side truncation
+      // rules (flex/min-width/ellipsis) apply — inline `flex: 1` alone
+      // wasn't enough to actually clip a wide expression.
+      tx.className = 'history-expr';
       tx.textContent = expr;
+      // The full expression is still readable on hover via the native
+      // browser title tooltip — useful when several truncated entries
+      // share the same visible prefix.
+      tx.title = expr;
       tx.onclick = () => {
         this.editor.setValue(expr);
         this.historyPop.classList.remove('open');
