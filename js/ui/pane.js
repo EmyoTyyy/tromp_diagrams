@@ -559,6 +559,14 @@ class Pane {
       onRedexClick: (e) => this.reduceAtNode(parseInt(e.currentTarget.dataset.appId)),
       skipRedexZones: this.isRunning,
     });
+    // In presentation, refit after every render — reduction grows /
+    // shrinks the diagram and without this the user can lose half of
+    // it off the bottom or right edge. We use rAF so the new SVG
+    // width/height (just set as attributes by renderDiagram) have
+    // taken effect before fit recomputes.
+    if (typeof inPresentation !== 'undefined' && inPresentation) {
+      requestAnimationFrame(() => this.autoFit());
+    }
   }
 
   _renderBLC() {

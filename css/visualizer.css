@@ -595,11 +595,40 @@ body.presentation .pane {
 }
 body.presentation .pane .code-display {
   text-align: center;
-  font-size: 1.4rem;
-  padding: 18px;
+  /* Long expressions hurt at 1.4rem and 22-char lines wrap weirdly at
+     huge sizes; clamp() shrinks the font on long terms so it stays
+     readable without pushing the diagram off the bottom of the screen. */
+  font-size: clamp(0.85rem, 1.6vw, 1.4rem);
+  padding: 14px 24px;
   background: transparent;
   border: none;
+  /* Hard cap on how much vertical room the prettifier can claim, so a
+     5-line expression doesn't squeeze the diagram into a sliver. The
+     residual scroll keeps the rest reachable. */
+  max-height: 30vh;
+  overflow-y: auto;
+  /* Reset the .code-inner outer-clipping rule from the visualiser base
+     so the inner wrapper can lay out normally below. */
+  overflow-x: visible;
 }
+body.presentation .pane .code-display:has(.code-inner) {
+  padding: 14px 24px;
+  overflow: visible;
+  overflow-y: auto;
+  max-height: 30vh;
+}
+/* The .code-inner wrapper exists for the desktop copy-button anchoring
+   trick; in presentation we want plain wrapping text instead, no
+   horizontal scrollbar, no padding-right reservation for a button
+   that's already hidden below. */
+body.presentation .pane .code-display .code-inner {
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
+  padding: 0;
+  line-height: 1.45;
+}
+body.presentation .pane .code-display .copy-btn { display: none !important; }
 body.presentation .pane .dw {
   flex: 1;
   padding: 0;
@@ -608,12 +637,21 @@ body.presentation .pane .dw {
   min-height: 0;
   display: block;
   position: relative;
+  /* Anything sticking past the SVG box during the post-step refit looks
+     like a "the diagram escaped" bug; clip it to the diagram window. */
+  overflow: hidden;
 }
 body.presentation .pane .dw svg {
   position: absolute;
   top: 0; left: 0;
   transform-origin: 0 0;
   overflow: visible;
+  /* In normal mode the SVG width/height CSS-transition over var(--dur)
+     so the box grows smoothly. In presentation we re-autoFit after every
+     step and that fit reads the *attribute* (final size); if the visible
+     SVG box is still in flight, the fitted viewport would briefly clip.
+     Snap the resize instead so fit + content always agree. */
+  transition: none;
 }
 body.presentation .pane .fs-btn,
 body.presentation .pane .zoom-controls { display: none; }
