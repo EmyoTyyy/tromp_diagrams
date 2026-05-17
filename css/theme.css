@@ -32,6 +32,13 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Defence-in-depth against tooltips / animations / scroll-3d sections
+     that occasionally overshoot the viewport by a pixel or two — without
+     this, the body briefly grows wider than the viewport and the page
+     twitches as the scrollbar appears, then vanishes. `clip` is preferred
+     over `hidden` because it doesn't create a new scroll container that
+     could break sticky/fixed positioning inside the page. */
+  overflow-x: clip;
 }
 
 /* Branded text selection */
@@ -238,6 +245,24 @@ input[type=text].invalid { border-color: var(--danger); }
 .tt[data-tt-pos="below"]:hover::after {
   bottom: auto;
   top: calc(100% + 6px);
+}
+/* Right-anchored tooltip: for buttons sitting near the right edge of the
+   viewport (e.g. Draw at the end of the .ir row), centring the tooltip on
+   the button extended it past the viewport edge — which briefly created a
+   horizontal scrollbar and twitched the whole page. Pin its right edge to
+   the button's right instead so the tooltip grows inward. */
+.tt[data-tt-align="right"]:hover::after {
+  left: auto;
+  /* Nudged 1px past the button's right edge — the tooltip is pixel-aligned
+     per spec, but reads as slightly inset to the eye because the box's
+     border sits 1px inside the right edge of the visible glyphs. */
+  right: -1px;
+  transform: none;
+}
+.tt[data-tt-align="left"]:hover::after {
+  left: 0;
+  right: auto;
+  transform: none;
 }
 
 /* ── Toast / warnings ─────────────────────────────────────── */

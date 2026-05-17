@@ -85,7 +85,7 @@ class Pane {
           <div class="autocomplete-list"></div>
         </div>
         <button class="btn-sec btn tt" data-tt="Recent expressions" data-tt-pos="below" data-act="history">⟲</button>
-        <button class="btn tt" data-tt="Parse and visualize (Ctrl+Enter)" data-tt-pos="below" data-act="draw">Draw</button>
+        <button class="btn tt" data-tt="Parse and visualize (Ctrl+Enter)" data-tt-pos="below" data-tt-align="right" data-act="draw">Draw</button>
       </div>
       <div class="input-error"></div>
       <div class="find-bar">
