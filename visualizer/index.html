@@ -30,7 +30,7 @@
 </div>
 <div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
 <nav class="nav-drawer" id="navDrawer">
-  <a href="../index.html">Home</a>
+  <a href="../">Home</a>
   <a href="../visualizer/" class="active">Visualizer</a>
   <a href="../learn/">Learn</a>
   <a href="../play/">Play</a>
@@ -83,7 +83,10 @@
       </div>
     </div>
 
-    <!-- Global toolbar (display settings shared across all panes) -->
+    <!-- Global toolbar (display settings shared across all panes). Most
+         on/off preferences live in the Settings modal (⚙) — the toolbar
+         keeps only the immediate-feedback controls (scale, speed) and the
+         per-session sync actions (revealed when sync is enabled). -->
     <div class="global-bar">
       <div class="scr">
         <span>scale:</span>
@@ -95,16 +98,19 @@
         <input type="range" id="speed" min="1" max="20" value="9" oninput="setSpeed(this.value)">
         <span id="speedv">1.0x</span>
       </div>
-      <button class="btn btn-toggle tt" data-tt="Color-code variables" data-tt-pos="below" id="colorBtn" onclick="toggleColor()">Color: OFF</button>
-      <button class="btn btn-toggle active tt" data-tt="Animate transitions" data-tt-pos="below" id="animBtn" onclick="toggleAnim()">Anim: ON</button>
-      <button class="btn btn-toggle tt" data-tt="Show explicit parentheses" data-tt-pos="below" id="parensBtn" onclick="toggleParens()">Parens: OFF</button>
-      <button class="btn btn-toggle tt" data-tt="Stack panes vertically (default) or place them side-by-side" data-tt-pos="below" id="layoutBtn" onclick="togglePanesLayout()">Stacked</button>
-      <button class="btn btn-toggle tt" data-tt="Sync step/run/reset across all panes" data-tt-pos="below" id="syncBtn" onclick="toggleSync()">Sync: OFF</button>
-      <button class="btn btn-sec tt" data-tt="Step in all panes (sync mode)" data-tt-pos="below" onclick="syncStep()" style="display:none" id="syncStepBtn">Step</button>
-      <button class="btn btn-sec tt" data-tt="Run all panes (sync mode)" data-tt-pos="below" onclick="syncRun()" style="display:none" id="syncRunBtn">Run</button>
-      <button class="btn btn-sec tt" data-tt="Reset all panes" data-tt-pos="below" onclick="syncReset()" style="display:none" id="syncResetBtn">Reset</button>
+      <!-- Quick-access toggles for the most-used preferences. They're
+           also mirrored in the Settings modal — both surfaces drive the
+           same SETTINGS slot, syncSettingToggleUI keeps their visuals
+           aligned. -->
+      <button class="btn btn-toggle tt" data-tt="Color-code variables" data-tt-pos="below" id="colorBtn" onclick="toggleSetting('color')">Color: OFF</button>
+      <button class="btn btn-toggle tt" data-tt="Show explicit parentheses" data-tt-pos="below" id="parensBtn" onclick="toggleSetting('parens')">Parens: OFF</button>
+      <button class="btn btn-toggle tt" data-tt="Sync step/run/reset across all panes" data-tt-pos="below" id="syncBtn" onclick="toggleSetting('sync')">Sync: OFF</button>
+      <button class="btn btn-sec tt" data-tt="Step in all panes (sync mode)" data-tt-pos="below" onclick="syncStep()" style="display:none" id="syncStepBtn">Sync ▶ Step</button>
+      <button class="btn btn-sec tt" data-tt="Run all panes (sync mode)" data-tt-pos="below" onclick="syncRun()" style="display:none" id="syncRunBtn">Sync ▶ Run</button>
+      <button class="btn btn-sec tt" data-tt="Reset all panes" data-tt-pos="below" onclick="syncReset()" style="display:none" id="syncResetBtn">Sync ▶ Reset</button>
       <button class="btn btn-sec tt" data-tt="Presentation mode (keyboard nav)" data-tt-pos="below" style="margin-left:auto;" onclick="enterPresentation()">▶ Present</button>
-      <button class="btn btn-sec tt" data-tt="Keyboard shortcuts (?)" data-tt-pos="below" onclick="toggleShortcuts()" style="font-weight:500;">?</button>
+      <button class="btn btn-sec tt" data-tt="Settings" data-tt-pos="below" data-tt-align="right" onclick="toggleSettings()" style="font-weight:500;">⚙</button>
+      <button class="btn btn-sec tt" data-tt="Keyboard shortcuts (?)" data-tt-pos="below" data-tt-align="right" onclick="toggleShortcuts()" style="font-weight:500;">?</button>
     </div>
 
     <!-- The panes container -->
@@ -131,6 +137,92 @@
   <span><kbd>F</kbd> fit</span>
   <span><kbd>H</kbd> hide HUD</span>
   <span><kbd>Esc</kbd> exit</span>
+</div>
+
+<!-- Settings modal — toggled by the ⚙ button. Each row is a labelled
+     toggle; preferences are persisted to localStorage and re-applied on
+     load. Sections group related settings so the panel stays scannable
+     even when more options get added later. -->
+<div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)toggleSettings()">
+  <div class="settings-card">
+    <div class="settings-head">
+      <span>Settings</span>
+      <button class="settings-close" onclick="toggleSettings()" aria-label="Close">×</button>
+    </div>
+    <div class="settings-body">
+      <section>
+        <h4>Display</h4>
+        <label class="setting-row">
+          <span class="setting-label">Color-code variables<span class="setting-desc">Tint each bound variable so reductions are easier to follow.</span></span>
+          <button class="setting-toggle" id="setColor" data-setting="color" onclick="toggleSetting('color')" aria-pressed="false"></button>
+        </label>
+        <label class="setting-row">
+          <span class="setting-label">Animate transitions<span class="setting-desc">Smoothly morph lines between β-reductions instead of snapping.</span></span>
+          <button class="setting-toggle" id="setAnim" data-setting="anim" onclick="toggleSetting('anim')" aria-pressed="true"></button>
+        </label>
+        <label class="setting-row">
+          <span class="setting-label">Show explicit parentheses<span class="setting-desc">Render every grouping in the pretty-printed code, not just the necessary ones.</span></span>
+          <button class="setting-toggle" id="setParens" data-setting="parens" onclick="toggleSetting('parens')" aria-pressed="false"></button>
+        </label>
+      </section>
+      <section>
+        <h4>Layout</h4>
+        <label class="setting-row">
+          <span class="setting-label">Side-by-side panes<span class="setting-desc">Stack panes horizontally for comparison instead of vertically.</span></span>
+          <button class="setting-toggle" id="setLayout" data-setting="sideBySide" onclick="toggleSetting('sideBySide')" aria-pressed="false"></button>
+        </label>
+        <label class="setting-row">
+          <span class="setting-label">Hide Definitions sidebar<span class="setting-desc">Give the diagram the full page width — useful for screenshots or narrow screens.</span></span>
+          <button class="setting-toggle" id="setHideSidebar" data-setting="hideSidebar" onclick="toggleSetting('hideSidebar')" aria-pressed="false"></button>
+        </label>
+      </section>
+      <section>
+        <h4>Editor</h4>
+        <label class="setting-row">
+          <span class="setting-label">Disable autocomplete<span class="setting-desc">Stop suggesting matching definition names while you type.</span></span>
+          <button class="setting-toggle" id="setNoAutocomplete" data-setting="disableAutocomplete" onclick="toggleSetting('disableAutocomplete')" aria-pressed="false"></button>
+        </label>
+      </section>
+      <section>
+        <h4>Reduction defaults</h4>
+        <div class="setting-row setting-row-input">
+          <span class="setting-label">Default strategy<span class="setting-desc">New panes start with this reduction strategy selected.</span></span>
+          <select class="setting-select" id="setStrategy" onchange="setReductionDefault('defaultStrategy', this.value)">
+            <option value="normal">normal order</option>
+            <option value="applicative">applicative</option>
+            <option value="cbn">call-by-name</option>
+            <option value="cbv">call-by-value</option>
+          </select>
+        </div>
+        <div class="setting-row setting-row-input">
+          <span class="setting-label">Default max steps<span class="setting-desc">Run / Run N stops here. Leave blank or 0 for unlimited.</span></span>
+          <input type="text" class="setting-input" id="setMaxSteps" value="1000" onchange="setReductionDefault('defaultMaxSteps', this.value)">
+        </div>
+        <label class="setting-row">
+          <span class="setting-label">Show BLC encoding by default<span class="setting-desc">Pre-open the binary lambda calculus row on every new pane.</span></span>
+          <button class="setting-toggle" id="setBlc" data-setting="defaultBlc" onclick="toggleSetting('defaultBlc')" aria-pressed="false"></button>
+        </label>
+        <label class="setting-row">
+          <span class="setting-label">Show Recognize by default<span class="setting-desc">Pre-open the known-term recognition row on every new pane.</span></span>
+          <button class="setting-toggle" id="setRecog" data-setting="defaultRecog" onclick="toggleSetting('defaultRecog')" aria-pressed="false"></button>
+        </label>
+      </section>
+      <section>
+        <h4>Advanced</h4>
+        <label class="setting-row">
+          <span class="setting-label">Sync mode<span class="setting-desc">Step / Run / Reset apply to every pane at once. Sync buttons appear in the toolbar.</span></span>
+          <button class="setting-toggle" id="setSync" data-setting="sync" onclick="toggleSetting('sync')" aria-pressed="false"></button>
+        </label>
+        <label class="setting-row">
+          <span class="setting-label">Show record button <span class="setting-beta">BETA</span><span class="setting-desc">Reveal a ● Rec button on each pane to capture reductions as webm. Frame timing is rough — diagrams with many steps may stutter.</span></span>
+          <button class="setting-toggle" id="setRecord" data-setting="showRecord" onclick="toggleSetting('showRecord')" aria-pressed="false"></button>
+        </label>
+      </section>
+    </div>
+    <div class="settings-foot">
+      <button class="btn btn-sec" onclick="resetSettings()">Reset to defaults</button>
+    </div>
+  </div>
 </div>
 
 <!-- Keyboard shortcuts modal — toggled with the `?` key or the toolbar button.
@@ -212,7 +304,10 @@ function toggleNav() {
 <script src="../js/ui/pane.js"></script>
 <script src="../js/app.js"></script>
 <script>
-// Patch toggleSync to also show/hide the sync action buttons
+// Patch toggleSync to also reveal the sync action buttons in the
+// toolbar. Sync's UI is split: the on/off toggle lives in the Settings
+// modal (a preference), while Step/Run/Reset stay in the toolbar
+// because they need to be one click away during a session.
 (function() {
   const orig = toggleSync;
   toggleSync = function() {
@@ -225,6 +320,13 @@ function toggleNav() {
 })();
 
 initVisualizer();
+loadAndApplySettings();
+
+// Settings modal: ⚙ toggles, Esc closes (handled in the existing keydown
+// listener below).
+function toggleSettings() {
+  document.getElementById('settingsOverlay').classList.toggle('open');
+}
 
 // Keyboard shortcuts modal: '?' toggles, Esc closes.
 function toggleShortcuts() {
@@ -237,8 +339,11 @@ document.addEventListener('keydown', (e) => {
   if (e.key === '?' && !inEditable) {
     e.preventDefault();
     toggleShortcuts();
-  } else if (e.key === 'Escape' && document.getElementById('shortcutsOverlay').classList.contains('open')) {
-    document.getElementById('shortcutsOverlay').classList.remove('open');
+  } else if (e.key === 'Escape') {
+    const sh = document.getElementById('shortcutsOverlay');
+    const st = document.getElementById('settingsOverlay');
+    if (sh && sh.classList.contains('open')) sh.classList.remove('open');
+    if (st && st.classList.contains('open')) st.classList.remove('open');
   }
 });
 </script>

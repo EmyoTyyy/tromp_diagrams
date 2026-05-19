@@ -60,7 +60,31 @@ class Pane {
 
     this._buildDOM();
     this._wire();
+    this._applyReductionDefaults();
     ALL_PANES.push(this);
+  }
+
+  // Pull the user's Reduction-defaults preferences (Settings modal) into
+  // this pane's controls. Runs once on construction so existing panes
+  // aren't retroactively overwritten when the user changes a default.
+  _applyReductionDefaults() {
+    if (typeof SETTINGS === 'undefined') return;
+    if (SETTINGS.defaultStrategy) {
+      this.stratSel.value = SETTINGS.defaultStrategy;
+    }
+    // '' is the "unlimited" sentinel — the pane already treats empty /
+    // 0 as Infinity, so pass it through verbatim.
+    if (SETTINGS.defaultMaxSteps !== undefined) {
+      this.maxStepsInput.value = SETTINGS.defaultMaxSteps;
+    }
+    if (SETTINGS.defaultBlc) {
+      const btn = this.root.querySelector('[data-act="blc"]');
+      if (btn) this.toggleBLC(btn);
+    }
+    if (SETTINGS.defaultRecog) {
+      const btn = this.root.querySelector('[data-act="recog"]');
+      if (btn) this.toggleRecog(btn);
+    }
   }
 
   _buildDOM() {

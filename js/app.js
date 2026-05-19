@@ -44,6 +44,14 @@ function getCaretWord(text, caret) {
 function paneUpdateAutocomplete(pane) {
   const editor = pane.editor;
   const list = pane.acList;
+  // User-disabled via Settings — keep the list closed and bail before
+  // doing any caret / word scanning. Cheap enough that the check on
+  // every keystroke is fine.
+  if (typeof SETTINGS !== 'undefined' && SETTINGS.disableAutocomplete) {
+    list.classList.remove('open');
+    acOptions = [];
+    return;
+  }
   const text = editor.getValue();
   const caret = editor.selectionStart || text.length;
   const { word, start } = getCaretWord(text, caret);
@@ -131,6 +139,193 @@ function insertIntoExpr(name) {
   pane.validate();
 }
 
+// ── Settings (persisted) ──────────────────────────
+// Centralised on/off preferences surfaced via the ⚙ Settings modal.
+// Persisted to localStorage so they survive reloads; loaded on init.
+// Each toggle delegates to an apply function that mutates the older
+// globals (COLOR_MODE, ANIM_ENABLED, …) and re-renders as needed, so
+// the rest of the pipeline doesn't have to know about SETTINGS at all.
+const SETTINGS_KEY = 'tromp_visualizer_settings_v1';
+const SETTINGS_DEFAULTS = {
+  color: false,
+  anim: true,
+  parens: false,
+  sideBySide: false,
+  hideSidebar: false,
+  disableAutocomplete: false,
+  sync: false,
+  showRecord: false,
+  // Per-pane reduction defaults — read by the Pane constructor each time
+  // a new pane is opened. Don't retroactively affect existing panes:
+  // changing the default mid-session would override whatever the user
+  // had locally selected, which is more surprising than helpful.
+  defaultStrategy: 'normal',
+  defaultMaxSteps: '1000',
+  defaultBlc: false,
+  defaultRecog: false,
+};
+let SETTINGS = { ...SETTINGS_DEFAULTS };
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Merge with defaults so a settings file written by an older version
+      // (missing newer keys) still loads cleanly with sensible defaults.
+      SETTINGS = { ...SETTINGS_DEFAULTS, ...parsed };
+    }
+  } catch { /* corrupted storage — fall back to defaults */ }
+}
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(SETTINGS)); }
+  catch { /* private mode / quota — ignore */ }
+}
+
+function loadAndApplySettings() {
+  loadSettings();
+  applyAllSettings();
+}
+
+// Push every setting through its apply function. Used on initial load
+// (to make the live state match what was persisted) and after a "Reset
+// to defaults" so the UI updates without a reload.
+function applyAllSettings() {
+  applySetting('color',               SETTINGS.color);
+  applySetting('anim',                SETTINGS.anim);
+  applySetting('parens',              SETTINGS.parens);
+  applySetting('sideBySide',          SETTINGS.sideBySide);
+  applySetting('hideSidebar',         SETTINGS.hideSidebar);
+  applySetting('disableAutocomplete', SETTINGS.disableAutocomplete);
+  applySetting('sync',                SETTINGS.sync);
+  applySetting('showRecord',          SETTINGS.showRecord);
+  // The Reduction defaults section has no live side-effect — values are
+  // read fresh on each new-pane construction. We only sync the UI here.
+  syncSettingToggleUI();
+}
+
+// Reflect each SETTINGS value into the matching toggle button's pressed
+// state + .on class. Called on load and after every toggle so the modal
+// always matches the live state, even if a setting was changed by some
+// other path (e.g. a back-compat call to the old toggleColor()).
+function syncSettingToggleUI() {
+  const ids = {
+    color: 'setColor', anim: 'setAnim', parens: 'setParens',
+    sideBySide: 'setLayout', hideSidebar: 'setHideSidebar',
+    disableAutocomplete: 'setNoAutocomplete', sync: 'setSync',
+    showRecord: 'setRecord',
+    defaultBlc: 'setBlc', defaultRecog: 'setRecog',
+  };
+  for (const k of Object.keys(ids)) {
+    const btn = document.getElementById(ids[k]);
+    if (!btn) continue;
+    const on = !!SETTINGS[k];
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  // Mirror the non-toggle inputs too so resetSettings() / page reload
+  // restore their visible values.
+  const stratEl = document.getElementById('setStrategy');
+  if (stratEl) stratEl.value = SETTINGS.defaultStrategy;
+  const maxEl = document.getElementById('setMaxSteps');
+  if (maxEl) maxEl.value = SETTINGS.defaultMaxSteps;
+
+  // Toolbar mirrors — the same SETTINGS keys also drive a handful of
+  // quick-access buttons in the global toolbar. Update both their
+  // label (so "Color: ON / OFF" stays accurate) and the .active class
+  // (which paints the button in the accent colour when on).
+  const toolbarMirrors = [
+    { id: 'colorBtn',  key: 'color',  label: 'Color' },
+    { id: 'parensBtn', key: 'parens', label: 'Parens' },
+    { id: 'syncBtn',   key: 'sync',   label: 'Sync' },
+  ];
+  for (const m of toolbarMirrors) {
+    const btn = document.getElementById(m.id);
+    if (!btn) continue;
+    const on = !!SETTINGS[m.key];
+    btn.classList.toggle('active', on);
+    btn.textContent = m.label + ': ' + (on ? 'ON' : 'OFF');
+  }
+}
+
+// For inputs that aren't simple on/off toggles. Validation lives next
+// to the writer so the SETTINGS object never holds something garbage.
+function setReductionDefault(key, raw) {
+  if (key === 'defaultStrategy') {
+    if (!['normal','applicative','cbn','cbv'].includes(raw)) return;
+    SETTINGS.defaultStrategy = raw;
+  } else if (key === 'defaultMaxSteps') {
+    const s = (raw || '').trim();
+    // Empty string is meaningful ("∞") — keep as empty string so the
+    // pane's existing maxIn === '' || parseInt === 0 branch picks
+    // Infinity. Anything else must parse to a positive integer.
+    if (s === '') SETTINGS.defaultMaxSteps = '';
+    else {
+      const n = parseInt(s);
+      if (!Number.isFinite(n) || n < 0) return;
+      SETTINGS.defaultMaxSteps = String(n);
+    }
+  } else return;
+  saveSettings();
+}
+
+function toggleSetting(key) {
+  SETTINGS[key] = !SETTINGS[key];
+  applySetting(key, SETTINGS[key]);
+  syncSettingToggleUI();
+  saveSettings();
+}
+
+function resetSettings() {
+  SETTINGS = { ...SETTINGS_DEFAULTS };
+  applyAllSettings();
+  saveSettings();
+}
+
+// Apply one setting. Each case is intentionally explicit (rather than a
+// table-driven approach) because the underlying behaviours differ —
+// some need a re-render across all panes, some flip a body class, some
+// drive an older global like COLOR_MODE that the rest of the pipeline
+// already reads from.
+function applySetting(key, on) {
+  switch (key) {
+    case 'color':
+      COLOR_MODE = on;
+      for (const p of getAllPanes()) if (p.currentAST) p._render(300 * SPEED_MULT, null);
+      break;
+    case 'anim':
+      ANIM_ENABLED = on;
+      break;
+    case 'parens':
+      EXPLICIT_PARENS = on;
+      for (const p of getAllPanes()) if (p.currentAST) p._render(0, null);
+      break;
+    case 'sideBySide': {
+      const host = document.getElementById('panesHost');
+      if (host) host.classList.toggle('stack', on);
+      break;
+    }
+    case 'hideSidebar':
+      document.querySelector('.app')?.classList.toggle('no-sidebar', on);
+      break;
+    case 'disableAutocomplete':
+      // Close any currently-open autocomplete list so flipping the
+      // setting OFF doesn't leave a stale dropdown floating.
+      if (on) {
+        for (const p of getAllPanes()) p.acList?.classList.remove('open');
+      }
+      break;
+    case 'sync':
+      // Only flip SYNC_MODE if it actually changed — toggleSync() also
+      // reveals the sync action buttons via the patched wrapper.
+      if (SYNC_MODE !== on) toggleSync();
+      break;
+    case 'showRecord':
+      document.querySelector('.app')?.classList.toggle('show-record', on);
+      break;
+  }
+}
+
 // ── Global settings toggles ───────────────────────
 function setScale(v) {
   SCALE = parseInt(v);
@@ -140,26 +335,14 @@ function setScale(v) {
     if (p.currentAST) p._render(250, null);
   }
 }
-function toggleColor() {
-  COLOR_MODE = !COLOR_MODE;
-  const btn = document.getElementById('colorBtn');
-  btn.textContent = 'Color: ' + (COLOR_MODE ? 'ON' : 'OFF');
-  btn.classList.toggle('active', COLOR_MODE);
-  for (const p of getAllPanes()) if (p.currentAST) p._render(300 * SPEED_MULT, null);
-}
-function toggleAnim() {
-  ANIM_ENABLED = !ANIM_ENABLED;
-  const btn = document.getElementById('animBtn');
-  btn.textContent = 'Anim: ' + (ANIM_ENABLED ? 'ON' : 'OFF');
-  btn.classList.toggle('active', ANIM_ENABLED);
-}
-function toggleParens() {
-  EXPLICIT_PARENS = !EXPLICIT_PARENS;
-  const btn = document.getElementById('parensBtn');
-  btn.textContent = 'Parens: ' + (EXPLICIT_PARENS ? 'ON' : 'OFF');
-  btn.classList.toggle('active', EXPLICIT_PARENS);
-  for (const p of getAllPanes()) if (p.currentAST) p._render(0, null);
-}
+// Back-compat shims — the toolbar buttons that called these were moved
+// into the Settings modal, but other code paths (URL handlers, tests,
+// keyboard shortcuts) might still reach for the old names. Route them
+// through toggleSetting() so the modal UI and persisted state stay in
+// sync.
+function toggleColor()  { toggleSetting('color'); }
+function toggleAnim()   { toggleSetting('anim'); }
+function toggleParens() { toggleSetting('parens'); }
 function setSpeed(v) {
   const n = parseInt(v);
   const logSpeed = -1 + (n - 1) * (3 / 19);
@@ -183,32 +366,17 @@ function addPane() {
   activePane = pane;
   pane.markFocused();
 }
-// Toggle between the default vertical stack (one pane per row, full
-// width — diagrams get the most breathing room) and a side-by-side
-// flex grid for direct comparison.
-//
-// CSS class semantics:
-//   `.panes-host` (default)        → flex-direction: column → vertical
-//   `.panes-host.stack`            → flex-direction: row, wrap → side-by-side
-// The button label reflects the current visual mode, not the action.
-function togglePanesLayout() {
-  const host = document.getElementById('panesHost');
-  const sideBySide = host.classList.toggle('stack');
-  const btn = document.getElementById('layoutBtn');
-  if (btn) {
-    btn.textContent = sideBySide ? 'Side-by-side' : 'Stacked';
-    btn.classList.toggle('active', sideBySide);
-  }
-}
+// Back-compat shim — the standalone "Stacked / Side-by-side" toolbar
+// button is gone; the preference lives in the Settings modal now.
+function togglePanesLayout() { toggleSetting('sideBySide'); }
 
 // ── Sync mode ───────────────────────────────
+// SYNC_MODE is the live flag the sync action buttons (Step/Run/Reset)
+// gate on. The on/off control moved into Settings; toggleSync() just
+// flips the flag — the index.html wrapper around it handles showing /
+// hiding the action buttons in the toolbar.
 let SYNC_MODE = false;
-function toggleSync() {
-  SYNC_MODE = !SYNC_MODE;
-  const btn = document.getElementById('syncBtn');
-  btn.classList.toggle('active', SYNC_MODE);
-  btn.textContent = 'Sync: ' + (SYNC_MODE ? 'ON' : 'OFF');
-}
+function toggleSync() { SYNC_MODE = !SYNC_MODE; }
 function syncStep() {
   for (const p of getAllPanes()) p.step();
 }
