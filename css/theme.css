@@ -64,6 +64,87 @@ input[type=text]:focus, input[type=number]:focus, textarea:focus, select:focus {
 }
 input[type=text].invalid { border-color: var(--danger); }
 
+/* ── Range slider (cross-browser) ───────────────────
+   Native range styling differs wildly across Chrome / Firefox / Safari
+   (and worse on iOS). We strip the default chrome and rebuild the
+   track + thumb so every browser renders the same flat, cyan-accented
+   slider that matches the rest of the UI. The selectors below are
+   intentionally duplicated rather than comma-grouped — Chrome and
+   Firefox each drop the entire rule if they don't recognise *any*
+   selector in the list, so combining ::-webkit and ::-moz pseudos
+   would break both. */
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 130px;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  vertical-align: middle;
+}
+input[type=range]:focus { outline: none; }
+
+/* WebKit / Blink (Chrome, Safari, Edge) */
+input[type=range]::-webkit-slider-runnable-track {
+  height: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  /* Pull the thumb up by (track + border − thumb) / 2 so it sits
+     centred on the track; otherwise it floats above on WebKit. */
+  margin-top: -6px;
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(160, 224, 255, 0.12);
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+input[type=range]::-webkit-slider-thumb:hover,
+input[type=range]:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(160, 224, 255, 0.22);
+}
+input[type=range]:active::-webkit-slider-thumb {
+  transform: scale(1.1);
+}
+
+/* Firefox */
+input[type=range]::-moz-range-track {
+  height: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+input[type=range]::-moz-range-progress {
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+input[type=range]::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(160, 224, 255, 0.12);
+  cursor: pointer;
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+input[type=range]::-moz-range-thumb:hover,
+input[type=range]:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 4px rgba(160, 224, 255, 0.22);
+}
+input[type=range]:active::-moz-range-thumb {
+  transform: scale(1.1);
+}
+
 /* ── Buttons ─────────────────────────────────────── */
 .btn {
   background: var(--accent);

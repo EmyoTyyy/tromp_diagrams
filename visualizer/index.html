@@ -105,12 +105,17 @@
       <button class="btn btn-toggle tt" data-tt="Color-code variables" data-tt-pos="below" id="colorBtn" onclick="toggleSetting('color')">Color: OFF</button>
       <button class="btn btn-toggle tt" data-tt="Show explicit parentheses" data-tt-pos="below" id="parensBtn" onclick="toggleSetting('parens')">Parens: OFF</button>
       <button class="btn btn-toggle tt" data-tt="Sync step/run/reset across all panes" data-tt-pos="below" id="syncBtn" onclick="toggleSetting('sync')">Sync: OFF</button>
-      <button class="btn btn-sec tt" data-tt="Step in all panes (sync mode)" data-tt-pos="below" onclick="syncStep()" style="display:none" id="syncStepBtn">Sync ▶ Step</button>
-      <button class="btn btn-sec tt" data-tt="Run all panes (sync mode)" data-tt-pos="below" onclick="syncRun()" style="display:none" id="syncRunBtn">Sync ▶ Run</button>
-      <button class="btn btn-sec tt" data-tt="Reset all panes" data-tt-pos="below" onclick="syncReset()" style="display:none" id="syncResetBtn">Sync ▶ Reset</button>
-      <button class="btn btn-sec tt" data-tt="Presentation mode (keyboard nav)" data-tt-pos="below" style="margin-left:auto;" onclick="enterPresentation()">▶ Present</button>
-      <button class="btn btn-sec tt" data-tt="Settings" data-tt-pos="below" data-tt-align="right" onclick="toggleSettings()" style="font-weight:500;">⚙</button>
-      <button class="btn btn-sec tt" data-tt="Keyboard shortcuts (?)" data-tt-pos="below" data-tt-align="right" onclick="toggleShortcuts()" style="font-weight:500;">?</button>
+      <button class="btn btn-sec tt" data-tt="Step in all panes (sync mode)" data-tt-pos="below" onclick="syncStep()" style="display:none" id="syncStepBtn">Sync <span class="pa">▶</span> Step</button>
+      <button class="btn btn-sec tt" data-tt="Run all panes (sync mode)" data-tt-pos="below" onclick="syncRun()" style="display:none" id="syncRunBtn">Sync <span class="pa">▶</span> Run</button>
+      <button class="btn btn-sec tt" data-tt="Reset all panes" data-tt-pos="below" onclick="syncReset()" style="display:none" id="syncResetBtn">Sync <span class="pa">▶</span> Reset</button>
+      <button class="btn btn-sec tt" data-tt="Presentation mode (keyboard nav)" data-tt-pos="below" style="margin-left:auto;" onclick="enterPresentation()"><span class="pa">▶</span> Present</button>
+      <button class="btn btn-sec btn-glyph tt" data-tt="Settings" data-tt-pos="below" data-tt-align="right" onclick="toggleSettings()" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+      <button class="btn btn-sec btn-glyph tt" data-tt="Keyboard shortcuts (?)" data-tt-pos="below" data-tt-align="right" onclick="toggleShortcuts()">?</button>
     </div>
 
     <!-- The panes container -->
@@ -212,6 +217,10 @@
         <label class="setting-row">
           <span class="setting-label">Sync mode<span class="setting-desc">Step / Run / Reset apply to every pane at once. Sync buttons appear in the toolbar.</span></span>
           <button class="setting-toggle" id="setSync" data-setting="sync" onclick="toggleSetting('sync')" aria-pressed="false"></button>
+        </label>
+        <label class="setting-row">
+          <span class="setting-label">God mode<span class="setting-beta">FAST</span><span class="setting-desc">Strips out the diagram, pretty-printer, and most controls. Run blasts through reductions at full speed and only displays the final result — for large terms where the animation gets in the way.</span></span>
+          <button class="setting-toggle" id="setGodMode" data-setting="godMode" onclick="toggleSetting('godMode')" aria-pressed="false"></button>
         </label>
         <label class="setting-row">
           <span class="setting-label">Show record button <span class="setting-beta">BETA</span><span class="setting-desc">Reveal a ● Rec button on each pane to capture reductions as webm. Frame timing is rough — diagrams with many steps may stutter.</span></span>

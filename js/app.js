@@ -163,6 +163,10 @@ const SETTINGS_DEFAULTS = {
   defaultMaxSteps: '1000',
   defaultBlc: false,
   defaultRecog: false,
+  // God mode: a no-rendering reduction mode for big terms. Hides the
+  // diagram + pretty printer + most pane controls; Run blasts through
+  // β-reductions as fast as possible and displays only the final result.
+  godMode: false,
 };
 let SETTINGS = { ...SETTINGS_DEFAULTS };
 
@@ -199,6 +203,7 @@ function applyAllSettings() {
   applySetting('disableAutocomplete', SETTINGS.disableAutocomplete);
   applySetting('sync',                SETTINGS.sync);
   applySetting('showRecord',          SETTINGS.showRecord);
+  applySetting('godMode',             SETTINGS.godMode);
   // The Reduction defaults section has no live side-effect — values are
   // read fresh on each new-pane construction. We only sync the UI here.
   syncSettingToggleUI();
@@ -215,6 +220,7 @@ function syncSettingToggleUI() {
     disableAutocomplete: 'setNoAutocomplete', sync: 'setSync',
     showRecord: 'setRecord',
     defaultBlc: 'setBlc', defaultRecog: 'setRecog',
+    godMode: 'setGodMode',
   };
   for (const k of Object.keys(ids)) {
     const btn = document.getElementById(ids[k]);
@@ -322,6 +328,9 @@ function applySetting(key, on) {
       break;
     case 'showRecord':
       document.querySelector('.app')?.classList.toggle('show-record', on);
+      break;
+    case 'godMode':
+      document.querySelector('.app')?.classList.toggle('god-mode', on);
       break;
   }
 }

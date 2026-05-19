@@ -108,7 +108,7 @@ class Pane {
         <div class="editor-wrap">
           <div class="autocomplete-list"></div>
         </div>
-        <button class="btn-sec btn tt" data-tt="Recent expressions" data-tt-pos="below" data-act="history">⟲</button>
+        <button class="btn-sec btn btn-icon-glyph tt" data-tt="Recent expressions" data-tt-pos="below" data-act="history" aria-label="Recent expressions">⟲</button>
         <button class="btn tt" data-tt="Parse and visualize (Ctrl+Enter)" data-tt-pos="below" data-tt-align="right" data-act="draw">Draw</button>
       </div>
       <div class="input-error"></div>
@@ -129,7 +129,7 @@ class Pane {
         </select>
         <span class="ctrl-sep"></span>
         <button class="btn btn-sec tt" data-tt="Undo last step" data-act="back" disabled>◀</button>
-        <button class="btn btn-sec tt" data-tt="Single β-reduction" data-act="step">Step ▶</button>
+        <button class="btn btn-sec tt" data-tt="Single β-reduction" data-act="step">Step <span class="pa">▶</span></button>
         <button class="btn btn-sec tt" data-tt="Run / pause / resume" data-act="run">Run</button>
         <button class="btn btn-sec tt" data-tt="Run a fixed number of steps" data-act="runN">Run N</button>
         <button class="btn btn-sec tt" data-tt="Reset to initial expression" data-act="reset">Reset</button>
@@ -168,8 +168,15 @@ class Pane {
             </svg>
           </button>
           <button class="icon-btn tt" data-tt="Record reduction as video" data-act="rec" aria-label="Record">
+            <!-- Idle = filled circle, recording = filled square. CSS
+                 toggles which shape is visible based on the .recording
+                 class on the parent button (set in toggleRecording).
+                 Keeping it inside the SVG means the button geometry
+                 never changes between states, so the surrounding icons
+                 don't shift. -->
             <svg viewBox="0 0 16 16" fill="currentColor" stroke="none">
-              <circle cx="8" cy="8" r="4"/>
+              <circle class="rec-idle" cx="8" cy="8" r="4"/>
+              <rect class="rec-active" x="4.5" y="4.5" width="7" height="7"/>
             </svg>
           </button>
         </span>
@@ -193,6 +200,29 @@ class Pane {
             <g id="${this.zonesId}"></g>
           </g>
         </svg>
+      </div>
+      <!-- God-mode loader panel: shown only while a god-mode reduction
+           is mid-flight (the parent .pane carries .reducing). Loader
+           from Uiverse.io by andrew-manzyk (see Ressources/test.html),
+           reproduced verbatim with its inline svg + mask. -->
+      <div class="god-output">
+        <div class="loader">
+          <svg width="100" height="100" viewBox="0 0 100 100">
+            <defs>
+              <mask id="clipping">
+                <polygon points="0,0 100,0 100,100 0,100" fill="black"></polygon>
+                <polygon points="25,25 75,25 50,75" fill="white"></polygon>
+                <polygon points="50,25 75,75 25,75" fill="white"></polygon>
+                <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+              </mask>
+            </defs>
+          </svg>
+          <div class="box"></div>
+        </div>
+        <div class="god-status">Reducing<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
       </div>
     `;
 
@@ -220,6 +250,8 @@ class Pane {
     this.maxStepsInput = root.querySelector('.max-steps');
     this.stratSel = root.querySelector('.strat-sel');
     this.recordBtn = root.querySelector('[data-act="rec"]');
+
+    this.godOutputEl = root.querySelector('.god-output');
 
     // History dropdown (created lazily)
     this.historyPop = null;
@@ -390,6 +422,8 @@ class Pane {
   reset() {
     if (!this.originalAST) return;
     this.runToken++;
+    this.isRunning = false;
+    this.root.classList.remove('reducing');
     this.currentAST = cloneKeep(this.originalAST);
     this.stepCount = 0;
     this.stepHistory = [];
@@ -401,6 +435,15 @@ class Pane {
 
   async run(opts = {}) {
     if (!this.currentAST) return;
+    // God mode short-circuits the animated reduction loop and goes
+    // straight to the headless fast-path: no rendering, no per-step
+    // animation, just chew through β-reductions until normal form or
+    // max steps. The Run button thus drives different behaviour on
+    // the same handler depending on whether the user has flipped god
+    // mode in Settings.
+    if (typeof SETTINGS !== 'undefined' && SETTINGS.godMode) {
+      return this.runGodMode(opts);
+    }
     // The Run button doubles as Pause/Resume — clicking it while a run is
     // already in progress just toggles the pause state instead of being a
     // no-op (and instead of swapping out the button for a separate one).
@@ -502,6 +545,72 @@ class Pane {
     this.isPaused = !this.isPaused;
     const runBtn = this.root.querySelector('[data-act="run"]');
     if (runBtn) runBtn.textContent = this.isPaused ? 'Resume' : 'Pause';
+  }
+
+  // ── God mode — no-rendering fast reduction ──────────
+  // Reduces synchronously in batches, yielding to the event loop
+  // between batches so the loader animation keeps repainting. There
+  // is no step limit in god mode (per spec) — the loop only stops at
+  // normal form. The start AST (already drawn before Run) and the
+  // final AST (rendered when the loop exits) bookend the operation;
+  // intermediate state is intentionally invisible. Abort by bumping
+  // this.runToken (e.g. a fresh Draw — Reset is disabled while
+  // .reducing is on, so the contract is "click Run, get a result").
+  async runGodMode() {
+    if (!this.currentAST || this.isRunning) return;
+    // Small batch + frequent yields keep the loader's mask / filter
+    // animations (which paint on the main thread, not the compositor)
+    // smooth at ~60fps. A larger batch finishes the reduction faster
+    // overall but stalls the loader between yields, which looks
+    // choppy. 500 is a sweet spot — tens of thousands of reductions
+    // per second on typical terms while still releasing the main
+    // thread every ~few ms.
+    const BATCH = 500;
+    const myToken = ++this.runToken;
+    this.isRunning = true;
+    this.root.classList.add('reducing');
+
+    const strat = this._currentStrategy();
+    const startStep = this.stepCount;
+    const runStart = { ast: cloneKeep(this.currentAST), stepCount: startStep };
+    const wallStart = performance.now();
+    const baselineElapsed = this.totalElapsed;
+    let reachedNF = false;
+    // Tick — refresh the ctrl-bar status row between batches so the
+    // user can watch step count + wall time advance live.
+    const tick = () => {
+      this.totalElapsed = baselineElapsed + (performance.now() - wallStart);
+      this.setStatus('running... step ' + this.stepCount, 'running');
+    };
+    tick();
+
+    try {
+      outer: while (true) {
+        if (myToken !== this.runToken) return;
+        for (let i = 0; i < BATCH; i++) {
+          const result = doStep(this.currentAST, strat);
+          if (!result.reduced) { reachedNF = true; break outer; }
+          this.currentAST = result.node;
+          this.stepCount++;
+        }
+        tick();
+        await new Promise(r => setTimeout(r, 0));
+      }
+    } finally {
+      tick();
+      this.stepHistory.push(runStart);
+      if (this.stepHistory.length > 500) this.stepHistory.shift();
+      this.isRunning = false;
+      this.root.classList.remove('reducing');
+      if (myToken === this.runToken && reachedNF) {
+        // Paint the final AST into the regular diagram + pretty-
+        // printer. Zero animation duration — we want the result on
+        // screen instantly, not an 800ms fade-in.
+        this._render(0, null);
+        this.setStatus('normal form (step ' + this.stepCount + ')', 'nf');
+        this.updateBackBtn();
+      }
+    }
   }
 
   async reduceAtNode(targetId) {
@@ -752,15 +861,19 @@ class Pane {
       this.isRecording = true;
       this.recordedFrames = [];
       this.recordStartTime = performance.now();
-      this.recordBtn.textContent = '■ Stop';
-      this.recordBtn.style.color = '#f08080';
-      this.recordBtn.style.borderColor = '#f08080';
+      // No textContent / inline-style edits — flipping the .recording
+      // class swaps the SVG shape (circle → square) and applies the
+      // red colour + pulse via CSS, so the button keeps a clean icon
+      // appearance instead of becoming a mixed icon+text mess.
+      this.recordBtn.classList.add('recording');
+      this.recordBtn.setAttribute('data-tt', 'Stop recording');
+      this.recordBtn.setAttribute('aria-label', 'Stop recording');
       this._captureFrame();
     } else {
       this.isRecording = false;
-      this.recordBtn.textContent = '● Rec';
-      this.recordBtn.style.color = '';
-      this.recordBtn.style.borderColor = '';
+      this.recordBtn.classList.remove('recording');
+      this.recordBtn.setAttribute('data-tt', 'Record reduction as video');
+      this.recordBtn.setAttribute('aria-label', 'Record');
       finalizePaneRecording(this);
     }
   }

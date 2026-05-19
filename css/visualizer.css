@@ -59,6 +59,84 @@ body { padding: 24px 18px; }
 .global-bar #scv    { min-width: 4ch; }
 .global-bar #speedv { min-width: 5ch; }
 
+/* Square icon button used for the toolbar's glyph triggers. Overrides
+   .btn's uppercase + letter-spacing + asymmetric padding (the trailing
+   letter-spacing on a single char visually nudges it off-centre) and
+   bumps the glyph size so it reads as an icon, not shrunken text. The
+   ⚙ uses an inline SVG (font glyphs varied too much across systems —
+   IBM Plex Mono's gear is tiny + slightly off-centre and the system
+   fallbacks don't agree on metrics); ? stays a text char since it
+   renders cleanly in the body font. */
+.global-bar .btn-glyph {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.global-bar .btn-glyph svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* ── Play-arrow span (▶) ──────────────────────────────
+   The ▶ glyph (U+25B6) sits below the optical centre of a text line
+   because the character's baseline is at the bottom of the triangle.
+   Wrapping it in <span class="pa"> + a small translateY pulls it up
+   so it lines up with adjacent capital letters in buttons like
+   "Step ▶", "Sync ▶ Step", "▶ Present". Slightly smaller too — the
+   default size is visually heavier than the text next to it. */
+.pa {
+  display: inline-block;
+  font-size: 0.85em;
+  transform: translateY(-1px);
+  /* Cancel the parent button's letter-spacing on this single glyph
+     so it doesn't pick up an extra trailing gap. */
+  letter-spacing: 0;
+}
+
+/* ── Icon-glyph button (history ⟲, etc.) ──────────────
+   Used for in-pane buttons whose label is a single Unicode icon. The
+   default .btn / .btn-sec uppercase + letter-spacing renders these
+   icons tiny and off-centre. This modifier sizes them like real
+   icons: bigger glyph, square-ish padding, centred via inline-flex. */
+.btn-icon-glyph {
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 6px 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Custom <select> arrow ────────────────────────────
+   Native select arrows (especially on Linux/Firefox) cram against the
+   right edge. Strip the default arrow and paint our own SVG chevron
+   with proper right-padding so the glyph has breathing room. */
+.ctrl-bar select.strat-sel,
+.global-bar select,
+.settings-body .setting-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'><path fill='none' stroke='%23a0e0ff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1.5 2l4.5 4.5L10.5 2'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 7px;
+  padding-right: 28px;
+}
+
 /* ── Right column = panes container ─────────────── */
 .right-col {
   flex: 1;
@@ -366,6 +444,34 @@ body { padding: 24px 18px; }
 .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
 .icon-btn[data-act="rec"] { color: #f08080; }
 .icon-btn[data-act="rec"].active { background: rgba(240, 128, 128, 0.18); }
+/* Record-button states.
+   - Idle (default): show the filled circle, hide the square.
+   - .recording:     swap to the filled square, hold the red border,
+     gently pulse so it's obvious capture is in progress.
+   The shape swap stays inside one SVG so the icon box and surrounding
+   button geometry never shift between states. */
+.icon-btn[data-act="rec"] .rec-active { display: none; }
+.icon-btn[data-act="rec"].recording .rec-idle { display: none; }
+.icon-btn[data-act="rec"].recording .rec-active { display: block; }
+.icon-btn[data-act="rec"].recording {
+  color: #f08080;
+  border-color: #f08080;
+  background: rgba(240, 128, 128, 0.12);
+  animation: rec-pulse 1.4s ease-in-out infinite;
+}
+.icon-btn[data-act="rec"].recording:hover {
+  /* Override .icon-btn:hover so hover doesn't drag the colour back to
+     accent-cyan while a recording is active. */
+  color: #f08080;
+  border-color: #f08080;
+}
+@keyframes rec-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .icon-btn[data-act="rec"].recording { animation: none; }
+}
 
 .scr { display: flex; align-items: center; gap: 6px; }
 input[type=range] { accent-color: var(--accent); width: 90px; }
@@ -863,6 +969,212 @@ body.presentation.hud-hidden .pane .code-display { display: none !important; }
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
+}
+
+/* ── God mode — fast headless reduction ─────────────────
+   Under .app.god-mode, panes hide everything diagram / pretty-printer /
+   secondary-control related and show only the god-output area which
+   carries the loader (during reduction) or the final reduced
+   expression (after). The point of the mode is to chew through huge
+   terms without paying for rendering, so most UI noise is suppressed.
+*/
+
+/* Permanent god-mode hides: only the controls / outputs that have no
+   meaning without a step-by-step animation. Everything else (BLC,
+   Recognize, Find, Copy, fold, fullscreen, strategy, history…) keeps
+   working on the start / end AST. */
+.app.god-mode .pane [data-act="back"],
+.app.god-mode .pane [data-act="step"],
+.app.god-mode .pane [data-act="runN"],
+.app.god-mode .pane [data-act="png"],
+.app.god-mode .pane [data-act="rec"],
+.app.god-mode .pane .ctrl-max {
+  display: none !important;
+}
+/* God-output container is invisible by default and only flips on while
+   a reduction is mid-flight (the pane wears .reducing). During that
+   window we also collapse the diagram + pretty-printer + the BLC /
+   Recognize side-rows because their AST is churning at top speed and
+   re-rendering them would defeat the whole point of god mode. */
+.pane .god-output { display: none; }
+.app.god-mode .pane.reducing .god-output { display: flex; }
+.app.god-mode .pane.reducing .dw,
+.app.god-mode .pane.reducing .code-display { display: none; }
+
+/* During an in-progress god-mode reduction, lock every button on the
+   pane EXCEPT Share — per spec. Inputs / select / editor also lock so
+   the user can't change strategy or expression mid-flight. Reset
+   relies on max-steps as the safety valve (default 1000 stops fast);
+   if a user sets max=0 (∞) on a runaway term they can still refresh
+   the page. The runToken in runGodMode would also pick up a Reset if
+   we later relaxed this, so the contract holds either way. */
+.app.god-mode .pane.reducing button:not([data-act="share"]) {
+  pointer-events: none;
+  opacity: 0.4;
+}
+.app.god-mode .pane.reducing input,
+.app.god-mode .pane.reducing select,
+.app.god-mode .pane.reducing textarea,
+.app.god-mode .pane.reducing .editor {
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+/* God-output panel: holds the loader + "Reducing…" caption. Fills the
+   same vertical slot the diagram normally occupies so the pane height
+   doesn't collapse to a stub mid-reduction. */
+.god-output {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  min-height: 320px;
+  padding: 30px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.god-status {
+  color: var(--accent);
+  font-size: 0.78rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.god-status .dots > span {
+  display: inline-block;
+  opacity: 0.25;
+  animation: god-dot 1.2s infinite ease-in-out;
+}
+.god-status .dots > span:nth-child(2) { animation-delay: 0.18s; }
+.god-status .dots > span:nth-child(3) { animation-delay: 0.36s; }
+@keyframes god-dot {
+  0%, 80%, 100% { opacity: 0.25; }
+  40%           { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .god-status .dots > span { animation: none; opacity: 0.7; }
+}
+
+/* ── Loader (god mode) ───────────────────────────────
+   From Uiverse.io by andrew-manzyk (see Ressources/test.html).
+   Reproduced verbatim — only the @keyframes names are namespaced
+   (loader-rotation / loader-roundness / loader-colorize) to avoid
+   clashing with any future site-wide @keyframes. */
+.loader {
+  --color-one: #ffbf48;
+  --color-two: #be4a1d;
+  --color-three: #ffbf4780;
+  --color-four: #bf4a1d80;
+  --color-five: #ffbf4740;
+  --time-animation: 2s;
+  --size: 1;
+  position: relative;
+  border-radius: 50%;
+  /* translateZ(0) is the classic "promote to its own compositor layer"
+     trick — combined with will-change, it tells the browser the loader
+     will be repainting continuously, so isolate it on the GPU rather
+     than reflowing into the main page raster. */
+  transform: scale(var(--size)) translateZ(0);
+  will-change: filter, transform;
+  box-shadow:
+    0 0 25px 0 var(--color-three),
+    0 20px 50px 0 var(--color-four);
+  animation: loader-colorize calc(var(--time-animation) * 3) ease-in-out infinite;
+}
+.loader .box,
+.loader svg #clipping,
+.loader svg #clipping polygon {
+  will-change: transform, filter;
+}
+.loader::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border-top: solid 1px var(--color-one);
+  border-bottom: solid 1px var(--color-two);
+  background: linear-gradient(180deg, var(--color-five), var(--color-four));
+  box-shadow:
+    inset 0 10px 10px 0 var(--color-three),
+    inset 0 -10px 10px 0 var(--color-four);
+}
+.loader .box {
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(
+    180deg,
+    var(--color-one) 30%,
+    var(--color-two) 70%
+  );
+  mask: url(#clipping);
+  -webkit-mask: url(#clipping);
+}
+.loader svg {
+  position: absolute;
+}
+.loader svg #clipping {
+  filter: contrast(15);
+  animation: loader-roundness calc(var(--time-animation) / 2) linear infinite;
+}
+.loader svg #clipping polygon {
+  filter: blur(7px);
+}
+.loader svg #clipping polygon:nth-child(1) {
+  transform-origin: 75% 25%;
+  transform: rotate(90deg);
+}
+.loader svg #clipping polygon:nth-child(2) {
+  transform-origin: 50% 50%;
+  animation: loader-rotation var(--time-animation) linear infinite reverse;
+}
+.loader svg #clipping polygon:nth-child(3) {
+  transform-origin: 50% 60%;
+  animation: loader-rotation var(--time-animation) linear infinite;
+  animation-delay: calc(var(--time-animation) / -3);
+}
+.loader svg #clipping polygon:nth-child(4) {
+  transform-origin: 40% 40%;
+  animation: loader-rotation var(--time-animation) linear infinite reverse;
+}
+.loader svg #clipping polygon:nth-child(5) {
+  transform-origin: 40% 40%;
+  animation: loader-rotation var(--time-animation) linear infinite reverse;
+  animation-delay: calc(var(--time-animation) / -2);
+}
+.loader svg #clipping polygon:nth-child(6) {
+  transform-origin: 60% 40%;
+  animation: loader-rotation var(--time-animation) linear infinite;
+}
+.loader svg #clipping polygon:nth-child(7) {
+  transform-origin: 60% 40%;
+  animation: loader-rotation var(--time-animation) linear infinite;
+  animation-delay: calc(var(--time-animation) / -1.5);
+}
+@keyframes loader-rotation {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes loader-roundness {
+  0%   { filter: contrast(15); }
+  20%  { filter: contrast(3); }
+  40%  { filter: contrast(3); }
+  60%  { filter: contrast(15); }
+  100% { filter: contrast(15); }
+}
+@keyframes loader-colorize {
+  0%   { filter: hue-rotate(0deg); }
+  20%  { filter: hue-rotate(-30deg); }
+  40%  { filter: hue-rotate(-60deg); }
+  60%  { filter: hue-rotate(-90deg); }
+  80%  { filter: hue-rotate(-45deg); }
+  100% { filter: hue-rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader,
+  .loader svg #clipping,
+  .loader svg #clipping polygon { animation: none; }
 }
 
 /* ── Settings-driven layout hooks ─────────────────────── */
