@@ -375,6 +375,14 @@ class Pane {
     if (this.totalElapsed > 0) display = text + ' · ' + formatDuration(this.totalElapsed);
     this.statusEl.textContent = display;
     this.statusEl.className = 'status' + (cls ? ' ' + cls : '');
+    // In presentation, mirror our live step / wall-time into the
+    // corner HUD so the audience can see progress at a glance — the
+    // small in-pane status row is too easy to miss on a projector.
+    if (typeof inPresentation !== 'undefined' && inPresentation &&
+        typeof presentedPane !== 'undefined' && presentedPane === this &&
+        typeof updatePresentationStats === 'function') {
+      updatePresentationStats();
+    }
   }
 
   async step() {
@@ -561,10 +569,8 @@ class Pane {
     // Small batch + frequent yields keep the loader's mask / filter
     // animations (which paint on the main thread, not the compositor)
     // smooth at ~60fps. A larger batch finishes the reduction faster
-    // overall but stalls the loader between yields, which looks
-    // choppy. 500 is a sweet spot — tens of thousands of reductions
-    // per second on typical terms while still releasing the main
-    // thread every ~few ms.
+    // overall but stalls the loader between yields and locks the UI,
+    // so it stays fixed at 500.
     const BATCH = 500;
     const myToken = ++this.runToken;
     this.isRunning = true;
@@ -609,6 +615,13 @@ class Pane {
         this._render(0, null);
         this.setStatus('normal form (step ' + this.stepCount + ')', 'nf');
         this.updateBackBtn();
+        // After god mode finishes, the final term is typically much
+        // smaller (or occasionally bigger) than the input — without a
+        // fit the diagram lands at whatever zoom level was active
+        // before, which usually overshoots or undershoots. rAF lets
+        // the SVG width/height attributes settle before fit reads
+        // them.
+        requestAnimationFrame(() => this.autoFit());
       }
     }
   }
@@ -692,13 +705,26 @@ class Pane {
       onRedexClick: (e) => this.reduceAtNode(parseInt(e.currentTarget.dataset.appId)),
       skipRedexZones: this.isRunning,
     });
-    // In presentation, refit after every render — reduction grows /
-    // shrinks the diagram and without this the user can lose half of
-    // it off the bottom or right edge. We use rAF so the new SVG
-    // width/height (just set as attributes by renderDiagram) have
-    // taken effect before fit recomputes.
+    // In presentation, only refit when the new diagram has grown past
+    // the viewport. Reductions usually shrink terms, and unconditional
+    // refits made the diagram visibly jump after every step which read
+    // as jitter. By gating on overflow we leave the view stable when
+    // the diagram still fits, and only re-zoom when content would
+    // otherwise spill off the screen. F key always forces a manual
+    // refit if the user wants it.
     if (typeof inPresentation !== 'undefined' && inPresentation) {
-      requestAnimationFrame(() => this.autoFit());
+      requestAnimationFrame(() => {
+        const dw = this.dwEl;
+        const svg = this.svgEl;
+        if (!dw || !svg) return;
+        const sw = parseFloat(svg.getAttribute('width')) || 0;
+        const sh = parseFloat(svg.getAttribute('height')) || 0;
+        const cw = dw.clientWidth, ch = dw.clientHeight;
+        if (!sw || !sh || !cw || !ch) return;
+        const scaledW = sw * this.viewZoom;
+        const scaledH = sh * this.viewZoom;
+        if (scaledW > cw - 24 || scaledH > ch - 24) this.autoFit();
+      });
     }
   }
 
@@ -1002,8 +1028,12 @@ class Pane {
     if (!this.historyPop) {
       this.historyPop = document.createElement('div');
       this.historyPop.className = 'history-pop';
-      triggerBtn.parentElement.style.position = 'relative';
-      triggerBtn.parentElement.appendChild(this.historyPop);
+      // Anchor the popup to the editor wrap (the input area) rather than
+      // the whole .ir row — that way it lines up with the input's
+      // width instead of stretching across the history + Draw buttons.
+      const editorWrap = this.root.querySelector('.editor-wrap');
+      editorWrap.style.position = 'relative';
+      editorWrap.appendChild(this.historyPop);
     }
     if (this.historyPop.classList.contains('open')) {
       this.historyPop.classList.remove('open');
@@ -1025,31 +1055,35 @@ class Pane {
     for (const expr of items) {
       const it = document.createElement('div');
       it.className = 'history-item';
-      const tx = document.createElement('span');
-      // Use a class instead of inline style so the CSS-side truncation
-      // rules (flex/min-width/ellipsis) apply — inline `flex: 1` alone
-      // wasn't enough to actually clip a wide expression.
-      tx.className = 'history-expr';
-      tx.textContent = expr;
-      // The full expression is still readable on hover via the native
-      // browser title tooltip — useful when several truncated entries
-      // share the same visible prefix.
-      tx.title = expr;
-      tx.onclick = () => {
+      // Clicking anywhere on the row restores that expression. The
+      // delete button stops propagation so it doesn't double-fire.
+      it.onclick = () => {
         this.editor.setValue(expr);
         this.historyPop.classList.remove('open');
         this.draw();
       };
-      const del = document.createElement('span');
-      del.className = 'del-h'; del.textContent = '✕';
-      del.onclick = (e) => { e.stopPropagation(); removeFromHistory(expr); this._renderHistoryPop(); };
+      const tx = document.createElement('span');
+      tx.className = 'history-expr';
+      tx.textContent = expr;
+      // Full expression visible on hover via the native tooltip —
+      // useful when several truncated entries share a prefix.
+      tx.title = expr;
+      const del = document.createElement('button');
+      del.className = 'del-h';
+      del.type = 'button';
+      del.textContent = '✕';
+      del.title = 'Remove from history';
+      del.setAttribute('aria-label', 'Remove from history');
+      del.onclick = (e) => {
+        e.stopPropagation();
+        removeFromHistory(expr);
+        this._renderHistoryPop();
+      };
       it.appendChild(tx); it.appendChild(del);
       this.historyPop.appendChild(it);
     }
     const clr = document.createElement('div');
-    clr.className = 'history-item';
-    clr.style.borderTop = '1px solid var(--border)';
-    clr.style.color = 'var(--danger)';
+    clr.className = 'history-item history-clear';
     clr.textContent = 'Clear history';
     clr.onclick = () => { if (confirm('Clear all history?')) { clearHistory(); this._renderHistoryPop(); } };
     this.historyPop.appendChild(clr);

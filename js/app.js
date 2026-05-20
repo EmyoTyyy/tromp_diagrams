@@ -146,6 +146,28 @@ function insertIntoExpr(name) {
 // globals (COLOR_MODE, ANIM_ENABLED, …) and re-renders as needed, so
 // the rest of the pipeline doesn't have to know about SETTINGS at all.
 const SETTINGS_KEY = 'tromp_visualizer_settings_v1';
+// ── Toolbar shortcut registry ────────────────────────
+// Items the user can pin to the global toolbar via Settings → Toolbar
+// shortcuts. Order in SETTINGS.toolbar is the order rendered (pinning
+// appends, unpinning removes). Scale + speed render as sliders, all
+// others as toggle buttons. To make a new SETTINGS key pinnable, add
+// it here with a short label + tooltip.
+const MAX_TOOLBAR = 6;
+const PINNABLE_LABELS = {
+  scale:               { label: 'Scale',           tooltip: 'Diagram scale' },
+  speed:               { label: 'Speed',           tooltip: 'Animation speed' },
+  color:               { label: 'Color',           tooltip: 'Color-code variables' },
+  anim:                { label: 'Anim',            tooltip: 'Animate transitions' },
+  parens:              { label: 'Parens',          tooltip: 'Show explicit parentheses' },
+  sideBySide:          { label: 'Side-by-side',    tooltip: 'Stack panes side-by-side' },
+  hideSidebar:         { label: 'No sidebar',      tooltip: 'Hide Definitions sidebar' },
+  disableAutocomplete: { label: 'No autoc.',       tooltip: 'Disable autocomplete' },
+  sync:                { label: 'Sync',            tooltip: 'Sync step/run/reset across panes' },
+  showRecord:          { label: 'Record',          tooltip: 'Show record button (beta)' },
+  godMode:             { label: 'God mode',        tooltip: 'Headless fast reduction' },
+  defaultBlc:          { label: 'BLC',             tooltip: 'Show BLC on new panes' },
+  defaultRecog:        { label: 'Recog',           tooltip: 'Show Recognize on new panes' },
+};
 const SETTINGS_DEFAULTS = {
   color: false,
   anim: true,
@@ -167,6 +189,10 @@ const SETTINGS_DEFAULTS = {
   // diagram + pretty printer + most pane controls; Run blasts through
   // β-reductions as fast as possible and displays only the final result.
   godMode: false,
+  // Which fast-access shortcuts appear in the global toolbar, and in
+  // which order. Default mirrors what used to be hard-coded in the
+  // markup (scale slider, speed slider, three pinned toggles).
+  toolbar: ['scale', 'speed', 'color', 'parens', 'sync'],
 };
 let SETTINGS = { ...SETTINGS_DEFAULTS };
 
@@ -180,6 +206,18 @@ function loadSettings() {
       SETTINGS = { ...SETTINGS_DEFAULTS, ...parsed };
     }
   } catch { /* corrupted storage — fall back to defaults */ }
+  // Sanitize the toolbar list: must be an array, only known keys, and
+  // not over MAX. Guards against hand-edited or stale localStorage.
+  if (!Array.isArray(SETTINGS.toolbar)) {
+    SETTINGS.toolbar = [...SETTINGS_DEFAULTS.toolbar];
+  }
+  SETTINGS.toolbar = SETTINGS.toolbar
+    .filter(k => PINNABLE_LABELS[k] !== undefined);
+  // De-duplicate while preserving first-seen order.
+  SETTINGS.toolbar = SETTINGS.toolbar.filter((k, i) => SETTINGS.toolbar.indexOf(k) === i);
+  if (SETTINGS.toolbar.length > MAX_TOOLBAR) {
+    SETTINGS.toolbar.length = MAX_TOOLBAR;
+  }
 }
 function saveSettings() {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(SETTINGS)); }
@@ -189,6 +227,85 @@ function saveSettings() {
 function loadAndApplySettings() {
   loadSettings();
   applyAllSettings();
+  // Toolbar is purely UI — build it after settings are applied so
+  // toggle buttons reflect the correct ON/OFF state immediately.
+  rebuildToolbarShortcuts();
+  syncPinUI();
+}
+
+// ── Toolbar shortcuts (dynamic) ──────────────────────
+// Renders SETTINGS.toolbar into #toolbarShortcuts. Called on init and
+// whenever the user pins/unpins. Slider values are snapshotted from
+// the existing DOM before re-render so they survive the rebuild.
+function rebuildToolbarShortcuts() {
+  const host = document.getElementById('toolbarShortcuts');
+  if (!host) return;
+  // Preserve slider state across rebuild
+  const oldSc = host.querySelector('#sc');
+  const oldSpeed = host.querySelector('#speed');
+  const oldSpeedLabel = host.querySelector('#speedv');
+  const scaleValue = oldSc ? oldSc.value : (typeof SCALE !== 'undefined' ? SCALE : 8);
+  const speedValue = oldSpeed ? oldSpeed.value : 9;
+  const speedLabel = oldSpeedLabel ? oldSpeedLabel.textContent : '1.0x';
+
+  host.innerHTML = SETTINGS.toolbar.map(key => {
+    if (key === 'scale') {
+      return `<div class="scr"><span>scale:</span>` +
+             `<input type="range" id="sc" min="2" max="24" value="${scaleValue}" oninput="setScale(this.value)">` +
+             `<span id="scv">${scaleValue}px</span></div>`;
+    }
+    if (key === 'speed') {
+      return `<div class="scr"><span>speed:</span>` +
+             `<input type="range" id="speed" min="1" max="20" value="${speedValue}" oninput="setSpeed(this.value)">` +
+             `<span id="speedv">${speedLabel}</span></div>`;
+    }
+    const meta = PINNABLE_LABELS[key];
+    if (!meta) return '';
+    return `<button class="btn btn-toggle tt" data-tt="${meta.tooltip}" data-tt-pos="below" ` +
+           `id="${key}Btn" data-setting="${key}" onclick="toggleSetting('${key}')">` +
+           `${meta.label}: OFF</button>`;
+  }).join('');
+
+  // syncSettingToggleUI updates each toggle button's label + .active class
+  syncSettingToggleUI();
+}
+
+// Update every per-row pin button in the modal to reflect the current
+// SETTINGS.toolbar membership. Unpinned rows go .disabled once the
+// toolbar hits MAX so the user can't blow past the limit.
+function syncPinUI() {
+  const pinnedCount = SETTINGS.toolbar.length;
+  const full = pinnedCount >= MAX_TOOLBAR;
+  document.querySelectorAll('.setting-pin').forEach(btn => {
+    const row = btn.closest('[data-pin]');
+    if (!row) return;
+    const key = row.getAttribute('data-pin');
+    const pinned = SETTINGS.toolbar.includes(key);
+    btn.classList.toggle('pinned', pinned);
+    btn.classList.toggle('disabled', !pinned && full);
+    btn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
+  });
+  const counter = document.getElementById('pinCount');
+  if (counter) counter.textContent = pinnedCount + ' / ' + MAX_TOOLBAR;
+}
+
+function togglePin(key) {
+  if (!PINNABLE_LABELS[key]) return;
+  const idx = SETTINGS.toolbar.indexOf(key);
+  if (idx >= 0) {
+    SETTINGS.toolbar.splice(idx, 1);
+  } else {
+    if (SETTINGS.toolbar.length >= MAX_TOOLBAR) {
+      if (typeof showToast === 'function') {
+        showToast('Toolbar full — unpin something first', 'warn');
+      }
+      return;
+    }
+    SETTINGS.toolbar.push(key);
+  }
+  saveSettings();
+  rebuildToolbarShortcuts();
+  syncPinUI();
 }
 
 // Push every setting through its apply function. Used on initial load
@@ -236,21 +353,19 @@ function syncSettingToggleUI() {
   const maxEl = document.getElementById('setMaxSteps');
   if (maxEl) maxEl.value = SETTINGS.defaultMaxSteps;
 
-  // Toolbar mirrors — the same SETTINGS keys also drive a handful of
-  // quick-access buttons in the global toolbar. Update both their
-  // label (so "Color: ON / OFF" stays accurate) and the .active class
-  // (which paints the button in the accent colour when on).
-  const toolbarMirrors = [
-    { id: 'colorBtn',  key: 'color',  label: 'Color' },
-    { id: 'parensBtn', key: 'parens', label: 'Parens' },
-    { id: 'syncBtn',   key: 'sync',   label: 'Sync' },
-  ];
-  for (const m of toolbarMirrors) {
-    const btn = document.getElementById(m.id);
-    if (!btn) continue;
-    const on = !!SETTINGS[m.key];
+  // Toolbar mirrors — the dynamic shortcut buttons inside the
+  // #toolbarShortcuts container all carry data-setting=<key>. Each
+  // gets its label + .active class refreshed to match SETTINGS so
+  // ON/OFF text and accent-coloured fill stay accurate after any
+  // change.
+  const tbBtns = document.querySelectorAll('#toolbarShortcuts [data-setting]');
+  for (const btn of tbBtns) {
+    const key = btn.getAttribute('data-setting');
+    const meta = PINNABLE_LABELS[key];
+    if (!meta) continue;
+    const on = !!SETTINGS[key];
     btn.classList.toggle('active', on);
-    btn.textContent = m.label + ': ' + (on ? 'ON' : 'OFF');
+    btn.textContent = meta.label + ': ' + (on ? 'ON' : 'OFF');
   }
 }
 
@@ -338,8 +453,18 @@ function applySetting(key, on) {
 // ── Global settings toggles ───────────────────────
 function setScale(v) {
   SCALE = parseInt(v);
-  document.getElementById('scv').textContent = v + 'px';
-  // Re-render every pane (no animation)
+  // Two sliders may exist simultaneously — one pinned in the toolbar
+  // (#sc) and one in the Settings modal (#setScale). Mirror the value
+  // into whichever one didn't trigger the change so they stay in sync.
+  // Setting .value doesn't fire input/change, so this can't loop.
+  const sc = document.getElementById('sc');
+  const setSc = document.getElementById('setScale');
+  if (sc && sc.value != v) sc.value = v;
+  if (setSc && setSc.value != v) setSc.value = v;
+  const scv = document.getElementById('scv');
+  const setScVal = document.getElementById('setScaleVal');
+  if (scv) scv.textContent = v + 'px';
+  if (setScVal) setScVal.textContent = v + 'px';
   for (const p of getAllPanes()) {
     if (p.currentAST) p._render(250, null);
   }
@@ -361,7 +486,15 @@ function setSpeed(v) {
   if (mult < 1)       label = mult.toFixed(2) + 'x';
   else if (mult < 10) label = mult.toFixed(1) + 'x';
   else                label = Math.round(mult) + 'x';
-  document.getElementById('speedv').textContent = label;
+  // Mirror to both possible sliders + labels (toolbar + modal).
+  const sp = document.getElementById('speed');
+  const setSp = document.getElementById('setSpeed');
+  if (sp && sp.value != v) sp.value = v;
+  if (setSp && setSp.value != v) setSp.value = v;
+  const spv = document.getElementById('speedv');
+  const setSpVal = document.getElementById('setSpeedVal');
+  if (spv) spv.textContent = label;
+  if (setSpVal) setSpVal.textContent = label;
 }
 
 // ── Pane management ───────────────────────────────
@@ -403,24 +536,59 @@ function syncDraw() {
 let inPresentation = false;
 let hudHidden = false;
 
+// Tracks which pane is being shown in the current presentation
+// session. Mirrored as `.presented` on the pane's root element, which
+// the CSS uses to hide every other pane in body.presentation. Cleared
+// on exit so a future Esc + re-enter picks the focused pane fresh.
+let presentedPane = null;
+
 function enterPresentation() {
   const panes = getAllPanes();
-  if (!panes.length || !panes[0].currentAST) {
+  // Pick which pane to present: prefer the user's focused one, fall
+  // back to the first drawn pane. Multi-pane presentation is being
+  // deferred — for now only one pane is shown at a time, and the
+  // others are hidden via CSS.
+  const focused = getActivePane();
+  const target = (focused && focused.currentAST) ? focused
+              : panes.find(p => p.currentAST)
+              || null;
+  if (!target) {
     showToast('Draw something first', 'warn');
     return;
   }
   inPresentation = true;
   hudHidden = false;
+  presentedPane = target;
   document.body.classList.add('presentation');
   document.body.classList.remove('hud-hidden');
-  // Auto-fit each pane
-  setTimeout(() => { for (const p of panes) p.autoFit(); }, 80);
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('presented'));
+  target.root.classList.add('presented');
+  // Auto-fit only the presented pane.
+  setTimeout(() => target.autoFit(), 80);
+  // Seed the stats HUD with the pane's current state so it's not empty
+  // until the first step / setStatus call.
+  updatePresentationStats();
 }
 function exitPresentation() {
   if (!inPresentation) return;
   inPresentation = false;
   document.body.classList.remove('presentation', 'hud-hidden');
+  document.querySelectorAll('.pane.presented').forEach(p => p.classList.remove('presented'));
+  presentedPane = null;
   for (const p of getAllPanes()) p.resetView();
+}
+
+// Update the top-right step / time HUD shown during presentation.
+// Called from Pane.setStatus when the active pane is the presented
+// one, and on enter to seed the initial state.
+function updatePresentationStats() {
+  const stepEl = document.querySelector('.presentation-stats .ps-step');
+  const timeEl = document.querySelector('.presentation-stats .ps-time');
+  if (!stepEl || !timeEl) return;
+  const p = presentedPane;
+  if (!p) { stepEl.textContent = ''; timeEl.textContent = ''; return; }
+  stepEl.textContent = 'step ' + p.stepCount.toLocaleString();
+  timeEl.textContent = formatDuration(p.totalElapsed);
 }
 function toggleHudHidden() {
   hudHidden = !hudHidden;

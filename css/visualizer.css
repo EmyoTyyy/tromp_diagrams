@@ -45,6 +45,15 @@ body { padding: 24px 18px; }
   color: var(--muted);
 }
 .global-bar .scr { display: flex; align-items: center; gap: 8px; }
+/* Dynamic container for the user's pinned shortcuts. Lays them out
+   in the same row as the sync buttons / Present / ⚙ — we just delegate
+   spacing to .global-bar's existing gap. */
+.toolbar-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 /* Reserve a fixed-width slot for the slider's value readout so its
    numeric label doesn't reflow the buttons to its right while the
    user drags. Sized to fit the widest label each slider can show
@@ -774,9 +783,93 @@ body.presentation .pane .dw svg {
 }
 body.presentation .pane .fs-btn,
 body.presentation .pane .zoom-controls { display: none; }
+
+/* Single-pane presentation: hide every pane that wasn't chosen on
+   enterPresentation. Multi-pane present mode is deferred — for now
+   only the focused / first-drawn pane is shown so we can keep the
+   layout (expression + diagram + corner HUD) clean. */
+body.presentation .pane { display: none !important; }
+body.presentation .pane.presented { display: flex !important; }
+
+/* God-output in presentation — only kicks in while a reduction is
+   actually mid-flight (.pane.reducing). Previously this rule was
+   unconditional, which meant the loader showed up in presentation
+   even when god mode was idle (no Run pressed yet).
+
+   Loader + caption are pinned to the VIEWPORT centre with
+   position: fixed. Trying to centre via the layout (flex/grid inside
+   .god-output) was unreliable because the surrounding right-col
+   padding + flex tree shifted the visual centre subtly. position:
+   fixed bypasses that whole stack and just puts the orb at 50/50 of
+   the window. No ancestor of the loader has a transform, so fixed
+   resolves against the viewport as expected. */
+body.presentation .pane.reducing .god-output {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+}
+body.presentation .pane.reducing .loader {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  /* The .loader has no explicit width (its size comes from .box =
+     100×100). Shift by -50px so the box centre lands on viewport
+     centre. */
+  margin: -50px 0 0 -50px;
+  z-index: 100;
+}
+body.presentation .pane.reducing .god-status {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  /* x: horizontally centre on its own width; y: 80px below the
+     viewport centre, which clears the orb's bottom edge. */
+  transform: translate(-50%, 80px);
+  margin: 0;
+  z-index: 100;
+  white-space: nowrap;
+}
+
+/* Diagram window: give it a minimum height so it can't collapse, and
+   flex-shrink:0 on the prettifier so the code-display always shows. */
+body.presentation .pane .code-display { flex-shrink: 0; }
+body.presentation .pane .dw {
+  flex: 1 1 0;
+  min-height: 160px;
+}
+
+/* ── Corner stats HUD (presentation only) ─────────────
+   Top-right badge showing live step count + wall-time of the
+   presented pane. Hidden outside presentation and toggled by the
+   H key (same hud-hidden body class as the bottom keyboard HUD). */
+.presentation-stats {
+  display: none;
+  position: fixed;
+  top: 22px;
+  right: 22px;
+  z-index: 2000;
+  background: rgba(16, 16, 26, 0.85);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  font-size: 0.74rem;
+  letter-spacing: .08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(8px);
+}
+body.presentation .presentation-stats { display: inline-flex; }
+body.presentation.hud-hidden .presentation-stats { display: none; }
+.presentation-stats .ps-sep { color: var(--muted); }
+.presentation-stats .ps-time { color: var(--text); }
 body.presentation .presentation-hud { display: flex !important; }
-body.presentation.hud-hidden .presentation-hud,
-body.presentation.hud-hidden .pane .code-display { display: none !important; }
+/* "Hide HUD" (H key) only hides the HUD itself — the keyboard hints
+   strip at the bottom and the step-counter badge at the top right.
+   The expression / diagram stay visible because those *are* the
+   content of the presentation, not overlay chrome. */
+body.presentation.hud-hidden .presentation-hud { display: none !important; }
 
 .presentation-hud {
   display: none;
@@ -971,6 +1064,93 @@ body.presentation.hud-hidden .pane .code-display { display: none !important; }
   justify-content: flex-end;
 }
 
+/* ── Pin counter pill in section header ────────────── */
+.settings-body section h4 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pin-count {
+  font-size: 0.62rem;
+  letter-spacing: .08em;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+  font-weight: 400;
+}
+.pin-help {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+/* ── Per-row pin button ───────────────────────────────
+   A small square button at the start of each pinnable .setting-row,
+   containing a pushpin SVG. Both pinned and unpinned states stay in
+   the muted gray palette so the modal doesn't light up with cyan
+   accents — only the pin's fill changes (outline vs solid) to signal
+   state. Direct hover lifts the colour to accent. .disabled appears
+   when the toolbar is already at MAX. */
+.setting-pin {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.setting-pin svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  transition: fill .15s;
+}
+/* Pinned = filled pushpin, same gray as unpinned (deliberately not
+   accent-coloured so the modal stays calm at rest). */
+.setting-pin.pinned svg { fill: currentColor; }
+.setting-pin:hover:not(.disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.setting-pin.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Tighten the setting-row layout to absorb the new pin column at the
+   start. The gap already separates pin from label. */
+.setting-row { gap: 12px; }
+
+/* Slider-row variant — same layout as a toggle row but the right slot
+   holds the slider + its readout instead of the toggle pill. */
+.setting-row-slider { align-items: center; }
+.setting-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.setting-slider input[type=range] { width: 140px; }
+.setting-slider-val {
+  display: inline-block;
+  min-width: 4ch;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
 /* ── God mode — fast headless reduction ─────────────────
    Under .app.god-mode, panes hide everything diagram / pretty-printer /
    secondary-control related and show only the god-output area which
@@ -982,13 +1162,17 @@ body.presentation.hud-hidden .pane .code-display { display: none !important; }
 /* Permanent god-mode hides: only the controls / outputs that have no
    meaning without a step-by-step animation. Everything else (BLC,
    Recognize, Find, Copy, fold, fullscreen, strategy, history…) keeps
-   working on the start / end AST. */
+   working on the start / end AST. Sync ▶ Step also goes — stepping is
+   the one sync action that doesn't fit god mode; Sync ▶ Run and
+   Sync ▶ Reset still make sense (kick off all panes' fast reductions
+   at once, or wipe them all back to start). */
 .app.god-mode .pane [data-act="back"],
 .app.god-mode .pane [data-act="step"],
 .app.god-mode .pane [data-act="runN"],
 .app.god-mode .pane [data-act="png"],
 .app.god-mode .pane [data-act="rec"],
-.app.god-mode .pane .ctrl-max {
+.app.god-mode .pane .ctrl-max,
+.app.god-mode #syncStepBtn {
   display: none !important;
 }
 /* God-output container is invisible by default and only flips on while
@@ -1482,27 +1666,62 @@ body.presentation.hud-hidden .pane .code-display { display: none !important; }
      actually kick in inside a flex row. Without this the long
      expression forces the row wider than the popup. */
   min-width: 0;
+  /* Reserve a little extra right padding so the delete button (which
+     fades in on hover) doesn't visually crowd the expression text. */
+  padding-right: 8px;
 }
 .history-item:hover { background: var(--surface-2); }
 .history-item .history-expr {
   /* Inner span: takes whatever space remains after the ✕ button,
-     truncates the rest with an ellipsis. */
+     truncates the rest with an ellipsis. Pointer-events:none lets
+     clicks pass through to the parent row, which is what wires up
+     "click anywhere on the line to restore". */
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: 'IBM Plex Mono', monospace;
+  pointer-events: none;
 }
 .history-item .del-h {
-  color: var(--muted);
-  font-size: 0.7rem;
-  margin-left: auto;
+  /* Bigger, square button that appears only when the row is hovered.
+     pointer-events toggled too so when invisible it can't swallow a
+     click meant for the row; when visible it traps the click and
+     stopPropagation in JS prevents the row's restore from firing. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   flex: 0 0 auto;
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s, color .15s, border-color .15s, background .15s;
 }
-.history-item .del-h:hover { color: var(--danger); }
+.history-item:hover .del-h {
+  opacity: 1;
+  pointer-events: auto;
+}
+.history-item .del-h:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: rgba(240, 128, 128, 0.08);
+}
 .history-item.empty { color: var(--muted); font-style: italic; cursor: default; }
 .history-item.empty:hover { background: transparent; }
+.history-item.history-clear {
+  border-top: 1px solid var(--border);
+  color: var(--danger);
+}
 
 @media (max-width: 1100px) {
   .app { flex-direction: column; align-items: stretch; }

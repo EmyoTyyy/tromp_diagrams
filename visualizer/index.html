@@ -43,6 +43,17 @@
   <a href="../about/">About</a>
 </nav>
 
+<!-- Shared SVG symbol definitions referenced by <use href="#..."/>.
+     One pin-icon used by every .setting-pin button in the modal. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="pin-icon" viewBox="0 0 24 24">
+      <line x1="12" y1="17" x2="12" y2="22" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+</svg>
+
 <div class="app">
 
   <aside class="sidebar">
@@ -83,28 +94,12 @@
       </div>
     </div>
 
-    <!-- Global toolbar (display settings shared across all panes). Most
-         on/off preferences live in the Settings modal (⚙) — the toolbar
-         keeps only the immediate-feedback controls (scale, speed) and the
-         per-session sync actions (revealed when sync is enabled). -->
+    <!-- Global toolbar. Customisable shortcuts (sliders + toggles) live
+         in #toolbarShortcuts and are managed via Settings → Toolbar
+         shortcuts. Fixed items (sync action buttons, Present, Settings,
+         ?) sit to the right and aren't user-pinnable. -->
     <div class="global-bar">
-      <div class="scr">
-        <span>scale:</span>
-        <input type="range" id="sc" min="2" max="24" value="8" oninput="setScale(this.value)">
-        <span id="scv">8px</span>
-      </div>
-      <div class="scr">
-        <span>speed:</span>
-        <input type="range" id="speed" min="1" max="20" value="9" oninput="setSpeed(this.value)">
-        <span id="speedv">1.0x</span>
-      </div>
-      <!-- Quick-access toggles for the most-used preferences. They're
-           also mirrored in the Settings modal — both surfaces drive the
-           same SETTINGS slot, syncSettingToggleUI keeps their visuals
-           aligned. -->
-      <button class="btn btn-toggle tt" data-tt="Color-code variables" data-tt-pos="below" id="colorBtn" onclick="toggleSetting('color')">Color: OFF</button>
-      <button class="btn btn-toggle tt" data-tt="Show explicit parentheses" data-tt-pos="below" id="parensBtn" onclick="toggleSetting('parens')">Parens: OFF</button>
-      <button class="btn btn-toggle tt" data-tt="Sync step/run/reset across all panes" data-tt-pos="below" id="syncBtn" onclick="toggleSetting('sync')">Sync: OFF</button>
+      <div id="toolbarShortcuts" class="toolbar-shortcuts"></div>
       <button class="btn btn-sec tt" data-tt="Step in all panes (sync mode)" data-tt-pos="below" onclick="syncStep()" style="display:none" id="syncStepBtn">Sync <span class="pa">▶</span> Step</button>
       <button class="btn btn-sec tt" data-tt="Run all panes (sync mode)" data-tt-pos="below" onclick="syncRun()" style="display:none" id="syncRunBtn">Sync <span class="pa">▶</span> Run</button>
       <button class="btn btn-sec tt" data-tt="Reset all panes" data-tt-pos="below" onclick="syncReset()" style="display:none" id="syncResetBtn">Sync <span class="pa">▶</span> Reset</button>
@@ -144,6 +139,15 @@
   <span><kbd>Esc</kbd> exit</span>
 </div>
 
+<!-- Top-right stats badge for presentation mode: live step counter
+     + wall-clock timer for the presented pane. Updated from
+     Pane.setStatus via updatePresentationStats(). -->
+<div class="presentation-stats" id="presStats">
+  <span class="ps-step">step 0</span>
+  <span class="ps-sep">·</span>
+  <span class="ps-time">0s</span>
+</div>
+
 <!-- Settings modal — toggled by the ⚙ button. Each row is a labelled
      toggle; preferences are persisted to localStorage and re-applied on
      load. Sections group related settings so the panel stays scannable
@@ -156,34 +160,60 @@
     </div>
     <div class="settings-body">
       <section>
+        <h4>Toolbar <span class="pin-count" id="pinCount">0 / 6</span></h4>
+        <p class="pin-help">Click the pin on a row to add or remove it from the global toolbar. Order in the toolbar follows the order you pin.</p>
+        <div class="setting-row setting-row-slider" data-pin="scale">
+          <button class="setting-pin" type="button" onclick="togglePin('scale')" aria-label="Pin Scale to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
+          <span class="setting-label">Diagram scale<span class="setting-desc">How thick the diagram lines render.</span></span>
+          <div class="setting-slider">
+            <input type="range" id="setScale" min="2" max="24" value="8" oninput="setScale(this.value)">
+            <span class="setting-slider-val" id="setScaleVal">8px</span>
+          </div>
+        </div>
+        <div class="setting-row setting-row-slider" data-pin="speed">
+          <button class="setting-pin" type="button" onclick="togglePin('speed')" aria-label="Pin Speed to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
+          <span class="setting-label">Animation speed<span class="setting-desc">How fast reductions play. Doesn't affect god mode.</span></span>
+          <div class="setting-slider">
+            <input type="range" id="setSpeed" min="1" max="20" value="9" oninput="setSpeed(this.value)">
+            <span class="setting-slider-val" id="setSpeedVal">1.0x</span>
+          </div>
+        </div>
+      </section>
+      <section>
         <h4>Display</h4>
-        <label class="setting-row">
+        <label class="setting-row" data-pin="color">
+          <button class="setting-pin" type="button" onclick="event.preventDefault(); togglePin('color')" aria-label="Pin Color to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
           <span class="setting-label">Color-code variables<span class="setting-desc">Tint each bound variable so reductions are easier to follow.</span></span>
           <button class="setting-toggle" id="setColor" data-setting="color" onclick="toggleSetting('color')" aria-pressed="false"></button>
         </label>
-        <label class="setting-row">
+        <label class="setting-row" data-pin="anim">
+          <button class="setting-pin" type="button" onclick="event.preventDefault(); togglePin('anim')" aria-label="Pin Anim to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
           <span class="setting-label">Animate transitions<span class="setting-desc">Smoothly morph lines between β-reductions instead of snapping.</span></span>
           <button class="setting-toggle" id="setAnim" data-setting="anim" onclick="toggleSetting('anim')" aria-pressed="true"></button>
         </label>
-        <label class="setting-row">
+        <label class="setting-row" data-pin="parens">
+          <button class="setting-pin" type="button" onclick="event.preventDefault(); togglePin('parens')" aria-label="Pin Parens to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
           <span class="setting-label">Show explicit parentheses<span class="setting-desc">Render every grouping in the pretty-printed code, not just the necessary ones.</span></span>
           <button class="setting-toggle" id="setParens" data-setting="parens" onclick="toggleSetting('parens')" aria-pressed="false"></button>
         </label>
       </section>
       <section>
         <h4>Layout</h4>
-        <label class="setting-row">
+        <label class="setting-row" data-pin="sideBySide">
+          <button class="setting-pin" type="button" onclick="event.preventDefault(); togglePin('sideBySide')" aria-label="Pin Side-by-side to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
           <span class="setting-label">Side-by-side panes<span class="setting-desc">Stack panes horizontally for comparison instead of vertically.</span></span>
           <button class="setting-toggle" id="setLayout" data-setting="sideBySide" onclick="toggleSetting('sideBySide')" aria-pressed="false"></button>
         </label>
-        <label class="setting-row">
+        <label class="setting-row" data-pin="hideSidebar">
+          <button class="setting-pin" type="button" onclick="event.preventDefault(); togglePin('hideSidebar')" aria-label="Pin Hide sidebar to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
           <span class="setting-label">Hide Definitions sidebar<span class="setting-desc">Give the diagram the full page width — useful for screenshots or narrow screens.</span></span>
           <button class="setting-toggle" id="setHideSidebar" data-setting="hideSidebar" onclick="toggleSetting('hideSidebar')" aria-pressed="false"></button>
         </label>
       </section>
       <section>
         <h4>Editor</h4>
-        <label class="setting-row">
+        <label class="setting-row" data-pin="disableAutocomplete">
+          <button class="setting-pin" type="button" onclick="event.preventDefault(); togglePin('disableAutocomplete')" aria-label="Pin No autocomplete to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
           <span class="setting-label">Disable autocomplete<span class="setting-desc">Stop suggesting matching definition names while you type.</span></span>
           <button class="setting-toggle" id="setNoAutocomplete" data-setting="disableAutocomplete" onclick="toggleSetting('disableAutocomplete')" aria-pressed="false"></button>
         </label>
@@ -203,26 +233,31 @@
           <span class="setting-label">Default max steps<span class="setting-desc">Run / Run N stops here. Leave blank or 0 for unlimited.</span></span>
           <input type="text" class="setting-input" id="setMaxSteps" value="1000" onchange="setReductionDefault('defaultMaxSteps', this.value)">
         </div>
-        <label class="setting-row">
+        <label class="setting-row" data-pin="defaultBlc">
+          <button class="setting-pin" type="button" onclick="event.preventDefault(); togglePin('defaultBlc')" aria-label="Pin BLC default to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
           <span class="setting-label">Show BLC encoding by default<span class="setting-desc">Pre-open the binary lambda calculus row on every new pane.</span></span>
           <button class="setting-toggle" id="setBlc" data-setting="defaultBlc" onclick="toggleSetting('defaultBlc')" aria-pressed="false"></button>
         </label>
-        <label class="setting-row">
+        <label class="setting-row" data-pin="defaultRecog">
+          <button class="setting-pin" type="button" onclick="event.preventDefault(); togglePin('defaultRecog')" aria-label="Pin Recog default to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
           <span class="setting-label">Show Recognize by default<span class="setting-desc">Pre-open the known-term recognition row on every new pane.</span></span>
           <button class="setting-toggle" id="setRecog" data-setting="defaultRecog" onclick="toggleSetting('defaultRecog')" aria-pressed="false"></button>
         </label>
       </section>
       <section>
         <h4>Advanced</h4>
-        <label class="setting-row">
+        <label class="setting-row" data-pin="sync">
+          <button class="setting-pin" type="button" onclick="event.preventDefault(); togglePin('sync')" aria-label="Pin Sync to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
           <span class="setting-label">Sync mode<span class="setting-desc">Step / Run / Reset apply to every pane at once. Sync buttons appear in the toolbar.</span></span>
           <button class="setting-toggle" id="setSync" data-setting="sync" onclick="toggleSetting('sync')" aria-pressed="false"></button>
         </label>
-        <label class="setting-row">
-          <span class="setting-label">God mode<span class="setting-beta">FAST</span><span class="setting-desc">Strips out the diagram, pretty-printer, and most controls. Run blasts through reductions at full speed and only displays the final result — for large terms where the animation gets in the way.</span></span>
+        <label class="setting-row" data-pin="godMode">
+          <button class="setting-pin" type="button" onclick="event.preventDefault(); togglePin('godMode')" aria-label="Pin God mode to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
+          <span class="setting-label">God mode<span class="setting-desc">Strips out the diagram, pretty-printer, and most controls. Run blasts through reductions at full speed and only displays the final result — for large terms where the animation gets in the way.</span></span>
           <button class="setting-toggle" id="setGodMode" data-setting="godMode" onclick="toggleSetting('godMode')" aria-pressed="false"></button>
         </label>
-        <label class="setting-row">
+        <label class="setting-row" data-pin="showRecord">
+          <button class="setting-pin" type="button" onclick="event.preventDefault(); togglePin('showRecord')" aria-label="Pin Record to toolbar"><svg aria-hidden="true"><use href="#pin-icon"/></svg></button>
           <span class="setting-label">Show record button <span class="setting-beta">BETA</span><span class="setting-desc">Reveal a ● Rec button on each pane to capture reductions as webm. Frame timing is rough — diagrams with many steps may stutter.</span></span>
           <button class="setting-toggle" id="setRecord" data-setting="showRecord" onclick="toggleSetting('showRecord')" aria-pressed="false"></button>
         </label>
@@ -328,8 +363,12 @@ function toggleNav() {
   };
 })();
 
-initVisualizer();
+// Order matters: loadAndApplySettings() builds the dynamic toolbar
+// (creating #sc / #speed sliders that initVisualizer() then reads) and
+// applies global flags that the first pane consumes during its
+// _applyReductionDefaults pass. initVisualizer() must run *after*.
 loadAndApplySettings();
+initVisualizer();
 
 // Settings modal: ⚙ toggles, Esc closes (handled in the existing keydown
 // listener below).
