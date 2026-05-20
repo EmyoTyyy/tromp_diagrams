@@ -507,6 +507,10 @@ function addPane() {
   pane.editor.focus();
   activePane = pane;
   pane.markFocused();
+  // Two-or-more panes — award multi-pane achievement.
+  if (typeof window.unlockAchievement === 'function' && getAllPanes().length >= 2) {
+    window.unlockAchievement('multi-pane');
+  }
 }
 // Back-compat shim — the standalone "Stacked / Side-by-side" toolbar
 // button is gone; the preference lives in the Settings modal now.
@@ -568,6 +572,9 @@ function enterPresentation() {
   // Seed the stats HUD with the pane's current state so it's not empty
   // until the first step / setStatus call.
   updatePresentationStats();
+  if (typeof window.unlockAchievement === 'function') {
+    window.unlockAchievement('presentation');
+  }
 }
 function exitPresentation() {
   if (!inPresentation) return;

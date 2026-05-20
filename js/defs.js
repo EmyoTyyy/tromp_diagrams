@@ -9,6 +9,10 @@ const BUILTIN_DEFS = {
   'B':     '\\f. \\g. \\x. f (g x)',
   'C':     '\\f. \\x. \\y. f y x',
   'W':     '\\f. \\x. f x x',
+  // D (Dove, Smullyan): D x y z w = x y (z w). Less canonical than the
+  // SKIBCW set but useful in combinatory logic literature; also makes
+  // the SKIBIDI sequence parseable.
+  'D':     '\\x. \\y. \\z. \\w. x y (z w)',
   'Y':     '\\f. (\\x. f (x x)) (\\x. f (x x))',
   'Z':     '\\f. (\\x. f (\\v. x x v)) (\\x. f (\\v. x x v))',
   'omega': '(\\x. x x) (\\x. x x)',
@@ -73,7 +77,7 @@ const BUILTIN_DEFS = {
 
   
 const CATEGORIES = [
-  ['Combinators', ['I', 'K', 'S', 'B', 'C', 'W', 'Y', 'Z', 'omega', 'id']],
+  ['Combinators', ['I', 'K', 'S', 'B', 'C', 'W', 'D', 'Y', 'Z', 'omega', 'id']],
   ['Booleans',    ['true', 'false', 'not', 'and', 'or', 'xor', 'if']],
   ['Pairs',       ['pair', 'fst', 'snd']],
   ['Naturals',    ['succ', 'plus', 'mult', 'pow', 'pred', 'sub', 'iszero', 'leq', 'eq']],

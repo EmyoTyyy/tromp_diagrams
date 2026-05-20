@@ -41,6 +41,11 @@
   });
 
   function triggerKonami() {
+    // First successful konami also earns an achievement (no-op if
+    // achievements.js isn't loaded on this page).
+    if (typeof window.unlockAchievement === 'function') {
+      window.unlockAchievement('konami');
+    }
     // Path-aware: each subpage now lives at /<name>/ (or /<name>/index.html).
     // Root pages are /, /index.html, /404.html.
     const SUBPAGE_RE = /\/(visualizer|play|learn|tree|combinators|encodings|halting|history|cheatsheet|about)\/(index\.html)?$/i;
@@ -138,10 +143,84 @@
   // Expose for pages that want to toast.
   window.siteToast = siteToast;
 
+  // ── Theme picker (cross-page) ─────────────────────────────
+  // Themes are pure CSS-variable overrides defined in theme.css under
+  // html[data-theme="<name>"]. Persisted in localStorage so the
+  // chosen palette sticks across pages and reloads. The default
+  // (cyan) has no data-theme attribute — just remove the attr.
+  const THEME_KEY = 'tromp_theme_v1';
+  const THEMES = [
+    { id: '',         name: 'Cyan (default)', swatch: ['#0a0a12', '#a0e0ff', '#80e0a0'] },
+    { id: 'dracula',  name: 'Dracula',        swatch: ['#282a36', '#bd93f9', '#50fa7b'] },
+    { id: 'monokai',  name: 'Monokai',        swatch: ['#272822', '#66d9ef', '#a6e22e'] },
+    { id: 'rose',     name: 'Rose',           swatch: ['#1a1014', '#ffb0c8', '#ffd6b0'] },
+    { id: 'light',    name: 'Light',          swatch: ['#f5f6f8', '#2563eb', '#16a34a'] },
+  ];
+  function applyTheme(id) {
+    if (id && THEMES.some(t => t.id === id && t.id !== '')) {
+      document.documentElement.setAttribute('data-theme', id);
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }
+  function loadTheme() {
+    try { return localStorage.getItem(THEME_KEY) || ''; }
+    catch { return ''; }
+  }
+  function saveTheme(id) {
+    try {
+      if (id) localStorage.setItem(THEME_KEY, id);
+      else localStorage.removeItem(THEME_KEY);
+    } catch { /* private mode — skip */ }
+  }
+  // Apply the saved theme as soon as possible so there's no flash of
+  // the default palette on slow loads. Re-run on DOMContentLoaded too
+  // in case the script ran before <html> was fully parsed.
+  applyTheme(loadTheme());
+
+  // Inject the theme picker into the nav drawer. Each page has its
+  // own drawer markup so we hook into whatever's present.
+  function injectThemePicker() {
+    const drawer = document.querySelector('.nav-drawer');
+    if (!drawer || drawer.querySelector('.theme-picker')) return;
+    const current = loadTheme();
+    const wrap = document.createElement('div');
+    wrap.className = 'theme-picker';
+    wrap.innerHTML =
+      '<div class="theme-picker-label">Theme</div>' +
+      '<div class="theme-swatches">' +
+      THEMES.map(t => {
+        const active = (t.id === current) ? ' active' : '';
+        const dots = t.swatch.map(c =>
+          '<span class="theme-dot" style="background:' + c + '"></span>'
+        ).join('');
+        return '<button type="button" class="theme-swatch' + active + '" ' +
+               'data-theme-id="' + t.id + '" title="' + t.name + '" ' +
+               'aria-label="Theme: ' + t.name + '">' + dots + '</button>';
+      }).join('') +
+      '</div>';
+    drawer.appendChild(wrap);
+    wrap.addEventListener('click', (e) => {
+      const btn = e.target.closest('.theme-swatch');
+      if (!btn) return;
+      const id = btn.getAttribute('data-theme-id') || '';
+      applyTheme(id);
+      saveTheme(id);
+      wrap.querySelectorAll('.theme-swatch').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  }
+  window.applyTheme = applyTheme;
+
   // ── Init ───────────────────────────────────────────────────
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', injectFunFact);
-  } else {
+  function init() {
+    applyTheme(loadTheme());
     injectFunFact();
+    injectThemePicker();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 })();

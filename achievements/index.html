@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Achievements you can unlock by exploring the lambda calculus visualizer.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='28' font-family='serif' fill='%237aa2f7'%3E%CE%BB%3C/text%3E%3C/svg%3E">
+<title>Achievements · Tromp Diagrams</title>
+<link rel="stylesheet" href="../css/theme.css">
+<link rel="stylesheet" href="../css/pages.css">
+</head>
+<body class="page">
+
+<div class="topnav">
+  <button class="nav-toggle tt" data-tt="Menu" data-tt-pos="below" id="navToggle" onclick="toggleNav()">☰</button>
+</div>
+<div class="nav-overlay" id="navOverlay" onclick="toggleNav()"></div>
+<nav class="nav-drawer" id="navDrawer">
+  <a href="../">Home</a>
+  <a href="../visualizer/">Visualizer</a>
+  <a href="../learn/">Learn</a>
+  <a href="../play/">Play</a>
+  <a href="../tree/">Tree</a>
+  <a href="../combinators/">Combinators</a>
+  <a href="../encodings/">Encodings</a>
+  <a href="../halting/">Halting</a>
+  <a href="../history/">History</a>
+  <a href="../achievements/" class="active">Achievements</a>
+  <a href="../cheatsheet/">Cheatsheet</a>
+  <a href="../about/">About</a>
+</nav>
+
+<div class="page-wrap">
+  <h1>Achievements</h1>
+  <p class="lede">
+    A small collection of milestones to chase while exploring the visualizer.
+    Progress is stored locally in your browser — no account needed.
+  </p>
+
+  <div class="ach-summary" id="achSummary"></div>
+  <div class="ach-grid" id="achGrid"></div>
+
+  <footer class="page-footer">
+    <a href="../visualizer/">← Visualizer</a> ·
+    <a href="../play/">Play</a> ·
+    <a href="../about/">About</a>
+  </footer>
+</div>
+
+<script>
+function toggleNav() {
+  document.getElementById('navDrawer').classList.toggle('open');
+  document.getElementById('navOverlay').classList.toggle('open');
+}
+</script>
+<script src="../js/site.js"></script>
+<script src="../js/achievements.js"></script>
+<script>
+(function renderAchievements() {
+  const list = (typeof window.achievementStatus === 'function')
+    ? window.achievementStatus() : [];
+  const unlocked = list.filter(a => a.unlocked).length;
+  const total = list.length;
+  document.getElementById('achSummary').innerHTML =
+    '<span class="ach-count">' + unlocked + ' / ' + total + '</span> unlocked' +
+    '<div class="ach-progress"><div class="ach-progress-fill" style="width:' +
+    (total ? (unlocked / total * 100) : 0) + '%"></div></div>';
+
+  const grid = document.getElementById('achGrid');
+  grid.innerHTML = list.map(a => {
+    // Locked: title is visible as a small teaser. The descriptive
+    // hint and the icon stay hidden until the achievement actually
+    // fires — that way the player gets a name to chase without
+    // being told exactly what unlocks it. Gold-tier achievements
+    // also wear a warm-amber frame so users can spot the rare ones
+    // at a glance even before they're unlocked.
+    const icon = a.unlocked ? a.icon : '?';
+    const hint = a.unlocked ? a.hint : '???';
+    const cls  = 'ach-card' +
+      (a.unlocked ? ' unlocked' : ' locked') +
+      (a.gold ? ' gold' : '');
+    return '<div class="' + cls + '">' +
+      '<div class="ach-icon">' + icon + '</div>' +
+      '<div class="ach-body">' +
+        '<div class="ach-title">' + a.title + '</div>' +
+        '<div class="ach-hint">' + hint + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+})();
+</script>
+</body>
+</html>

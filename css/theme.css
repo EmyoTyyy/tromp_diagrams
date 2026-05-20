@@ -18,6 +18,59 @@
   --ease: cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
+/* ── Alternate themes ─────────────────────────────
+   Switched via <html data-theme="..."> from site.js. Each block
+   overrides the colour variables only; structural CSS (sizes, fonts,
+   animations) is theme-agnostic. */
+html[data-theme="dracula"] {
+  --bg: #282a36;
+  --surface: #21222c;
+  --surface-2: #343746;
+  --border: #44475a;
+  --text: #f8f8f2;
+  --muted: #6272a4;
+  --accent: #bd93f9;
+  --accent-2: #50fa7b;
+  --warn: #f1fa8c;
+  --danger: #ff5555;
+}
+html[data-theme="light"] {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #ecedf1;
+  --border: #d3d6dd;
+  --text: #1c1f26;
+  --muted: #6a7180;
+  --accent: #2563eb;
+  --accent-2: #16a34a;
+  --warn: #d97706;
+  --danger: #dc2626;
+}
+html[data-theme="monokai"] {
+  --bg: #272822;
+  --surface: #1e1f1c;
+  --surface-2: #3e3d32;
+  --border: #4a4a3f;
+  --text: #f8f8f2;
+  --muted: #75715e;
+  --accent: #66d9ef;
+  --accent-2: #a6e22e;
+  --warn: #fd971f;
+  --danger: #f92672;
+}
+html[data-theme="rose"] {
+  --bg: #1a1014;
+  --surface: #221820;
+  --surface-2: #2c2028;
+  --border: #4a2a3a;
+  --text: #fce8f0;
+  --muted: #8a6878;
+  --accent: #ffb0c8;
+  --accent-2: #ffd6b0;
+  --warn: #ffe080;
+  --danger: #ff7090;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { scroll-behavior: smooth; }
@@ -252,6 +305,48 @@ input[type=range]:active::-moz-range-thumb {
   -webkit-overflow-scrolling: touch;
 }
 .nav-drawer.open { right: 0; }
+
+/* ── Theme picker (injected at the bottom of every nav drawer by
+   site.js). Five swatches showing the palette of each theme; click
+   to switch + persist. The active swatch wears a cyan ring. */
+.theme-picker {
+  margin-top: auto;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+}
+.theme-picker-label {
+  font-size: 0.65rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.theme-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.theme-swatch {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 5px 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: border-color .15s, transform .15s;
+}
+.theme-swatch:hover { border-color: var(--accent); }
+.theme-swatch.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(160, 224, 255, 0.18);
+}
+.theme-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
 .nav-drawer a {
   padding: 14px 24px;
   color: var(--text);

@@ -227,6 +227,9 @@ function addUserDef() {
   document.getElementById('newName').value = '';
   document.getElementById('newExpr').value = '';
   renderSidebar();
+  if (typeof window.unlockAchievement === 'function') {
+    window.unlockAchievement('def-added');
+  }
 }
 
 function editUserDef(name) {

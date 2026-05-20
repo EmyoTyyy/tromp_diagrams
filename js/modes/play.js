@@ -1054,6 +1054,23 @@ function checkAnswer() {
   } else {
     msg = '✓ Correct! (' + elapsed.toFixed(1) + 's, ' + attemptsTxt + ')';
   }
+  // Achievement hooks (silent no-op if achievements.js is missing).
+  // Any win unlocks 'play-daily' when mode is daily; an extreme
+  // (10★) daily additionally awards 'play-extreme'. The gold-tier
+  // 'daily-perfect' fires when the user nailed the puzzle on attempt
+  // 1 with zero hints; 'daily-streak-7' tracks the rolling streak
+  // already maintained by playStats.streak.
+  if (typeof window.unlockAchievement === 'function') {
+    if (playState.mode === 'daily') {
+      window.unlockAchievement('play-daily');
+      const stars = (playState.puzzle && playState.puzzle.difficulty) || 0;
+      if (stars >= 10) window.unlockAchievement('play-extreme');
+      if (playState.attempts <= 1 && playState.hintsUsed === 0) {
+        window.unlockAchievement('daily-perfect');
+      }
+      if (playStats.streak >= 7) window.unlockAchievement('daily-streak-7');
+    }
+  }
   // Daily: record the per-date solve in history (on-time vs late) and
   // — only when it's actually today's puzzle — bump the streak the
   // first time the player completes it.

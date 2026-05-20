@@ -365,6 +365,29 @@ class Pane {
       this.updateBackBtn();
       // Re-render folds when content settles
       this.editor.renderFolds();
+      // Achievement hooks. Fire-and-forget; the unlock helper is a
+      // no-op if the achievement is already earned or doesn't exist.
+      if (typeof window.unlockAchievement === 'function') {
+        window.unlockAchievement('first-draw');
+        // Source text contains a free Y variable or the canonical Ω.
+        if (/\bY\b/.test(src)) window.unlockAchievement('used-y');
+        if (src.replace(/\s+/g, '').indexOf('(\\x.xx)(\\x.xx)') >= 0 ||
+            src.replace(/\s+/g, '').indexOf('(λx.xx)(λx.xx)') >= 0) {
+          window.unlockAchievement('used-omega');
+        }
+        // Pull out the identifier sequence and look for S K I B I D I
+        // in order. Tolerates any parens / lambdas / dots between the
+        // tokens because we only inspect the identifiers themselves.
+        const idents = (src.match(/[A-Za-z_][A-Za-z0-9_']*/g) || []).join(' ');
+        if (idents.indexOf('S K I B I D I') >= 0) {
+          window.unlockAchievement('skibidi');
+        }
+      }
+      // Combinator-master tracker — accumulates which of S/K/I/B/C/W/Y
+      // have appeared across all expressions drawn over time.
+      if (typeof window.trackCombinators === 'function') {
+        window.trackCombinators(src);
+      }
     } catch (e) {
       this.codeEl.innerHTML = `<span class="err">Error: ${e.message}</span>`;
     }
@@ -394,6 +417,7 @@ class Pane {
     if (!result.reduced) {
       this.totalElapsed += performance.now() - wallStart;
       this.setStatus('normal form (step ' + this.stepCount + ')', 'nf');
+            if (typeof window.unlockAchievement === 'function') window.unlockAchievement('normal-form');
       this.updateBackBtn();
       return;
     }
@@ -409,6 +433,12 @@ class Pane {
     if (this.stepHistory.length > 500) this.stepHistory.shift();
     this.currentAST = result.node;
     this.stepCount++;
+    if (typeof window.unlockAchievement === 'function') {
+      window.unlockAchievement('first-step');
+      if (this.stepCount >= 1000)    window.unlockAchievement('big-reduction');
+      if (this.stepCount >= 10000)   window.unlockAchievement('mega-reduction');
+      if (this.stepCount >= 100000)  window.unlockAchievement('mega-reduction-2');
+    }
     this.totalElapsed += performance.now() - wallStart;
     this.setStatus('step ' + this.stepCount);
     this._render(STEP_DUR * SPEED_MULT, result.originMap);
@@ -425,6 +455,9 @@ class Pane {
     this.setStatus('step ' + this.stepCount + ' (back)');
     this._render(STEP_DUR * SPEED_MULT, null);
     this.updateBackBtn();
+    if (typeof window.unlockAchievement === 'function') {
+      window.unlockAchievement('back-step');
+    }
   }
 
   reset() {
@@ -514,6 +547,7 @@ class Pane {
             if (batched > 0 && lastResult) this._render(animDur, lastResult.originMap);
             tickElapsed();
             this.setStatus('normal form (step ' + this.stepCount + ')', 'nf');
+            if (typeof window.unlockAchievement === 'function') window.unlockAchievement('normal-form');
             return;
           }
           this.currentAST = result.node;
@@ -618,6 +652,12 @@ class Pane {
         this._render(0, null);
         this._suppressFitOnNextRender = false;
         this.setStatus('normal form (step ' + this.stepCount + ')', 'nf');
+        if (typeof window.unlockAchievement === 'function') {
+          window.unlockAchievement('normal-form');
+          window.unlockAchievement('god-mode');
+          if (this.stepCount >= 1000)  window.unlockAchievement('big-reduction');
+          if (this.stepCount >= 10000) window.unlockAchievement('mega-reduction');
+        }
         this.updateBackBtn();
         // 80ms timeout (same wait enterPresentation uses) lets the
         // .reducing→hidden-elements display chain settle before the
@@ -836,7 +876,13 @@ class Pane {
   toggleFind(force) {
     const open = force === false ? false : !this.findBar.classList.contains('open');
     this.findBar.classList.toggle('open', open);
-    if (open) { this.findInput.focus(); this.updateFindCount(); }
+    if (open) {
+      this.findInput.focus();
+      this.updateFindCount();
+      if (typeof window.unlockAchievement === 'function') {
+        window.unlockAchievement('find-used');
+      }
+    }
   }
   updateFindCount() {
     const find = this.findInput.value;
@@ -868,6 +914,9 @@ class Pane {
     const text = renderCodePlain(this.currentAST, false);
     navigator.clipboard.writeText(text).then(() => showToast('Copied', 'ok'))
       .catch(() => prompt('Copy this:', text));
+    if (typeof window.unlockAchievement === 'function') {
+      window.unlockAchievement('copy-expr');
+    }
   }
   share() {
     const expr = this.editor.getValue();
@@ -875,6 +924,9 @@ class Pane {
     const url = buildShareURL(expr);
     navigator.clipboard.writeText(url).then(() => showToast('URL copied', 'ok'))
       .catch(() => prompt('Share URL:', url));
+    if (typeof window.unlockAchievement === 'function') {
+      window.unlockAchievement('shared');
+    }
   }
   async exportPNG() {
     const svg = this.svgEl;
@@ -893,6 +945,9 @@ class Pane {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }, 'image/png');
+      if (typeof window.unlockAchievement === 'function') {
+        window.unlockAchievement('png-export');
+      }
     } catch (e) { showToast('Export failed', 'danger'); }
   }
   toggleRecording() {
@@ -1158,6 +1213,9 @@ async function finalizePaneRecording(pane) {
   rec.stop();
   await done;
   pane.setStatus('video saved', 'nf');
+  if (typeof window.unlockAchievement === 'function') {
+    window.unlockAchievement('recorded');
+  }
   pane.recordedFrames = [];
 }
 

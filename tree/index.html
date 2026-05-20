@@ -39,6 +39,7 @@
   <a href="../encodings/">Encodings</a>
   <a href="../halting/">Halting</a>
   <a href="../history/">History</a>
+  <a href="../achievements/">Achievements</a>
   <a href="../cheatsheet/">Cheatsheet</a>
   <a href="../about/">About</a>
 </nav>
@@ -62,15 +63,10 @@
       <span style="font-size:0.62rem; color:var(--muted);">speed</span>
       <input type="range" id="treeSpeed" min="1" max="8" value="3" oninput="treeSetSpeed(this.value)">
     </span>
-    <span class="tree-zoom">
-      <button class="btn btn-sec tt" data-tt="Zoom out" data-tt-pos="below" onclick="treeZoomBy(0.8)">−</button>
-      <button class="btn btn-sec tt" data-tt="Fit to view (F)" data-tt-pos="below" onclick="treeFit()">Fit</button>
-      <button class="btn btn-sec tt" data-tt="Zoom in" data-tt-pos="below" onclick="treeZoomBy(1.25)">+</button>
-    </span>
     <button class="btn btn-sec tt" data-tt="Toggle minimap (M)" data-tt-pos="below" id="treeMinimapBtn" onclick="treeToggleMinimap()">Map</button>
-    <button class="btn btn-sec tt" data-tt="Toggle fullscreen" data-tt-pos="below" id="treeFullscreenBtn" onclick="treeToggleFullscreen()">⛶</button>
     <button class="btn btn-sec tt" data-tt="Download tree as PNG" data-tt-pos="below" onclick="treeExportPNG()">↓ PNG</button>
     <span class="tree-stats" id="treeStats"></span>
+    <button class="btn btn-sec btn-glyph tt" data-tt="Keyboard shortcuts (?)" data-tt-pos="below" data-tt-align="right" onclick="toggleShortcuts()" aria-label="Keyboard shortcuts">?</button>
   </div>
 
   <div class="tree-legend">
@@ -79,11 +75,20 @@
     <span class="lg-item lg-strat" data-strat="cbn"><i class="lg-dot" style="background:#ffd066"></i>cbn</span>
     <span class="lg-item lg-strat" data-strat="cbv"><i class="lg-dot" style="background:#ff8aa0"></i>cbv</span>
     <span class="lg-item lg-sep">·</span>
-    <span class="lg-item">hover a strategy to highlight its path · drag · scroll to zoom · <button class="btn btn-sec tt" data-tt="Keyboard shortcuts (?)" data-tt-pos="below" onclick="toggleShortcuts()" style="font-weight:500;">?</button> shortcuts</span>
+    <span class="lg-item">hover a strategy to highlight its path · drag · scroll to zoom</span>
   </div>
 
   <div class="tree-canvas-wrap" id="treeCanvasWrap">
-    <button class="tree-fs-exit tt" data-tt="Exit fullscreen (Esc)" data-tt-pos="below" onclick="treeToggleFullscreen()" aria-label="Exit fullscreen">⛶</button>
+    <button class="tree-fs-exit tt" data-tt="Toggle fullscreen (Esc to exit)" data-tt-pos="below" data-tt-align="right" onclick="treeToggleFullscreen()" aria-label="Toggle fullscreen">⛶</button>
+    <!-- Corner zoom controls (mirrors the visualizer pane layout):
+         − for zoom out, current zoom %, + for zoom in, ⊙ to auto-fit
+         the whole tree to the canvas. -->
+    <div class="zoom-controls tree-zoom-controls">
+      <button class="zoom-btn tt" data-tt="Zoom out" data-tt-pos="above" onclick="treeZoomBy(0.8)" aria-label="Zoom out">−</button>
+      <span class="zoom-level" id="treeZoomLevel">100%</span>
+      <button class="zoom-btn tt" data-tt="Zoom in" data-tt-pos="above" onclick="treeZoomBy(1.25)" aria-label="Zoom in">+</button>
+      <button class="zoom-btn tt" data-tt="Fit to view (F)" data-tt-pos="above" onclick="treeFit()" aria-label="Fit to view">⊙</button>
+    </div>
     <svg id="treeSVG" xmlns="http://www.w3.org/2000/svg">
       <g id="treeViewport">
         <g id="treeEdges"></g>
@@ -125,6 +130,7 @@
         <dl>
           <dt><kbd>Space</kbd> / <kbd>→</kbd></dt><dd>Advance one β-step (all strategies in lockstep)</dd>
           <dt><kbd>R</kbd></dt><dd>Toggle Run (auto-advance)</dd>
+          <dt><kbd>S</kbd></dt><dd>Set / reset the tree (re-parse the input expression)</dd>
         </dl>
       </section>
       <section>
@@ -135,6 +141,7 @@
           <dt>Mouse wheel</dt><dd>Zoom at cursor</dd>
           <dt>Click + drag (canvas)</dt><dd>Pan</dd>
           <dt>Double-click (empty area)</dt><dd>Reset viewport</dd>
+          <dt>Corner controls</dt><dd>−/+ zoom, ⊙ fit to view, ⛶ fullscreen</dd>
         </dl>
       </section>
       <section>
@@ -205,5 +212,6 @@ function toggleShortcuts() {
 <script src="../js/modes/tree.js"></script>
 <script>initTree();</script>
 <script src="../js/site.js"></script>
+<script src="../js/achievements.js"></script>
 </body>
 </html>

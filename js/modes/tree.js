@@ -629,6 +629,11 @@ function renderTree() {
   // 1. Viewport transform
   treeViewport.setAttribute('transform',
     `translate(${treeView.x} ${treeView.y}) scale(${treeView.zoom})`);
+  // 1a. Mirror current zoom into the corner readout if present.
+  // Updated every render so wheel-zoom, pinch, fit, and the +/− buttons
+  // all keep the percentage in sync without explicit hooks each.
+  const zLevel = document.getElementById('treeZoomLevel');
+  if (zLevel) zLevel.textContent = Math.round(treeView.zoom * 100) + '%';
 
   // 2. Reconcile nodes
   const seenNodes = new Set();
@@ -1131,6 +1136,13 @@ function onTreeKeyDown(ev) {
     case 'R':
       ev.preventDefault();
       treeToggleRun();
+      break;
+    case 's':
+    case 'S':
+      // Set / reset the tree — re-parses the expression in the input
+      // and replays from scratch.
+      ev.preventDefault();
+      treeReset();
       break;
     case 'f':
     case 'F':
