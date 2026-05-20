@@ -611,17 +611,26 @@ class Pane {
       if (myToken === this.runToken && reachedNF) {
         // Paint the final AST into the regular diagram + pretty-
         // printer. Zero animation duration — we want the result on
-        // screen instantly, not an 800ms fade-in.
+        // screen instantly, not an 800ms fade-in. Suppress _render's
+        // internal presentation auto-refit so it doesn't race with
+        // our explicit fit below.
+        this._suppressFitOnNextRender = true;
         this._render(0, null);
+        this._suppressFitOnNextRender = false;
         this.setStatus('normal form (step ' + this.stepCount + ')', 'nf');
         this.updateBackBtn();
-        // After god mode finishes, the final term is typically much
-        // smaller (or occasionally bigger) than the input — without a
-        // fit the diagram lands at whatever zoom level was active
-        // before, which usually overshoots or undershoots. rAF lets
-        // the SVG width/height attributes settle before fit reads
-        // them.
-        requestAnimationFrame(() => this.autoFit());
+        // 80ms timeout (same wait enterPresentation uses) lets the
+        // .reducing→hidden-elements display chain settle before the
+        // fit reads clientWidth/Height.
+        //
+        // maxZoom depends on context:
+        //   normal mode: cap at 1× — the pane area is modest, so
+        //     blowing tiny reduced terms up to fill it looks comical.
+        //   presentation: use default (10×) — the stage is huge, the
+        //     audience needs to see the result, and matching the F-key
+        //     fit is what reads as "correct" here.
+        const fitCap = (typeof inPresentation !== 'undefined' && inPresentation) ? 10 : 1;
+        setTimeout(() => this.autoFit(fitCap), 80);
       }
     }
   }
@@ -712,7 +721,12 @@ class Pane {
     // the diagram still fits, and only re-zoom when content would
     // otherwise spill off the screen. F key always forces a manual
     // refit if the user wants it.
-    if (typeof inPresentation !== 'undefined' && inPresentation) {
+    //
+    // The _suppressFitOnNextRender flag lets callers (god-mode finish)
+    // opt out — that path runs its own autoFit(1) and doesn't want a
+    // racing default-maxZoom refit overriding it.
+    if (typeof inPresentation !== 'undefined' && inPresentation
+        && !this._suppressFitOnNextRender) {
       requestAnimationFrame(() => {
         const dw = this.dwEl;
         const svg = this.svgEl;
@@ -991,17 +1005,21 @@ class Pane {
     this.viewOffsetY = 0;
     this._applyViewport();
   }
-  autoFit() {
+  // Optional maxZoom (default 10) caps how far the fit will zoom IN.
+  // Set lower (e.g. 1) to keep tiny terms at native size rather than
+  // blowing them up to fill the viewport — useful after god-mode
+  // reductions which often resolve to small church-encoded terms.
+  autoFit(maxZoom = 10) {
     const dw = this.dwEl;
     const svg = this.svgEl;
     const cw = dw.clientWidth, ch = dw.clientHeight;
-    if (cw < 50 || ch < 50) { requestAnimationFrame(() => this.autoFit()); return; }
+    if (cw < 50 || ch < 50) { requestAnimationFrame(() => this.autoFit(maxZoom)); return; }
     const sw = parseFloat(svg.getAttribute('width')) || 1;
     const sh = parseFloat(svg.getAttribute('height')) || 1;
-    if (sw < 2 || sh < 2) { requestAnimationFrame(() => this.autoFit()); return; }
+    if (sw < 2 || sh < 2) { requestAnimationFrame(() => this.autoFit(maxZoom)); return; }
     const pad = 30;
     const target = Math.min((cw - pad) / sw, (ch - pad) / sh) * 0.95;
-    this.viewZoom = Math.max(0.05, Math.min(target, 10));
+    this.viewZoom = Math.max(0.05, Math.min(target, maxZoom));
     if (inPresentation) {
       this.viewOffsetX = (cw - sw * this.viewZoom) / 2;
       this.viewOffsetY = (ch - sh * this.viewZoom) / 2;
