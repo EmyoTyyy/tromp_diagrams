@@ -1256,48 +1256,10 @@ footer.page-footer a:hover { color: var(--accent); }
 }
 .page-home .hero > * { position: relative; z-index: 1; }
 
-/* Animated gradient orbs that drift behind the hero title — gives
-   the landing page a uiverse-style "living background" feel without
-   any extra DOM. Two pseudo-elements at low opacity + heavy blur
-   create cyan and accent-2 light blooms; long animations keep their
-   motion ambient. The opacity is low enough that on light themes
-   (solarized) it still reads as a subtle wash rather than a smear. */
-.page-home .hero::before,
-.page-home .hero::after {
-  content: '';
-  position: absolute;
-  width: 70vmin;
-  height: 70vmin;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.32;
-  pointer-events: none;
-  z-index: 0;
-}
-.page-home .hero::before {
-  background: radial-gradient(circle, var(--accent), transparent 70%);
-  top: -20%;
-  left: -15%;
-  animation: hero-orb-1 22s ease-in-out infinite alternate;
-}
-.page-home .hero::after {
-  background: radial-gradient(circle, var(--accent-2), transparent 70%);
-  bottom: -25%;
-  right: -18%;
-  animation: hero-orb-2 28s ease-in-out infinite alternate;
-}
-@keyframes hero-orb-1 {
-  0%   { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(8vmin, 5vmin) scale(1.15); }
-}
-@keyframes hero-orb-2 {
-  0%   { transform: translate(0, 0) scale(1.1); }
-  100% { transform: translate(-7vmin, -4vmin) scale(0.95); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .page-home .hero::before,
-  .page-home .hero::after { animation: none; }
-}
+/* Hero background decoration deliberately omitted — both the soft
+   gradient and the more-defined orb attempts read as visual noise
+   around the title. The hero keeps its faint λ filigree and the Y
+   diagram, which carry it on their own. */
 
 /* Background λ — fills the hero box with flex-centering so the glyph is
    always centered in the actual visible area, regardless of font-specific
@@ -1313,17 +1275,39 @@ footer.page-footer a:hover { color: var(--accent); }
   font-weight: 300;
   font-size: clamp(7rem, 26vw, 13rem);
   line-height: 1;
-  color: var(--accent);
-  opacity: 0.05;
+  /* Bumped from 0.05 → 0.12 so the stacked shadow below is actually
+     visible; under 0.05 there's no glyph contrast for a shadow to
+     read against. */
+  color: color-mix(in srgb, var(--accent) 12%, transparent);
   pointer-events: none;
   user-select: none;
   z-index: 0;
   letter-spacing: 0;
   animation: bg-lambda-float 16s ease-in-out infinite;
+  /* --lx / --ly are unit-vector components (-1..1) set by JS from
+     mouse position relative to the lambda's centre. The text-shadow
+     stack uses them to push the shadow in the OPPOSITE direction of
+     the cursor (i.e. away from the light), with each successive
+     layer pushed further out for a stair-stepped extrusion. The
+     transition smooths small mouse jitter without dragging behind
+     deliberate motion. */
+  --lx: 0;
+  --ly: 0;
+  text-shadow:
+    calc(var(--lx) *  -2px) calc(var(--ly) *  -2px) 0 rgba(0, 0, 0, 0.18),
+    calc(var(--lx) *  -4px) calc(var(--ly) *  -4px) 0 rgba(0, 0, 0, 0.15),
+    calc(var(--lx) *  -7px) calc(var(--ly) *  -7px) 0 rgba(0, 0, 0, 0.12),
+    calc(var(--lx) * -11px) calc(var(--ly) * -11px) 0 rgba(0, 0, 0, 0.09),
+    calc(var(--lx) * -16px) calc(var(--ly) * -16px) 0 rgba(0, 0, 0, 0.06),
+    calc(var(--lx) * -24px) calc(var(--ly) * -24px) 18px rgba(0, 0, 0, 0.22);
+  transition: text-shadow .25s ease-out;
 }
 @keyframes bg-lambda-float {
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(1.03); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-bg-lambda { transition: none; }
 }
 
 /* Hero illustration (real Tromp diagram of Y). */
@@ -1479,11 +1463,12 @@ footer.page-footer a:hover { color: var(--accent); }
    model. */
 .scroll-3d-section {
   position: relative;
-  /* Pin engages for ~1 viewport, releases over the next ~1.2. */
-  height: 220vh;
-  /* Full-bleed: break out of the page-wrap's 760px column so the pinned
-     block can use the entire viewport width. The negative left/right
-     margins keep the surrounding layout flow normal. */
+  /* No more sticky pinning. The section is just a tall-ish full-bleed
+     block that scrolls past normally — the JS spin is driven by how
+     far the section has traveled through the viewport, so the model
+     rotates while the user scrolls without the page freezing. */
+  /* Full-bleed: break out of the page-wrap's 760px column so the
+     model block can use the entire viewport width. */
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
@@ -1491,13 +1476,19 @@ footer.page-footer a:hover { color: var(--accent); }
   margin-bottom: 80px;
 }
 .scroll-3d-pinned {
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  /* Was position: sticky; now a normal block. The element keeps its
+     old class name to avoid churn; "pinned" is just historical. */
+  position: relative;
+  height: 80vh;
   width: 100%;
   overflow: hidden;
+  /* Soft radial spotlight behind the 3D model. Uses color-mix so the
+     centre glow follows the active theme accent, and falls off to
+     var(--bg) at the edges instead of hardcoding the dark hex —
+     keeps the effect working on light themes too. */
   background: radial-gradient(ellipse at center,
-    rgba(160, 224, 255, 0.04) 0%, #0a0a12 70%);
+    color-mix(in srgb, var(--accent) 6%, var(--bg)) 0%,
+    var(--bg) 70%);
   display: flex;
   align-items: center;
   justify-content: center;

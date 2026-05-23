@@ -1061,8 +1061,12 @@ body.presentation.hud-hidden .presentation-hud { display: none !important; }
   padding: 12px 20px;
   border-top: 1px solid var(--border);
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
 }
+/* Pushes the destructive "Reset to defaults" button to the far right
+   so the safer export/import pair sits on the left side of the row. */
+.settings-foot-spacer { flex: 1 1 auto; }
 
 /* ── Pin counter pill in section header ────────────── */
 .settings-body section h4 {

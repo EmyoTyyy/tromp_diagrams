@@ -65,9 +65,25 @@
     { id: 'daily-streak-7',   gold: true, icon: '◉', title: 'Week of devotion',         hint: 'Maintain a 7-day daily-challenge streak.' },
     { id: 'daily-perfect',    gold: true, icon: '♢', title: 'Flawless',                 hint: 'Win a daily challenge on the first try with no hints used.' },
     { id: 'combinator-master',gold: true, icon: '✺', title: 'Master of combinators',   hint: 'Use S, K, I, B, C, W and Y across expressions you draw.' },
-    { id: 'all-clear',        gold: true, icon: '✷', title: 'Completionist',            hint: 'Unlock every other achievement on the site.' },
     { id: 'skibidi',          gold: true, icon: '🚽', title: 'Skibidi dop dop',           hint: 'Draw an expression containing the combinator sequence S K I B I D I.' },
+    // KEEP 'all-clear' LAST. It's the meta-achievement that fires
+    // when every other entry is unlocked, so it always has to come
+    // after the rest in display order. A defensive sort below
+    // re-pins it to the end even if a future addition slips past
+    // this line, but please don't rely on that — keep new entries
+    // ABOVE this one.
+    { id: 'all-clear',        gold: true, icon: '✷', title: 'Completionist',            hint: 'Unlock every other achievement on the site.' },
   ];
+  // Guarantee 'all-clear' is the final entry regardless of source
+  // order. Without this, an inadvertent append below it would render
+  // it mid-list and read as awkward (completionist sandwiched
+  // between two regular achievements).
+  {
+    const i = ACHIEVEMENTS.findIndex(a => a.id === 'all-clear');
+    if (i >= 0 && i !== ACHIEVEMENTS.length - 1) {
+      ACHIEVEMENTS.push(ACHIEVEMENTS.splice(i, 1)[0]);
+    }
+  }
 
   function load() {
     try {
@@ -82,6 +98,40 @@
     catch { /* private mode — ignore */ }
   }
 
+  // Build a one-off toast for the unlock so we can wire a custom
+  // click handler (jump to the catalogue) onto it without altering
+  // siteToast's signature, which other features still use.
+  function showUnlockToast(a) {
+    let host = document.getElementById('siteToastHost');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'siteToastHost';
+      host.className = 'site-toast-host';
+      document.body.appendChild(host);
+    }
+    const t = document.createElement('div');
+    t.className = 'site-toast ach-toast';
+    t.innerHTML =
+      '<span class="site-toast-glyph">' + a.icon + '</span>' +
+      '<span>Unlocked: ' + a.title + '</span>' +
+      '<span class="ach-toast-arrow" aria-hidden="true">→</span>';
+    t.title = 'Open achievements';
+    t.style.cursor = 'pointer';
+    t.style.pointerEvents = 'auto';
+    t.addEventListener('click', () => {
+      // Path-aware: subpages live at /<name>/; root is /.
+      const SUB = /\/(visualizer|play|learn|tree|combinators|encodings|halting|history|cheatsheet|about|achievements)\/(index\.html)?$/i;
+      const prefix = SUB.test(window.location.pathname) ? '../' : '';
+      window.location.href = prefix + 'achievements/';
+    });
+    host.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('show'));
+    setTimeout(() => {
+      t.classList.remove('show');
+      setTimeout(() => t.remove(), 320);
+    }, 4200);
+  }
+
   // Public: unlock by id. No-op if already unlocked or id unknown.
   // Pops a toast on first-time unlock so the user knows it happened.
   function unlock(id) {
@@ -91,9 +141,7 @@
     set.add(id);
     save(set);
     const a = ACHIEVEMENTS.find(x => x.id === id);
-    if (typeof window.siteToast === 'function' && a) {
-      window.siteToast('Unlocked: ' + a.title, a.icon);
-    }
+    if (a) showUnlockToast(a);
     // Completionist check — fires once every other achievement is
     // unlocked. Skip if the just-unlocked id is itself 'all-clear'
     // (we'd loop) or if it's gold (gold doesn't gate gold).

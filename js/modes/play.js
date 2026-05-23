@@ -1058,8 +1058,9 @@ function checkAnswer() {
   // Any win unlocks 'play-daily' when mode is daily; an extreme
   // (10★) daily additionally awards 'play-extreme'. The gold-tier
   // 'daily-perfect' fires when the user nailed the puzzle on attempt
-  // 1 with zero hints; 'daily-streak-7' tracks the rolling streak
-  // already maintained by playStats.streak.
+  // 1 with zero hints. 'daily-streak-7' is awarded below (after the
+  // daily-state streak is actually bumped) because playStats.streak
+  // counts any-mode wins, not the daily-specific rolling streak.
   if (typeof window.unlockAchievement === 'function') {
     if (playState.mode === 'daily') {
       window.unlockAchievement('play-daily');
@@ -1068,7 +1069,6 @@ function checkAnswer() {
       if (playState.attempts <= 1 && playState.hintsUsed === 0) {
         window.unlockAchievement('daily-perfect');
       }
-      if (playStats.streak >= 7) window.unlockAchievement('daily-streak-7');
     }
   }
   // Daily: record the per-date solve in history (on-time vs late) and
@@ -1089,6 +1089,12 @@ function checkAnswer() {
       if (ds.streak > ds.bestStreak) ds.bestStreak = ds.streak;
       saveDailyState(ds);
       msg += '  ·  daily streak: ' + ds.streak;
+      // Gold "Week of devotion" — keyed off the real daily streak
+      // (ds.streak), not the any-mode win streak that playStats
+      // tracks. Fires the moment ds.streak reaches 7.
+      if (ds.streak >= 7 && typeof window.unlockAchievement === 'function') {
+        window.unlockAchievement('daily-streak-7');
+      }
     } else if (dateKey === today) {
       msg += '  ·  already solved today';
     } else {

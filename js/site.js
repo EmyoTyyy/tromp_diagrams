@@ -154,7 +154,7 @@
     { id: 'dracula',  name: 'Dracula',        swatch: ['#282a36', '#bd93f9', '#50fa7b'] },
     { id: 'monokai',  name: 'Monokai',        swatch: ['#272822', '#66d9ef', '#a6e22e'] },
     { id: 'rose',     name: 'Rose',           swatch: ['#1a1014', '#ffb0c8', '#ffd6b0'] },
-    { id: 'light',    name: 'Light',          swatch: ['#f5f6f8', '#2563eb', '#16a34a'] },
+    { id: 'light',    name: 'Light',          swatch: ['#f7f5ee', '#1f6f7a', '#5e8a4a'] },
   ];
   function applyTheme(id) {
     if (id && THEMES.some(t => t.id === id && t.id !== '')) {

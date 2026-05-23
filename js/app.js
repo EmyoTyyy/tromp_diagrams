@@ -403,6 +403,90 @@ function resetSettings() {
   saveSettings();
 }
 
+// ── Export / import all local data ─────────────────────
+// Collects every tromp_* localStorage key into a single JSON blob
+// the user can save and restore later. Covers settings, theme,
+// achievements, play stats / daily / bests, custom definitions,
+// expression history, easter-egg state, and the "themes seen" /
+// "combinators used" trackers powering the gold achievements.
+const TROMP_LS_KEYS = [
+  'tromp_visualizer_settings_v1',
+  'tromp_theme_v1',
+  'tromp_achievements_v1',
+  'tromp_combs_used_v1',
+  'tromp_seen_themes_v1',
+  'tromp_diagram_expr_history',
+  'tromp_diagram_user_defs',
+  'tromp_iota_unlocked',
+  'tromp_play_bests_v2',
+  'tromp_play_daily',
+  'tromp_play_stats',
+];
+
+function exportAllData() {
+  const blob = { _format: 'tromp-data', _version: 1, _exportedAt: new Date().toISOString(), data: {} };
+  for (const k of TROMP_LS_KEYS) {
+    try {
+      const v = localStorage.getItem(k);
+      if (v !== null) blob.data[k] = v;
+    } catch { /* private mode — skip */ }
+  }
+  const json = JSON.stringify(blob, null, 2);
+  const file = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tromp-data-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  if (typeof showToast === 'function') showToast('Exported', 'ok');
+}
+
+function importAllData(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    let blob;
+    try { blob = JSON.parse(e.target.result); }
+    catch { showToast && showToast('Invalid JSON', 'danger'); return; }
+    if (!blob || blob._format !== 'tromp-data' || !blob.data) {
+      showToast && showToast('Not a tromp-data export', 'warn'); return;
+    }
+    if (!confirm('Import will overwrite your current settings, achievements, defs, history, and play state. Continue?')) return;
+    let n = 0;
+    for (const k of TROMP_LS_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(blob.data, k)) {
+        try { localStorage.setItem(k, blob.data[k]); n++; } catch {}
+      }
+    }
+    showToast && showToast('Imported ' + n + ' keys — reloading...', 'ok');
+    // Hard reload so every page-level cache (SETTINGS, defs, etc.)
+    // is rebuilt from the freshly-imported localStorage.
+    setTimeout(() => window.location.reload(), 700);
+  };
+  reader.readAsText(file);
+}
+
+function triggerImportPicker() {
+  let inp = document.getElementById('importAllInput');
+  if (!inp) {
+    inp = document.createElement('input');
+    inp.type = 'file';
+    inp.id = 'importAllInput';
+    inp.accept = '.json,application/json';
+    inp.style.display = 'none';
+    inp.addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) importAllData(f);
+      inp.value = '';
+    });
+    document.body.appendChild(inp);
+  }
+  inp.click();
+}
+
 // Apply one setting. Each case is intentionally explicit (rather than a
 // table-driven approach) because the underlying behaviours differ —
 // some need a re-render across all panes, some flip a body class, some

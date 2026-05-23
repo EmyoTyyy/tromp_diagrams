@@ -35,16 +35,22 @@ html[data-theme="dracula"] {
   --danger: #ff5555;
 }
 html[data-theme="light"] {
-  --bg: #f5f6f8;
+  /* Warm "paper" palette: off-white background, white cards that
+     stand slightly proud, soft warm borders. The accent is a deep
+     dusty teal instead of saturated blue (which fought the rest of
+     the UI on the previous iteration), and accent-2 is a muted sage.
+     Picked to read as a deliberate light theme rather than an
+     inverted dark one. */
+  --bg: #f7f5ee;
   --surface: #ffffff;
-  --surface-2: #ecedf1;
-  --border: #d3d6dd;
-  --text: #1c1f26;
-  --muted: #6a7180;
-  --accent: #2563eb;
-  --accent-2: #16a34a;
-  --warn: #d97706;
-  --danger: #dc2626;
+  --surface-2: #efece1;
+  --border: #d6d1bf;
+  --text: #1c1a14;
+  --muted: #6d685a;
+  --accent: #1f6f7a;
+  --accent-2: #5e8a4a;
+  --warn: #b46a1a;
+  --danger: #b13a3a;
 }
 html[data-theme="monokai"] {
   --bg: #272822;
@@ -492,6 +498,24 @@ input[type=range]:active::-moz-range-thumb {
   font-family: Georgia, serif;
   font-size: 1.1rem;
   color: var(--accent);
+}
+
+/* Achievement-unlock toast: clickable, jumps to /achievements/.
+   Visual nudge ("→") on the right + hover lift make the
+   click-affordance obvious without being shouty. */
+.site-toast.ach-toast { transition: opacity .22s, transform .22s, border-color .15s, box-shadow .15s; }
+.site-toast.ach-toast:hover {
+  border-color: var(--accent);
+  box-shadow: 0 8px 28px rgba(0,0,0,.5), 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.ach-toast-arrow {
+  color: var(--muted);
+  margin-left: 4px;
+  transition: transform .15s, color .15s;
+}
+.site-toast.ach-toast:hover .ach-toast-arrow {
+  color: var(--accent);
+  transform: translateX(3px);
 }
 
 /* ── Fun fact strip (site.js) ─────────────────────────── */

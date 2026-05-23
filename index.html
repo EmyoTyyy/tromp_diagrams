@@ -246,6 +246,43 @@ function toggleNav() {
   }, { passive: true });
   update();
 })();
+
+// 3D-light effect on the hero λ.
+//   Treat the mouse position as a light source; the stacked
+//   text-shadow on .hero-bg-lambda is driven by --lx/--ly which
+//   point AWAY from the cursor. The CSS layers extrude outward in
+//   that direction for a chunky 3D drop-shadow that follows the
+//   pointer. We use the hero's own bounding rect so the effect is
+//   inert outside it (no shadow updates from scrolling, etc.).
+(function() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const hero = document.querySelector('.page-home .hero');
+  const lam  = hero && hero.querySelector('.hero-bg-lambda');
+  if (!hero || !lam) return;
+  let raf = 0, pendingX = 0, pendingY = 0;
+  function apply() {
+    raf = 0;
+    lam.style.setProperty('--lx', pendingX.toFixed(3));
+    lam.style.setProperty('--ly', pendingY.toFixed(3));
+  }
+  hero.addEventListener('mousemove', (e) => {
+    const r = lam.getBoundingClientRect();
+    const cx = r.left + r.width  / 2;
+    const cy = r.top  + r.height / 2;
+    // Half the hero's smaller dimension as the unit-length cap, so
+    // mouse at the edge → magnitude 1, at the centre → 0.
+    const radius = Math.min(r.width, r.height) / 2 || 1;
+    pendingX = Math.max(-1, Math.min(1, (e.clientX - cx) / radius));
+    pendingY = Math.max(-1, Math.min(1, (e.clientY - cy) / radius));
+    if (!raf) raf = requestAnimationFrame(apply);
+  });
+  hero.addEventListener('mouseleave', () => {
+    // Ease back to the un-lit "flat" state so the shadow doesn't get
+    // stuck off-axis when the cursor leaves the hero region.
+    pendingX = 0; pendingY = 0;
+    if (!raf) raf = requestAnimationFrame(apply);
+  });
+})();
 </script>
 
 <!-- Renderer modules so the inline diagrams can be drawn from real λ-terms -->
@@ -493,13 +530,16 @@ function toggleNav() {
       const dt = Math.min(0.05, (now - lastTime) / 1000);
       lastTime = now;
 
-      // Compute progress through the section: 0 when top reaches viewport
-      // top, 1 when section bottom reaches viewport bottom.
+      // Progress through the section as it traverses the viewport.
+      // 0 when the section's top just enters from the bottom of the
+      // viewport; 1 when the section's bottom just leaves at the top.
+      // Works for any section height — no longer requires the section
+      // to be pinned or even taller than the viewport.
       const rect = sectionEl.getBoundingClientRect();
       const vh = window.innerHeight;
-      const total = sectionEl.offsetHeight - vh;
-      let progress = total > 0 ? (-rect.top) / total : 0;
-      progress = Math.max(0, Math.min(1, progress));
+      const total = vh + sectionEl.offsetHeight;       // full travel distance
+      const elapsed = vh - rect.top;                   // 0 at entry, total at exit
+      let progress = Math.max(0, Math.min(1, elapsed / total));
 
       // Only render when the pinned block is in (or near) the viewport.
       const inView = rect.bottom > -100 && rect.top < vh + 100;
