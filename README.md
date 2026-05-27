@@ -4,7 +4,7 @@ A static educational website for exploring lambda calculus through **Tromp diagr
 
 The project is intentionally lightweight: it runs directly in the browser with plain HTML, CSS, and JavaScript. There is no build step, package manager, backend, database, or external runtime dependency.
 
-Tromp Diagrams turns lambda-calculus expressions into visual diagrams and lets the user inspect how expressions reduce under different evaluation strategies. The site includes a multi-pane visualizer with several β-reduction strategies, custom user definitions, PNG/WebM exports, shareable URLs, a guess-the-expression game, a reduction-tree comparison view, and reference pages for syntax, encodings, combinators, history, and the halting problem.
+Tromp Diagrams turns lambda-calculus expressions into visual diagrams and lets the user inspect how expressions reduce under different evaluation strategies. The site includes a multi-pane visualizer with several β-reduction strategies, custom user definitions, PNG/WebM exports, shareable URLs, a guess-the-expression game, a reduction-tree comparison view, a headless fast-reduction "God mode", a theme picker, an unlockable achievement system, and reference pages for syntax, encodings, combinators, history, and the halting problem.
 
 ---
 
@@ -42,6 +42,7 @@ http://localhost:8000
 | Halting | `halting/` | Step-by-step explanation of the halting problem in lambda calculus. |
 | History | `history/` | Historical overview of lambda calculus, Church, Curry, computability, and related foundations. |
 | Cheatsheet | `cheatsheet/` | Compact reference page for syntax, reduction rules, encodings, BLC, shortcuts, and common definitions. |
+| Achievements | `achievements/` | Badge grid for the unlockable milestone system. Shows progress, locked hints, and gold-tier "super hard" badges. |
 | About | `about/` | Project motivation, credits, stack, references, and author information. |
 | Legacy / alternate page | `tromp.html` | Additional standalone Tromp page kept in the project. |
 
@@ -119,7 +120,7 @@ Built-in definitions live in `js/defs.js`.
 
 The project currently includes definitions for:
 
-- classic combinators: `I`, `K`, `S`, `B`, `C`, `W`, `Y`, `Z`, `omega`, `id`;
+- classic combinators: `I`, `K`, `S`, `B`, `C`, `W`, `D`, `Y`, `Z`, `omega`, `id`;
 - booleans: `true`, `false`, `not`, `and`, `or`, `xor`, `if`;
 - pairs: `pair`, `fst`, `snd`;
 - Church numerals and arithmetic: `succ`, `plus`, `mult`, `pow`, `pred`, `sub`, `iszero`, `leq`, `eq`;
@@ -181,9 +182,10 @@ The Visualizer is the core tool of the project.
 Main features:
 
 - multiple independent panes;
-- per-pane expression editor;
+- per-pane expression editor with foldable λ-bodies;
 - autocomplete for known definitions;
 - expression history;
+- autosaved input draft (survives accidental navigation);
 - beta-reduction step/run/reset controls;
 - selectable reduction strategy;
 - click-to-reduce redex interaction;
@@ -192,14 +194,25 @@ Main features:
 - explicit-parentheses toggle;
 - synchronized controls across panes;
 - fullscreen pane view;
-- presentation mode;
+- single-pane presentation mode;
+- "God mode" headless fast-reduction (no diagram, no prettifier, animated loader);
 - find and replace inside expressions;
 - copy expression;
 - shareable URLs;
 - PNG export;
 - WebM recording of reductions;
 - Binary Lambda Calculus output;
-- recognition of known encoded values.
+- recognition of known encoded values;
+- pinnable toolbar shortcuts (scale, speed, color, parens, sync, …);
+- settings modal with reduction defaults and toolbar pinning;
+- export / import of all local data as a single JSON file;
+- corner stats HUD in presentation mode (steps + elapsed time).
+
+### God mode
+
+God mode is a headless fast-reduction path for runs that would be too slow to animate or pretty-print. While active the pane hides its diagram and prettifier, runs the reducer in fixed batches (500 steps per frame), and shows a centered animated loader. On completion the final term is parsed, drawn, and auto-fitted to the viewport — useful for terms that take tens of thousands of β-steps before normalising.
+
+The implementation lives in `runGodMode()` inside `js/ui/pane.js`. The loader markup uses an inline SVG mask + filter (kept verbatim from `Ressources/test.html`).
 
 ### Reduction strategies
 
@@ -217,6 +230,51 @@ js/core/reduce.js
 ```
 
 Substitution is capture-avoiding: bound variables are renamed when needed to avoid variable capture.
+
+## Themes
+
+The site ships with a small set of CSS-variable palettes, switchable from the nav drawer on any page.
+
+Available themes:
+
+- **Cyan** (default, dark) — the original palette;
+- **Dracula** — classic Dracula colors;
+- **Monokai** — classic Monokai colors;
+- **Rose** — warm pink/peach dark theme;
+- **Light** — warm-paper light theme.
+
+Theme behavior:
+
+- the picker lives in the nav drawer of every page and renders three-dot swatches per theme;
+- hovering a swatch previews the theme live; clicking commits and persists the choice;
+- the choice is stored in `localStorage` under `tromp_theme_v1` and applied as early as possible on every page to avoid a flash of the wrong palette;
+- on the very first visit (no saved choice), `prefers-color-scheme: light` is honored and the Light theme is selected automatically.
+
+Palettes are defined as `html[data-theme="<name>"]` blocks in `css/theme.css`. Adding a new theme is a matter of adding a palette block there and an entry in the `THEMES` array in `js/site.js`.
+
+## Achievements
+
+The site has 29 unlockable milestones — small badges that fire when the user does something interesting in the visualizer, play mode, the tree page, or while browsing reference pages.
+
+Examples:
+
+- first-draw, first-step, normal-form;
+- using `Y` or `omega`;
+- mega-reduction runs;
+- back-stepping, find/replace, copy, PNG export, sharing;
+- play-daily, play-extreme, daily-perfect, daily-streak-7;
+- god mode, multi-pane, fullscreen, presentation;
+- visiting every reference page (globetrotter);
+- seeing every theme (all-themes);
+- using every classic combinator (combinator-master);
+- the Konami code easter egg;
+- typing `S K I B I D I` as an expression (skibidi);
+- gold-tier "super hard" badges with a shimmer effect;
+- `Completionist` (`all-clear`) — always sorted last and unlocks when every other badge is earned.
+
+Achievement state lives in `localStorage` under `tromp_achievements_v1` (plus `tromp_combs_used_v1` and `tromp_seen_themes_v1` for the multi-event ones). Unlock popups are clickable and navigate to `/achievements/`, the badge grid page. Locked badges hide their icon and hint behind a `?` placeholder until earned.
+
+The catalogue and unlock helper live in `js/achievements.js`.
 
 ## Tree mode
 
@@ -264,14 +322,7 @@ Play mode includes:
 - free color-coding mode (no scoring penalty);
 - daily streak tracking.
 
-Stored keys include:
-
-```txt
-tromp_play_score
-tromp_play_best
-tromp_play_stats
-tromp_play_daily
-```
+Play mode persists per-mode bests, daily state, and long-running stats in `localStorage` — see the [Browser storage](#browser-storage) table for the exact keys.
 
 ## Encodings and recognition
 
@@ -329,11 +380,13 @@ This depends on browser support. If recording fails, test in a modern Chromium-b
 
 ## Keyboard shortcuts
 
-The Visualizer includes a shortcuts modal opened with:
+Both the Visualizer and Tree pages include a shortcuts modal opened with:
 
 ```txt
 ?
 ```
+
+It lists every shortcut for the current page and can also be opened from the toolbar.
 
 Important Visualizer shortcuts:
 
@@ -364,8 +417,10 @@ Tree mode shortcuts:
 |---|---|
 | `Space` / `→` | Step the tree |
 | `R` | Run/pause tree mode |
+| `S` | Reset (re-parse the expression and replay from scratch) |
 | `F` | Fit tree to view |
 | `M` | Toggle minimap |
+| `?` | Open shortcuts list |
 | `Esc` | Close fullscreen node or clear highlight |
 
 Play mode shortcuts use `Alt` so they do not interfere with typing:
@@ -394,6 +449,7 @@ Site tromp/
 ├── halting/index.html
 ├── history/index.html
 ├── cheatsheet/index.html
+├── achievements/index.html
 ├── about/index.html
 ├── sitemap.xml
 ├── robots.txt
@@ -405,6 +461,8 @@ Site tromp/
 │   └── visualizer.css
 └── js/
     ├── app.js
+    ├── site.js               # nav drawer, theme picker, cross-page toasts
+    ├── achievements.js       # 29-badge catalogue + unlock helper + persistence
     ├── defs.js
     ├── core/
     │   ├── ast.js
@@ -479,23 +537,35 @@ These files implement the game and reduction-tree pages.
 | Change custom definition import/export | `js/defs.js` and related sidebar/export code |
 | Change Play puzzles | `js/modes/play.js` |
 | Change Tree physics/layout | `js/modes/tree.js` |
+| Add / tweak an achievement | `js/achievements.js` |
+| Add a theme | `css/theme.css` (palette block) + `js/site.js` (`THEMES` array) |
+| Change nav drawer / theme picker / cross-page toasts | `js/site.js` |
 | Change global colors/theme | `css/theme.css` |
 | Change page-specific article layouts | `css/pages.css` |
 | Change Visualizer layout | `css/visualizer.css` |
 
 ## Browser storage
 
-The project uses `localStorage` for user-facing persistence.
+The project uses `localStorage` for user-facing persistence. All keys are namespaced with the `tromp_` prefix so an export covers them cleanly.
 
-Examples:
+| Key | Purpose |
+|---|---|
+| `tromp_visualizer_settings_v1` | Visualizer settings (reduction defaults, pinned toolbar items, …) |
+| `tromp_theme_v1` | Selected color theme |
+| `tromp_achievements_v1` | Unlocked achievement IDs |
+| `tromp_combs_used_v1` | Combinators used so far (powers `combinator-master`) |
+| `tromp_seen_themes_v1` | Themes seen so far (powers `all-themes`) |
+| `tromp_diagram_user_defs` | Custom user definitions |
+| `tromp_diagram_expr_history` | Expression history |
+| `tromp_draft_v1` | Autosaved current input draft |
+| `tromp_iota_unlocked` | Iota easter-egg state |
+| `tromp_play_bests_v2` | Play mode per-mode best scores |
+| `tromp_play_daily` | Daily puzzle state and streak |
+| `tromp_play_stats` | Long-running play stats |
 
-- custom definitions;
-- expression history;
-- play mode best score;
-- play mode stats;
-- daily puzzle streaks.
+The Visualizer settings modal includes **Export all data** and **Import all data** buttons that round-trip every key above as a single JSON blob (`tromp-data-YYYY-MM-DD.json`).
 
-Clearing browser data may remove these values. Export custom definitions before clearing storage.
+Clearing browser data may remove these values. Use the data export before clearing storage, or before moving the project to another device.
 
 ## Limitations
 

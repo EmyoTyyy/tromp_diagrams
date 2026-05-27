@@ -421,7 +421,24 @@ const TROMP_LS_KEYS = [
   'tromp_play_bests_v2',
   'tromp_play_daily',
   'tromp_play_stats',
+  'tromp_draft_v1',
 ];
+
+// ── Draft autosave ─────────────────────────────
+// Persists the active pane's input text so an accidental navigation
+// mid-edit doesn't lose work. Debounced to avoid pounding localStorage
+// on every keystroke.
+const DRAFT_KEY = 'tromp_draft_v1';
+let _draftSaveTimer = null;
+function saveDraftDebounced(text) {
+  if (_draftSaveTimer) clearTimeout(_draftSaveTimer);
+  _draftSaveTimer = setTimeout(() => {
+    try { localStorage.setItem(DRAFT_KEY, text || ''); } catch {}
+  }, 400);
+}
+function loadDraft() {
+  try { return localStorage.getItem(DRAFT_KEY) || ''; } catch { return ''; }
+}
 
 function exportAllData() {
   const blob = { _format: 'tromp-data', _version: 1, _exportedAt: new Date().toISOString(), data: {} };
@@ -710,6 +727,12 @@ function initVisualizer() {
   if (urlExpr) {
     first.editor.setValue(urlExpr);
     first.draw();
+  } else {
+    // Restore the autosaved draft so an accidental navigation doesn't
+    // cost mid-edit work. Don't auto-draw — half-typed text would just
+    // surface a parse error the user has to dismiss.
+    const draft = loadDraft();
+    if (draft.trim()) first.editor.setValue(draft);
   }
   // ?konami=1 — site.js redirected here from the cheat code. Greet the
   // user with the same toast so they know the term they're staring at

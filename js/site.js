@@ -164,14 +164,23 @@
     }
   }
   function loadTheme() {
-    try { return localStorage.getItem(THEME_KEY) || ''; }
-    catch { return ''; }
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      // Explicit prior choice (including '' for default) — honor it.
+      if (saved !== null) return saved;
+      // No prior choice — defer to the OS preference on first visit.
+      if (window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: light)').matches) {
+        return 'light';
+      }
+      return '';
+    } catch { return ''; }
   }
   function saveTheme(id) {
-    try {
-      if (id) localStorage.setItem(THEME_KEY, id);
-      else localStorage.removeItem(THEME_KEY);
-    } catch { /* private mode — skip */ }
+    // Always record the choice (even '' for default) so the OS-derived
+    // fallback in loadTheme() doesn't override a deliberate selection.
+    try { localStorage.setItem(THEME_KEY, id || ''); }
+    catch { /* private mode — skip */ }
   }
   // Apply the saved theme as soon as possible so there's no flash of
   // the default palette on slow loads. Re-run on DOMContentLoaded too
@@ -208,6 +217,18 @@
       saveTheme(id);
       wrap.querySelectorAll('.theme-swatch').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+    });
+    // Hover preview: applyTheme without saving, so users can taste each
+    // palette before committing. mouseover bubbles up from individual
+    // swatches; mouseleave on the wrap reverts to the saved choice
+    // (won't fire when crossing between sibling swatches).
+    wrap.addEventListener('mouseover', (e) => {
+      const btn = e.target.closest('.theme-swatch');
+      if (!btn) return;
+      applyTheme(btn.getAttribute('data-theme-id') || '');
+    });
+    wrap.addEventListener('mouseleave', () => {
+      applyTheme(loadTheme());
     });
   }
   window.applyTheme = applyTheme;

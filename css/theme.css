@@ -409,7 +409,7 @@ input[type=range]:active::-moz-range-thumb {
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  background: #0a0a12;
+  background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
   padding: 5px 9px;

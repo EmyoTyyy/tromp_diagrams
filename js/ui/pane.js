@@ -296,6 +296,9 @@ class Pane {
       activePane = this;
       updateAutocompleteFor(this);
       this.validate();
+      if (typeof saveDraftDebounced === 'function') {
+        saveDraftDebounced(this.editor.getValue());
+      }
     });
     this.editor.onEnter(() => this.draw());
 
