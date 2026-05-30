@@ -357,6 +357,17 @@ body { padding: 24px 18px; }
   min-height: 1em;
 }
 .input-error.suggestion { color: var(--warn); }
+/* Soft confirmation that the autosaved draft just came back. Held for
+   ~1.9s then faded so it doesn't sit there permanently — the JS clears
+   the text after the animation finishes. */
+.input-error.draft-hint {
+  color: var(--muted);
+  animation: draft-hint-fade 2500ms forwards;
+}
+@keyframes draft-hint-fade {
+  0%, 76% { opacity: 1; }
+  100% { opacity: 0; }
+}
 
 /* ── Find bar ─────────────────────────────────── */
 .find-bar {

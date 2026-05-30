@@ -14,6 +14,10 @@
   --accent-2: #80e0a0;
   --warn: #f0c060;
   --danger: #f08080;
+  /* Text color when sitting directly on --accent (buttons, active toggles).
+     Light themes that use a dark accent must override this to a light value
+     or the text becomes unreadable. */
+  --on-accent: #0a0a12;
   --dur: 800ms;
   --ease: cubic-bezier(0.4, 0.0, 0.2, 1);
 }
@@ -51,6 +55,8 @@ html[data-theme="light"] {
   --accent-2: #5e8a4a;
   --warn: #b46a1a;
   --danger: #b13a3a;
+  /* Dark teal accent — needs a light text color sitting on it. */
+  --on-accent: #f7f5ee;
 }
 html[data-theme="monokai"] {
   --bg: #272822;
@@ -207,7 +213,7 @@ input[type=range]:active::-moz-range-thumb {
 /* ── Buttons ─────────────────────────────────────── */
 .btn {
   background: var(--accent);
-  color: #0a0a12;
+  color: var(--on-accent);
   border: none;
   font-family: inherit;
   font-size: 0.72rem;
@@ -235,7 +241,7 @@ input[type=range]:active::-moz-range-thumb {
 }
 .btn-toggle.active {
   background: var(--accent);
-  color: #0a0a12;
+  color: var(--on-accent);
   border-color: var(--accent);
 }
 

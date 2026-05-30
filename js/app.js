@@ -732,7 +732,25 @@ function initVisualizer() {
     // cost mid-edit work. Don't auto-draw — half-typed text would just
     // surface a parse error the user has to dismiss.
     const draft = loadDraft();
-    if (draft.trim()) first.editor.setValue(draft);
+    if (draft.trim()) {
+      first.editor.setValue(draft);
+      // One-line fade-out below the editor so the restoration is visible
+      // (text just reappearing on its own can read as a browser bug).
+      const hint = first.errEl;
+      if (hint) {
+        const HINT_TEXT = '✓ Draft restored';
+        hint.classList.add('draft-hint');
+        hint.textContent = HINT_TEXT;
+        setTimeout(() => {
+          // Only clear if the hint hasn't been replaced by a real
+          // validation message in the meantime.
+          if (hint.textContent === HINT_TEXT) {
+            hint.classList.remove('draft-hint');
+            hint.textContent = '';
+          }
+        }, 2600);
+      }
+    }
   }
   // ?konami=1 — site.js redirected here from the cheat code. Greet the
   // user with the same toast so they know the term they're staring at
@@ -834,7 +852,16 @@ function initVisualizer() {
     }
   });
 
+  // Refit every drawn pane on window resize so the diagram doesn't drift
+  // off-centre after a window resize, tablet rotation, or sidebar toggle.
+  // Debounced because the resize event fires on every pixel of a drag.
+  let _resizeTimer = null;
   window.addEventListener('resize', () => {
-    if (inPresentation) setTimeout(() => { for (const p of getAllPanes()) p.autoFit(); }, 50);
+    if (_resizeTimer) clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(() => {
+      for (const p of getAllPanes()) {
+        if (p.currentAST) p.autoFit();
+      }
+    }, 150);
   });
 }
