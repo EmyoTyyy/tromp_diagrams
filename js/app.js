@@ -742,12 +742,11 @@ function initVisualizer() {
         hint.classList.add('draft-hint');
         hint.textContent = HINT_TEXT;
         setTimeout(() => {
-          // Only clear if the hint hasn't been replaced by a real
-          // validation message in the meantime.
-          if (hint.textContent === HINT_TEXT) {
-            hint.classList.remove('draft-hint');
-            hint.textContent = '';
-          }
+          // Always strip the class so a stale .draft-hint can't tint a
+          // later validation message; only clear textContent if the
+          // hint hasn't already been overwritten by a real message.
+          hint.classList.remove('draft-hint');
+          if (hint.textContent === HINT_TEXT) hint.textContent = '';
         }, 2600);
       }
     }

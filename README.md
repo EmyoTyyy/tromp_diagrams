@@ -254,7 +254,7 @@ Palettes are defined as `html[data-theme="<name>"]` blocks in `css/theme.css`. A
 
 ## Achievements
 
-The site has 29 unlockable milestones — small badges that fire when the user does something interesting in the visualizer, play mode, the tree page, or while browsing reference pages.
+The site has 35 unlockable milestones — small badges that fire when the user does something interesting in the visualizer, play mode, the tree page, or while browsing reference pages.
 
 Examples:
 
@@ -395,6 +395,7 @@ Important Visualizer shortcuts:
 | `Ctrl + Enter` | Draw the current expression |
 | `Tab` | Accept autocomplete suggestion |
 | `Ctrl + F` | Open find/replace in the active pane |
+| `?` | Open the full shortcuts list |
 | `Esc` | Close autocomplete, find bar, fullscreen, or presentation mode |
 | Mouse wheel | Zoom diagram |
 | Click + drag | Pan diagram |
